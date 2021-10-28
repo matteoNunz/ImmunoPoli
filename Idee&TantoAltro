@@ -1,0 +1,14 @@
+IPOTESI:
+* ogni persona fornisce sempre dati veritieri
+* l'attributo 'App' in persona fa riferimento al fatto che la persona possiede o meno un'applicazione di tracciamento
+* tempo di incubazione covid + tempo di manifestazione dei sintomi + tempo di ricezione dell'esito del tampone = 7 gg
+* cancellazione dei dati relativi ai contatti avuti precedenti a 10 gg
+* ID univoco per identificare persone e luoghi
+
+POSSIBLE QUERIES :
+* mostrare tutti i contagi avvenuti direttamente e indirettamente
+* mostrare la probabilità di contagio in un luogo / ora
+
+POSSIBLE COMMANDS:
+* aggiornamento tracciamento con applicazione
+* aggiornamento nuovo test positivo
