@@ -264,13 +264,9 @@ def readHours():
     :return: a list containing the hours
     """
     hoursRead = []
-    with open("Files/Hours.txt") as f:
-        while True:
-            hour = f.readline()
-            # If EoF
-            if not hour:
-                break
-            hoursRead.append(hour.rstrip('\n'))
+    with open("Files/Hours.txt" , 'r', encoding = 'utf8') as f:
+        for line in f:
+            hoursRead.append(line.rstrip('\n'))
     f.close()
     return hoursRead
 
@@ -281,13 +277,9 @@ def readNames():
     :return: a list containing the names
     """
     namesRead = []
-    with open("Files/Names.txt") as f:
-        # while True:
-            name = f.readline()
-            # If EoF
-            # if name is None:
-            #    break
-            namesRead.append(name.rstrip('\n'))
+    with open("Files/Names.txt" , 'r', encoding = 'utf8') as f:
+        for line in f:
+            namesRead.append(line.rstrip('\n'))
     f.close()
     return namesRead
 
@@ -298,13 +290,9 @@ def readSurnames():
     :return: a list containing the surnames
     """
     surnamesRead = []
-    with open("Files/Surnames.txt") as f:
-        while True:
-            surname = f.readline()
-            # If EoF
-            if not surname:
-                break
-            surnamesRead.append(surname.rstrip('\n'))
+    with open("Files/Surnames.txt" , 'r', encoding = 'utf8') as f:
+        for line in f:
+            surnamesRead.append(line.rstrip('\n'))
     f.close()
     return surnamesRead
 
@@ -315,15 +303,12 @@ def readLocations():
     :return: a list containing the locations
     """
     locationsRead = []
-    with open("Files/PublicPlaces.txt") as f:
-        # while True:
-            locationDetails = f.readline().split(",")
-            # If EoF
-            #if not locationDetails:
-            #    break
+    with open("Files/PublicPlaces.txt" , 'r', encoding = 'utf8') as f:
+        for line in f:
+            locationDetails = line.split(",")
             details = []
-            for detail in locationDetails:
-                details.append(detail.rstrip('\n'))
+            for locationDetail in locationDetails:
+                details.append(locationDetail.rstrip('\n'))
             locationsRead.append(details)
     f.close()
     return locationsRead
@@ -346,6 +331,6 @@ if __name__ == '__main__':
     print("Hours are: " + str(hours))
     print("Locations are: " + str(locations))
     print("Number of hours is: " + str(len(hours)))
-    print("Number of names is: " + str(len(surnames)))
-    print("Number of surnames is: " + str(len(names)))
+    print("Number of names is: " + str(len(names)))
+    print("Number of surnames is: " + str(len(surnames)))
     print("Number of locations is: " + str(len(locations)))
