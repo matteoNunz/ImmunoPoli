@@ -1,0 +1,88 @@
+Restaurant , Pizzeria Lobidu
+Restaurant , Il Trancio Magico
+Restaurant , Luxale
+Restaurant , Filante
+Restaurant , Elisir
+Restaurant , Casereccio
+Restaurant , Acqua Viva
+Restaurant , Hiro
+Restaurant , Le Tentazioni
+Restaurant , Kanji Evo
+Restaurant , Il Cenacolo
+Restaurant , Trattoria dall'Oste
+Restaurant , Assaje
+Restaurant , Sorbillo
+Restaurant , Gennaro Rapido
+Restaurant , Cracco
+Restaurant , Officina Dell'Hamburger
+Restaurant , Il Delfino
+Restaurant , Marghe
+Restaurant , Ghe Pensi Mi
+Restaurant , Da Salvatore
+Restaurant , Ocean Break
+Restaurant , American Graffiti
+Restaurant , El Carnicero
+Restaurant , Osteria Brunello
+Restaurant , Mamma Milano
+Gym    , Gymnic 
+Gym    , Quinto elemento
+Gym    , Fit Active
+Gym    , MioCLub
+Gym    , Dinamica Fitness
+Gym    , YouFit
+Gym    , Keasy Fit
+Gym    , Virgin Active
+Gym    , 20 hours fit
+Gym    , Mc Fit
+Gym    , Fit Express
+Gym    , Centro Sportivo Giuriati
+Swimming Poll    , MioCLub
+Swimming Poll    , Piscina Piola
+Swimming Poll    , Idroscalo
+Supermarket , Carrefour
+Supermarket , Esselunga
+Supermarket , Lidl
+Supermarket , Carrefour Express
+Supermarket , Pam
+Supermarket , MD
+Supermarket , Penny Market
+Supermarket , Tigotà
+Supermarket , Acqua e Sapone
+Supermarket , Iper
+Supermarket , Super Dì
+Supermarket , Iper Futura
+Supermarket , Maxi Futura
+Supermarket , Conad
+Supermarket , Coop
+Supermarket , Iper Coop
+Supermarket , Tigros
+Supermarket , Arcaplanet
+Bar    , Street bar
+Bar    , Birrificio Lambrate
+Bar    , Matricola
+Bar    , Terrazza Aperol
+Bar    , Terrazza 21
+Bar    , Ceresio 7
+Bar    , BanghraBar
+Bar    , Garage
+Bar    , La Caccia
+Bar    , Garden
+Bar    , Bar Roma
+Bar    , Dolce Far Niente
+Bar    , In & Out
+Bar    , Gran Caffè
+Bar    , La Prosciutteria
+Bar    , Trapizzino
+Bar    , Tigella's
+Bar    , Tempesta
+University , Politecnico di Milano
+University , Politecnico di Torino
+University , Bocconi
+University , Normale di Pisa
+University , Politecnico di Bari
+University , Bicocca
+University , Statale di Milano
+
+
+
+
