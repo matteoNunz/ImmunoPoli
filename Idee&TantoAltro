@@ -3,12 +3,20 @@ IPOTESI:
 * l'attributo 'App' in persona fa riferimento al fatto che la persona possiede o meno un'applicazione di tracciamento
 * tempo di incubazione covid + tempo di manifestazione dei sintomi + tempo di ricezione dell'esito del tampone = 7 gg
 * cancellazione dei dati relativi ai contatti avuti precedenti a 10 gg
-* ID univoco per identificare persone e luoghi
+* ID univoco per identificare persone e luoghi --> aggiornato a 'strada + città' come identificativo univoco
+* ad un indirizzo è associata una e una sola famiglia o gruppo di conviventi --> una possibile soluzione per riuscire a modellare anche gli appartamenti che appartengono allo stesso palazzo (stesso indirizzo) è aggiungere un attributo che identifica il numero di appartamento 
+* il numero di dosi di vaccino effettuate non è esplicitato è reperibile tramite una count nella query 
 
-POSSIBLE QUERIES :
+
+POSSIBLE QUERIES:
 * mostrare tutti i contagi avvenuti direttamente e indirettamente
 * mostrare la probabilità di contagio in un luogo / ora
 
 POSSIBLE COMMANDS:
 * aggiornamento tracciamento con applicazione
 * aggiornamento nuovo test positivo
+
+APP: 
+* nella schermata --> iniziale scelta | APP MANAGER | o | USER |
+* APP MANAGER --> query di analisi, visualizzazione e aggiornamento dei dati + visualizzazione di alcuni trends 
+* USER --> dopo autenticazione --> visualizzare le informazioni personali e aggiornamento di esse + visualizzazione covid certification + posti visitati di recente + test effettuati con esito + segnalazioni 
