@@ -1,10 +1,33 @@
 """
 Date: 28/10/2021
 First sketch for a generator of data base structure for Neo4J
+
+Problem: there is a problem where name/surname are made by 2 words
 """
 
 import neo4j as nj
+from random import randint
+from enum import IntEnum
 import pandas as pd
+
+MAX_NUMBER_OF_FAMILY_MEMBER = 5
+NUMBER_OF_FAMILY = 5
+
+
+class PersonAttribute(IntEnum):
+    """
+    class enum for the attribute of a Person Node
+    """
+    NAME = 0
+    SURNAME = 1
+    # And so on...
+
+    @classmethod
+    def numberOfAttribute(cls):
+        numAttribute = 0
+        for attribute in PersonAttribute:
+            numAttribute += 1
+        return numAttribute
 
 
 def openConnection():
@@ -314,6 +337,118 @@ def readLocations():
     return locationsRead
 
 
+def createFamilies(namesList , surnamesList):
+    """
+    Method that initialize a list of all the family relationships
+    :return: a list of list (a list of family)
+    """
+    familiesList = []
+    surnameIndex = 0
+    for _ in range(0 , NUMBER_OF_FAMILY):
+        # Choose a size for the family
+        numberOfMembers = randint(1 , MAX_NUMBER_OF_FAMILY_MEMBER)
+        print("Number extracted is: " + str(numberOfMembers))
+        # Family will contain the name in pos 0 and the surname in pos 1
+        familyEl = [None] * numberOfMembers
+        casualFamily = False
+        for j in range(0 , len(familyEl)):
+            familyEl[j] = [None] * PersonAttribute.numberOfAttribute()
+            # Append a random name
+            familyEl[j][int(PersonAttribute.NAME)] = str(namesList[randint(0 , len(names) - 1)])
+            # Append the next surname
+            familyEl[j][int(PersonAttribute.SURNAME)] = str(surnamesList[surnameIndex])
+            # In every family there will be at least 2 surnames
+            # In case of friends living together there is a probability of 30% to have more than 2 surnames in a family
+            if j == 0 and randint(0 , 100) < 30:  # Family of not familiar
+                casualFamily = True
+            if j == 0 or (numberOfMembers > 2 and casualFamily):
+                surnameIndex += 1
+                if surnameIndex >= len(surnames):
+                    surnameIndex = 0
+        familiesList.append(familyEl)
+        surnameIndex += 1
+        if surnameIndex >= len(surnames):
+            surnameIndex = 0
+    return familiesList
+
+
+def createNodesFamily(familiesList):
+    """
+    Method that append some command to the general query
+    :param familiesList: is the list of families
+    :return: nothing
+    """
+    creationQuery = []       # Query that will contains all the queries for the node creation
+    relationshipsQuery = []  # Query that will contains all the queries for the relationship creation
+    for familyEl in familiesList:
+        for memberEl in familyEl:
+            currentQuery = (
+                "CREATE (p:Person {name: '" + str(memberEl[int(PersonAttribute.NAME)]) + "' , surname: '" +
+                str(memberEl[int(PersonAttribute.SURNAME)]) + "'}); "
+            )
+            creationQuery.append(currentQuery)
+        # Create the name of the house
+        memberFamily = familyEl[0]
+        familyName = memberFamily[PersonAttribute.NAME] + " " + memberFamily[PersonAttribute.SURNAME] + " house"
+        currentQuery = (
+            "CREATE (l:Location {name: '" + str(familyName) + "'}); "
+        )
+        creationQuery.append(currentQuery)
+
+        # Create the LIVE relationships
+        for memberEl in familyEl:
+            currentQuery = (
+                "MATCH (p:Person) , (l:Location) "
+                "WHERE p.name = '" + str(memberEl[int(PersonAttribute.NAME)]) +
+                "' AND p.surname = '" + str(memberEl[int(PersonAttribute.SURNAME)]) + "' AND l.name = '"
+                + str(familyName) + "' "
+                "CREATE (p)-[:LIVE]->(l);"
+            )
+            relationshipsQuery.append(currentQuery)
+
+    return creationQuery , relationshipsQuery
+
+
+def runQuery(tx , query , isReturn = False):
+    """
+    Method that runs a generic query
+    :param tx: is the transaction
+    :param query: is the query to perform
+    :param isReturn: if True return the results, return nothing otherwise
+    """
+    result = tx.run(query)
+
+    if isReturn:
+        return result
+
+
+def runQueryWrite(driver , queryList):
+    """
+    Method that run a generic query
+    :param driver: is the connection to the database
+    :param query: is the query to run -> it's already completed
+    :return: nothing
+    """
+    for query in queryList:
+        print("Executing query: ")
+        print(query)
+        print("Query length is: " + str(len(query)))  # toDo: that's the problem
+        with driver.session() as s:
+            s.write_transaction(runQuery , query)
+
+
+def runQueryRead(driver , query):
+    """
+    Method that run a generic query
+    :param driver: is the connection to the database
+    :param query: is the query to run -> it's already completed
+    :return: nothing
+    """
+    with driver.session() as session:
+        results = session.read_transaction(runQuery , query , True)
+    return results
+
+
 if __name__ == '__main__':
     # Read hours from the file
     hours = readHours()
@@ -328,9 +463,56 @@ if __name__ == '__main__':
     locations = readLocations()
     print("Locations read")
 
+    """
     print("Hours are: " + str(hours))
     print("Locations are: " + str(locations))
     print("Number of hours is: " + str(len(hours)))
     print("Number of names is: " + str(len(names)))
     print("Number of surnames is: " + str(len(surnames)))
     print("Number of locations is: " + str(len(locations)))
+    """
+
+    # Create the family list
+    families = createFamilies(names , surnames)
+    print("Families created")
+    print("Families are: ")
+
+    i = 0
+    for family in families:
+        print("Family number " + str(i))
+        for member in family:
+            print(member[int(PersonAttribute.NAME)] + " " + member[int(PersonAttribute.SURNAME)])
+        i += 1
+
+    # query is an attribute that will contain the whole query to instantiate the database
+    generalQuery = []
+
+    # Generate all the Person Nodes and the family relationships
+    cQuery , rQuery = createNodesFamily(families)
+    for subQuery in cQuery:
+        generalQuery.append(subQuery)
+    for subQuery in rQuery:
+        generalQuery.append(subQuery)
+    print("The final query is: ")
+    print(generalQuery)
+
+    # Open the connection
+    driver = openConnection()
+
+    # Delete the nodes already present
+    with driver.session() as session:
+        numberOfNodes = session.write_transaction(deleteAll)
+
+    # Generate the structure performing the families creation
+    runQueryWrite(driver , generalQuery)
+
+    # Verify the nodes are been created
+    with driver.session() as session:
+        numberOfNodes = session.read_transaction(countAll)
+    print("Number of nodes: " + str(numberOfNodes))
+
+    # Get the whole structure
+    with driver.session() as session:
+        graph = session.read_transaction(findAll)
+    print("The structure is: ")
+    print(graph)
