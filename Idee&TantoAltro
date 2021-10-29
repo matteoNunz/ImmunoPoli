@@ -20,3 +20,9 @@ APP:
 * nella schermata --> iniziale scelta | APP MANAGER | o | USER |
 * APP MANAGER --> query di analisi, visualizzazione e aggiornamento dei dati + visualizzazione di alcuni trends 
 * USER --> dopo autenticazione --> visualizzare le informazioni personali e aggiornamento di esse + visualizzazione covid certification + posti visitati di recente + test effettuati con esito + segnalazioni 
+
+Rapida info from Matteo (sennò mi dimentico)
+Per quanto riguarda la questione luogo facendo le query per generare il tutto mi sono accorto che al posto di Place
+    si possono considerare solo nodi che ereditano da Place mantenendo nodi Home e nodi Location dove la differenza
+    principale è la label, mentre il resto rimarrebbe uguale come abbiamo detto (tranne attributo nome e tipo)
+    In questo modo anche per query future è molto più easy distinguere i luoghi tra casa e luogo pubblico
