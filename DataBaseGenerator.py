@@ -14,6 +14,8 @@ import pandas as pd
 MAX_NUMBER_OF_FAMILY_MEMBER = 5
 NUMBER_OF_FAMILY = 10
 
+MAX_NUMBER_OF_CONTACT_PER_DAY = 10
+
 
 class PersonAttribute(IntEnum):
     """
@@ -260,8 +262,8 @@ def exampleFunction():
     print("The structure is: ")
     print(graph)
 
-    with driver.session() as session:
-        session.write_transaction(randomMatch)
+    #with driver.session() as session:
+    #    session.write_transaction(randomMatch)
 
     # Get the whole structure
     with driver.session() as session:
@@ -386,19 +388,33 @@ def createFamilies(namesList , surnamesList):
     return familiesList
 
 
-def randomMatch(tx):
+def createAppContact(d , pIds):
     """
     Method that creates random relationship
-    :param tx: is the transaction
+    :param d: is the connection (driver)
+    :param pIds: list of Person ids
     :return: nothing
     """
-    query = (
-        "MATCH (p1:Person) , (p2:Person) "
-        "WITH p1 , p2 "
-        "WHERE rand() < 0.1 AND p1 <> p2"
-        "MERGE (p1)-[:APP_CONTACT]-(p2)"
-    )
-    tx.run(query)
+    # Create the number of app contact for the day
+    numOfContact = randint(0 , MAX_NUMBER_OF_CONTACT_PER_DAY)
+
+    for _ in range(0 , numOfContact):
+        # Choose two random people
+        randomIndex = randint(0 , len(pIds) - 1)
+        pId1 = pIds[randomIndex]
+        randomIndex = randint(0 , len(pIds) -1 )
+        pId2 = pIds[randomIndex]
+        # Verify if it's the same node
+        if pId1 == pId2:
+            continue
+        query = (
+            "MATCH (p1:Person) , (p2:Person) "
+            "WHERE ID(p1) = " + str(pId1) + " AND ID(p2) = " + str(pId2) + " "
+            "MERGE (p1)-[:APP_CONTACT]-(p2)"
+        )
+        # Execute the query
+        with d.session() as s:
+            s.write_transaction(runQuery , query)
 
 
 def createNodesFamily(familiesList):
@@ -452,6 +468,23 @@ def createNodeLocations(locationsList):
         )
         locationsQuery.append(currentQuery)
     return locationsQuery
+
+
+def getPersonIds():
+    """
+    Method that retrieves all the ids of Person Node and convert it into int number
+    :return: a list of int corresponding to the ids
+    """
+    with driver.session() as s:
+        ids = s.write_transaction(getPersonId)
+    print(ids)
+
+    pIds = []
+    for idEl in ids:
+        pIds.append(idEl["ID(p)"])
+    print(pIds)
+
+    return pIds
 
 
 def getPersonId(tx):
@@ -576,9 +609,10 @@ if __name__ == '__main__':
     runQueryWrite(driver , generalQuery)
 
     # Generate the random contact with app tracing
-    with driver.session() as s:
-        personIds = s.write_transaction(getPersonId)
-    print(personIds)
+    # Take the ids
+    personIds = getPersonIds()
+    # Generate the relationships
+    createAppContact(driver , personIds)
 
     # Verify the nodes are been created
     with driver.session() as session:
