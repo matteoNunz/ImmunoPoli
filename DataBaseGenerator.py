@@ -3,6 +3,7 @@ Date: 28/10/2021
 First sketch for a generator of data base structure for Neo4J
 
 Problem: there is a problem where name/surname are made by 2 words
+Problem: if in the file there are empty lines at the end ---> error
 """
 
 import neo4j as nj
@@ -11,12 +12,12 @@ from enum import IntEnum
 import pandas as pd
 
 MAX_NUMBER_OF_FAMILY_MEMBER = 5
-NUMBER_OF_FAMILY = 5
+NUMBER_OF_FAMILY = 10
 
 
 class PersonAttribute(IntEnum):
     """
-    class enum for the attribute of a Person Node
+    Class enum for the attribute of a Person Node
     """
     NAME = 0
     SURNAME = 1
@@ -25,7 +26,23 @@ class PersonAttribute(IntEnum):
     @classmethod
     def numberOfAttribute(cls):
         numAttribute = 0
-        for attribute in PersonAttribute:
+        for _ in PersonAttribute:
+            numAttribute += 1
+        return numAttribute
+
+
+class LocationAttribute(IntEnum):
+    """
+    Class enum for the attribute of a Location
+    """
+    TYPE = 0
+    NAME = 1
+    # and so on ...
+
+    @classmethod
+    def numberOfAttribute(cls):
+        numAttribute = 0
+        for _ in LocationAttribute:
             numAttribute += 1
         return numAttribute
 
@@ -78,22 +95,6 @@ def createFriendOf(tx, name, friend):
     )
 
     tx.run(query, name=name, friend=friend)
-
-
-def randomMatch(tx):
-    """
-    Method that creates random relationship
-    :param tx: is the transaction
-    :return: nothing
-    """
-    query = (
-        "MATCH (p1:Person) , (p2:Person) "
-        "WITH p1 , p2 "
-        "WHERE rand() < 1 AND p1 <> p2"
-        "MERGE (p1)-[:KILL]->(p2)"
-    )
-
-    tx.run(query)
 
 
 def deleteAll(tx):
@@ -337,6 +338,19 @@ def readLocations():
     return locationsRead
 
 
+def readDates():
+    """
+    Method that reads dates from a file
+    :return: a list of dates
+    """
+    datesList = []
+    with open("Files/Dates.txt"  , 'r', encoding = 'utf8') as f:
+        for line in f:
+            datesList.append(line.rstrip('\n'))
+    f.close()
+    return datesList
+
+
 def createFamilies(namesList , surnamesList):
     """
     Method that initialize a list of all the family relationships
@@ -372,6 +386,21 @@ def createFamilies(namesList , surnamesList):
     return familiesList
 
 
+def randomMatch(tx):
+    """
+    Method that creates random relationship
+    :param tx: is the transaction
+    :return: nothing
+    """
+    query = (
+        "MATCH (p1:Person) , (p2:Person) "
+        "WITH p1 , p2 "
+        "WHERE rand() < 0.1 AND p1 <> p2"
+        "MERGE (p1)-[:APP_CONTACT]-(p2)"
+    )
+    tx.run(query)
+
+
 def createNodesFamily(familiesList):
     """
     Method that append some command to the general query
@@ -383,15 +412,15 @@ def createNodesFamily(familiesList):
     for familyEl in familiesList:
         for memberEl in familyEl:
             currentQuery = (
-                "CREATE (p:Person {name: '" + str(memberEl[int(PersonAttribute.NAME)]) + "' , surname: '" +
-                str(memberEl[int(PersonAttribute.SURNAME)]) + "'}); "
+                "CREATE (p:Person {name: \"" + str(memberEl[int(PersonAttribute.NAME)]) + "\" , surname: \"" +
+                str(memberEl[int(PersonAttribute.SURNAME)]) + "\"}); "
             )
             creationQuery.append(currentQuery)
         # Create the name of the house
         memberFamily = familyEl[0]
         familyName = memberFamily[PersonAttribute.NAME] + " " + memberFamily[PersonAttribute.SURNAME] + " house"
         currentQuery = (
-            "CREATE (l:Location {name: '" + str(familyName) + "'}); "
+            "CREATE (l:Location {name: \"" + str(familyName) + "\"}); "
         )
         creationQuery.append(currentQuery)
 
@@ -399,14 +428,44 @@ def createNodesFamily(familiesList):
         for memberEl in familyEl:
             currentQuery = (
                 "MATCH (p:Person) , (l:Location) "
-                "WHERE p.name = '" + str(memberEl[int(PersonAttribute.NAME)]) +
-                "' AND p.surname = '" + str(memberEl[int(PersonAttribute.SURNAME)]) + "' AND l.name = '"
-                + str(familyName) + "' "
+                "WHERE p.name = \"" + str(memberEl[int(PersonAttribute.NAME)]) +
+                "\" AND p.surname = \"" + str(memberEl[int(PersonAttribute.SURNAME)]) + "\" AND l.name = \""
+                + str(familyName) + "\" "
                 "CREATE (p)-[:LIVE]->(l);"
             )
             relationshipsQuery.append(currentQuery)
 
     return creationQuery , relationshipsQuery
+
+
+def createNodeLocations(locationsList):
+    """
+    Method that creates the query for the creation of the public places
+    :param locationsList: is a list containing all the locations
+    :return: a query
+    """
+    locationsQuery = []
+    for locationEl in locationsList:
+        currentQuery = (
+            "CREATE (l:Location {name: \"" + str(locationEl[int(LocationAttribute.NAME)]) + "\" , type: '" +
+            str(locationEl[int(LocationAttribute.TYPE)]) + "'}); "
+        )
+        locationsQuery.append(currentQuery)
+    return locationsQuery
+
+
+def getPersonId(tx):
+    """
+    Method that retrieves the ids of Person in the data base
+    :return: a list of ids
+    """
+    query = (
+        "MATCH (p:Person)"
+        "RETURN ID(p)"
+    )
+
+    idsList = tx.run(query).data()
+    return idsList
 
 
 def runQuery(tx , query , isReturn = False):
@@ -432,7 +491,6 @@ def runQueryWrite(driver , queryList):
     for query in queryList:
         print("Executing query: ")
         print(query)
-        print("Query length is: " + str(len(query)))  # toDo: that's the problem
         with driver.session() as s:
             s.write_transaction(runQuery , query)
 
@@ -462,6 +520,12 @@ if __name__ == '__main__':
     # Read locations
     locations = readLocations()
     print("Locations read")
+    # Read dates
+    dates = readDates()
+    print("Dates read")
+
+    print("Dates size is: " + str(len(dates)))
+    print(dates)
 
     """
     print("Hours are: " + str(hours))
@@ -489,10 +553,15 @@ if __name__ == '__main__':
 
     # Generate all the Person Nodes and the family relationships
     cQuery , rQuery = createNodesFamily(families)
+    # Generate the locations node
+    lQuery = createNodeLocations(locations)
     for subQuery in cQuery:
+        generalQuery.append(subQuery)
+    for subQuery in lQuery:
         generalQuery.append(subQuery)
     for subQuery in rQuery:
         generalQuery.append(subQuery)
+
     print("The final query is: ")
     print(generalQuery)
 
@@ -505,6 +574,11 @@ if __name__ == '__main__':
 
     # Generate the structure performing the families creation
     runQueryWrite(driver , generalQuery)
+
+    # Generate the random contact with app tracing
+    with driver.session() as s:
+        personIds = s.write_transaction(getPersonId)
+    print(personIds)
 
     # Verify the nodes are been created
     with driver.session() as session:
