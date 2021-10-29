@@ -2,7 +2,6 @@
 Date: 28/10/2021
 First sketch for a generator of data base structure for Neo4J
 
-Problem: there is a problem where name/surname are made by 2 words
 Problem: if in the file there are empty lines at the end ---> error
 """
 
@@ -12,9 +11,11 @@ from enum import IntEnum
 import pandas as pd
 
 MAX_NUMBER_OF_FAMILY_MEMBER = 5
-NUMBER_OF_FAMILY = 10
+NUMBER_OF_FAMILY = 50
 
-MAX_NUMBER_OF_CONTACT_PER_DAY = 10
+MAX_NUMBER_OF_CONTACT_PER_DAY = 25  # For new contact relationships
+
+MAX_NUMBER_OF_VISIT_PER_DAY = 50  # For new visit relationships
 
 
 class PersonAttribute(IntEnum):
@@ -363,7 +364,6 @@ def createFamilies(namesList , surnamesList):
     for _ in range(0 , NUMBER_OF_FAMILY):
         # Choose a size for the family
         numberOfMembers = randint(1 , MAX_NUMBER_OF_FAMILY_MEMBER)
-        print("Number extracted is: " + str(numberOfMembers))
         # Family will contain the name in pos 0 and the surname in pos 1
         familyEl = [None] * numberOfMembers
         casualFamily = False
@@ -388,35 +388,6 @@ def createFamilies(namesList , surnamesList):
     return familiesList
 
 
-def createAppContact(d , pIds):
-    """
-    Method that creates random relationship
-    :param d: is the connection (driver)
-    :param pIds: list of Person ids
-    :return: nothing
-    """
-    # Create the number of app contact for the day
-    numOfContact = randint(0 , MAX_NUMBER_OF_CONTACT_PER_DAY)
-
-    for _ in range(0 , numOfContact):
-        # Choose two random people
-        randomIndex = randint(0 , len(pIds) - 1)
-        pId1 = pIds[randomIndex]
-        randomIndex = randint(0 , len(pIds) -1 )
-        pId2 = pIds[randomIndex]
-        # Verify if it's the same node
-        if pId1 == pId2:
-            continue
-        query = (
-            "MATCH (p1:Person) , (p2:Person) "
-            "WHERE ID(p1) = " + str(pId1) + " AND ID(p2) = " + str(pId2) + " "
-            "MERGE (p1)-[:APP_CONTACT]-(p2)"
-        )
-        # Execute the query
-        with d.session() as s:
-            s.write_transaction(runQuery , query)
-
-
 def createNodesFamily(familiesList):
     """
     Method that append some command to the general query
@@ -436,18 +407,18 @@ def createNodesFamily(familiesList):
         memberFamily = familyEl[0]
         familyName = memberFamily[PersonAttribute.NAME] + " " + memberFamily[PersonAttribute.SURNAME] + " house"
         currentQuery = (
-            "CREATE (l:Location {name: \"" + str(familyName) + "\"}); "
+            "CREATE (h:House {name: \"" + str(familyName) + "\"}); "
         )
         creationQuery.append(currentQuery)
 
         # Create the LIVE relationships
         for memberEl in familyEl:
             currentQuery = (
-                "MATCH (p:Person) , (l:Location) "
+                "MATCH (p:Person) , (h:House) "
                 "WHERE p.name = \"" + str(memberEl[int(PersonAttribute.NAME)]) +
-                "\" AND p.surname = \"" + str(memberEl[int(PersonAttribute.SURNAME)]) + "\" AND l.name = \""
+                "\" AND p.surname = \"" + str(memberEl[int(PersonAttribute.SURNAME)]) + "\" AND h.name = \""
                 + str(familyName) + "\" "
-                "CREATE (p)-[:LIVE]->(l);"
+                "CREATE (p)-[:LIVE]->(h);"
             )
             relationshipsQuery.append(currentQuery)
 
@@ -470,10 +441,91 @@ def createNodeLocations(locationsList):
     return locationsQuery
 
 
+def createRelationshipsAppContact(d , pIds):
+    """
+    Method that creates random relationship
+    :param d: is the connection (driver)
+    :param pIds: list of Person ids
+    :return: nothing
+    """
+    # Create the number of app contact for the day
+    numOfContact = randint(1 , MAX_NUMBER_OF_CONTACT_PER_DAY)
+
+    for _ in range(0 , numOfContact):
+        # Choose two random people
+        randomIndex = randint(0 , len(pIds) - 1)
+        pId1 = pIds[randomIndex]
+        randomIndex = randint(0 , len(pIds) - 1)
+        pId2 = pIds[randomIndex]
+        # Verify if it's the same node
+        if pId1 == pId2:
+            continue
+        query = (
+            "MATCH (p1:Person) , (p2:Person) "
+            "WHERE ID(p1) = $pId1 AND ID(p2) = $pId2 "
+            "MERGE (p1)-[:APP_CONTACT]-(p2)"
+        )
+        # Execute the query
+        with d.session() as s:
+            s.write_transaction(createContact , query , pId1 , pId2)
+
+
+def createRelationshipsVisit(d , pIds , lIds):
+    """
+    Method that creates VISIT relationships
+    :param d: is the connection (driver)
+    :param pIds: is a list of Person ids
+    :param lIds: is a list of Location ids
+    :return: nothing
+    """
+    # Choose how many new visit relationships
+    numberOfVisits = randint(1  , MAX_NUMBER_OF_VISIT_PER_DAY)
+
+    for _ in range(0 , numberOfVisits):
+        lIndex = randint(0 , len(lIds) - 1)
+        locationId = lIds[lIndex]
+        pIndex = randint(0 , len(pIds) - 1)
+        personId = pIds[pIndex]
+        # For the future: here check if in case of more than 1 relationship already present it has a different hour/date
+        # Maybe this can be avoided with MERGE instead of CREATE
+        query = (
+            "MATCH (p:Person) , (l:Location) "
+            "WHERE ID(p) = $personId AND ID(l) = $locationId "
+            "MERGE (p)-[:VISIT]->(l); "
+        )
+        # Execute the query
+        with d.session() as s:
+            s.write_transaction(createVisit , query , personId , locationId)
+
+
+def createVisit(tx , query , personId , locationId):
+    """
+    Method that executes the query to create a VISIT relationship
+    :param tx: is the transaction
+    :param query: is the query to create a visit relationship
+    :param personId: is the id of the Person
+    :param locationId: is the id of the Location
+    :return: nothing
+    """
+    tx.run(query , personId = personId , locationId = locationId)
+
+
+def createContact(tx , query , pId1 , pId2):
+    """
+    Method that executes the query to create a CONTACT_APP relationship
+    :param tx: is the transaction
+    :param query: is the query to perform
+    :param pId1: is the id of the first Person
+    :param pId2: is the id of the second Person
+    :return: nothing
+    """
+    tx.run(query , pId1 = pId1 , pId2 = pId2)
+
+
 def getPersonIds():
     """
-    Method that retrieves all the ids of Person Node and convert it into int number
-    :return: a list of int corresponding to the ids
+    Method that retrieves all the ids of Person Node
+    :return: a list of integer corresponding to the person ids
     """
     with driver.session() as s:
         ids = s.write_transaction(getPersonId)
@@ -501,6 +553,38 @@ def getPersonId(tx):
     return idsList
 
 
+def getLocationsIds():
+    """
+    Method that retrieves all the ids of Location Node
+    :return: a list of integer corresponding to the location ids
+    """
+    with driver.session() as s:
+        ids = s.write_transaction(getLocationsId)
+    print(ids)
+
+    lIds = []
+    for idEl in ids:
+        lIds.append(idEl["ID(l)"])
+    print(lIds)
+
+    return lIds
+
+
+def getLocationsId(tx):
+    """
+    Method that retrieve a list of location ids
+    :param tx: is the transaction
+    :return: a list of ids
+    """
+    query = (
+        "MATCH (l:Location)"
+        "RETURN ID(l)"
+    )
+
+    idsList = tx.run(query).data()
+    return idsList
+
+
 def runQuery(tx , query , isReturn = False):
     """
     Method that runs a generic query
@@ -514,29 +598,29 @@ def runQuery(tx , query , isReturn = False):
         return result
 
 
-def runQueryWrite(driver , queryList):
+def runQueryWrite(d , queryList):
     """
     Method that run a generic query
-    :param driver: is the connection to the database
-    :param query: is the query to run -> it's already completed
+    :param d: is the connection to the database (driver)
+    :param queryList: is the query to run -> it's already completed
     :return: nothing
     """
     for query in queryList:
         print("Executing query: ")
         print(query)
-        with driver.session() as s:
+        with d.session() as s:
             s.write_transaction(runQuery , query)
 
 
-def runQueryRead(driver , query):
+def runQueryRead(d , query):
     """
     Method that run a generic query
     :param driver: is the connection to the database
     :param query: is the query to run -> it's already completed
     :return: nothing
     """
-    with driver.session() as session:
-        results = session.read_transaction(runQuery , query , True)
+    with d.session() as s:
+        results = s.read_transaction(runQuery , query , True)
     return results
 
 
@@ -557,9 +641,6 @@ if __name__ == '__main__':
     dates = readDates()
     print("Dates read")
 
-    print("Dates size is: " + str(len(dates)))
-    print(dates)
-
     """
     print("Hours are: " + str(hours))
     print("Locations are: " + str(locations))
@@ -567,21 +648,23 @@ if __name__ == '__main__':
     print("Number of names is: " + str(len(names)))
     print("Number of surnames is: " + str(len(surnames)))
     print("Number of locations is: " + str(len(locations)))
+    print("Number of dates is: " + str(len(dates)))
     """
 
     # Create the family list
     families = createFamilies(names , surnames)
     print("Families created")
-    print("Families are: ")
 
+    """
     i = 0
     for family in families:
         print("Family number " + str(i))
         for member in family:
             print(member[int(PersonAttribute.NAME)] + " " + member[int(PersonAttribute.SURNAME)])
         i += 1
+    """
 
-    # query is an attribute that will contain the whole query to instantiate the database
+    # Query is an attribute that will contain the whole query to instantiate the database
     generalQuery = []
 
     # Generate all the Person Nodes and the family relationships
@@ -608,11 +691,17 @@ if __name__ == '__main__':
     # Generate the structure performing the families creation
     runQueryWrite(driver , generalQuery)
 
-    # Generate the random contact with app tracing
-    # Take the ids
+    # Generate random contacts with app tracing
+    # Take Person ids
     personIds = getPersonIds()
     # Generate the relationships
-    createAppContact(driver , personIds)
+    createRelationshipsAppContact(driver , personIds)
+
+    # Generate random visits
+    # Take Location ids
+    locationIds = getLocationsIds()
+    # Generate the relationship
+    createRelationshipsVisit(driver , personIds , locationIds)
 
     # Verify the nodes are been created
     with driver.session() as session:
