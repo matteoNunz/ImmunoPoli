@@ -6,6 +6,7 @@ Problem: if in the file there are empty lines at the end ---> error
 """
 
 import neo4j as nj
+import graphistry
 from random import randint
 from enum import IntEnum
 import pandas as pd
@@ -16,7 +17,6 @@ NUMBER_OF_FAMILY = 50
 MAX_NUMBER_OF_CONTACT_PER_DAY = 25  # For new contact relationships
 
 MAX_NUMBER_OF_VISIT_PER_DAY = 50  # For new visit relationships
-
 
 class PersonAttribute(IntEnum):
     """
@@ -633,8 +633,21 @@ def runQueryRead(d , query):
     return results
 
 
+
+def print_database():
+    """
+    Method that prints the whole database inside a predefined
+    browser tab.
+    """
+    NEO4J_CREDS = {'uri': "bolt://18.204.42.164:7687",
+                   'auth': ("neo4j", "oxygen-wishes-knives")}
+    graphistry.register(bolt=NEO4J_CREDS, api=3, protocol="https", server="hub.graphistry.com", username="PieroRendina", password="acmilan01")
+    graphistry.cypher("MATCH (a)-[r]->(b) RETURN *").plot()
+
+
 if __name__ == '__main__':
     # Read hours from the file
+
     hours = readHours()
     print("Hours read")
     # Read names from the file
@@ -721,4 +734,5 @@ if __name__ == '__main__':
     with driver.session() as session:
         graph = session.read_transaction(findAll)
     print("The structure is: ")
-    print(graph)
+    #print(graph)
+    print_database()
