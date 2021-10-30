@@ -19,6 +19,7 @@ Restaurant , Il Delfino
 Restaurant , Marghe
 Restaurant , Ghe Pensi Mi
 Restaurant , Da Salvatore
+Restaurant , All'Antico Vinaio
 Restaurant , Ocean Break
 Restaurant , American Graffiti
 Restaurant , El Carnicero
@@ -28,7 +29,7 @@ Gym    , Gymnic
 Gym    , Quinto elemento
 Gym    , Fit Active
 Gym    , MioCLub
-Gym    , Dinamica Fitness
+Gym    , Dinamika Fitness
 Gym    , YouFit
 Gym    , Keasy Fit
 Gym    , Virgin Active
@@ -36,9 +37,13 @@ Gym    , 20 hours fit
 Gym    , Mc Fit
 Gym    , Fit Express
 Gym    , Centro Sportivo Giuriati
-Swimming Poll    , MioCLub
-Swimming Poll    , Piscina Piola
-Swimming Poll    , Idroscalo
+Swimming Pool    , MioCLub
+Swimming Pool    , Piscina Piola
+Swimming Pool    , Patrini Gardens and Pools
+Swimming Pool    , Piscina Colonna
+Swimming Pool    , Bagni Misteriosi
+Swimming Pool    , Acquasalus
+Swimming Pool    , Centro Balneare Argelati
 Supermarket , Carrefour
 Supermarket , Esselunga
 Supermarket , Lidl
@@ -65,7 +70,6 @@ Bar    , Terrazza 21
 Bar    , Ceresio 7
 Bar    , BanghraBar
 Bar    , Garage
-Bar    , La Caccia
 Bar    , Garden
 Bar    , Bar Roma
 Bar    , Dolce Far Niente
@@ -75,6 +79,7 @@ Bar    , La Prosciutteria
 Bar    , Trapizzino
 Bar    , Tigella's
 Bar    , Tempesta
+Bar    , Piqua Café
 University , Politecnico di Milano
 University , Politecnico di Torino
 University , Bocconi
@@ -82,3 +87,14 @@ University , Normale di Pisa
 University , Politecnico di Bari
 University , Bicocca
 University , Statale di Milano
+Theater    , Arena di Verona
+Theater    , La Fenice
+Theater    , Goldoni
+Cinema     , Plinius Multisala
+Cinema     , Multisala Colosseo
+Cinema     , Space Cinema Odeon
+Hospital   , Policlinico di Milano
+Hospital   , Fiera Milano
+Hospital   , Fate Bene Fratelli
+Hospital   , Mauriziano Umberto
+Hospital   , Santa Maria della Misericordia
