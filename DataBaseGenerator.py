@@ -40,6 +40,7 @@ class LocationAttribute(IntEnum):
     """
     TYPE = 0
     NAME = 1
+    ADDRESS = 2
     # and so on ...
 
     @classmethod
@@ -330,14 +331,22 @@ def readLocations():
     :return: a list containing the locations
     """
     locationsRead = []
-    with open("Files/PublicPlaces.txt" , 'r', encoding = 'utf8') as f:
-        for line in f:
-            locationDetails = line.split(",")
+
+    #Parallel reading from address_file and locations_file
+    with open("Files/PublicPlaces.txt", 'r', encoding='utf8') as locations_file, \
+            open("Files/Addresses.txt", 'r', encoding='utf8') as addresses_file:
+        for (location_line, address_line) in zip(locations_file, addresses_file):
+            locationDetails = location_line.split(",")
+            addressDetails = address_line.split(",")
             details = []
             for locationDetail in locationDetails:
-                details.append(locationDetail.rstrip('\n'))
+                details.append(locationDetail.lstrip().rstrip().rstrip('\n'))
+            for addressDetail in addressDetails:
+                details.append(addressDetail.lstrip().rstrip('\n'))
             locationsRead.append(details)
-    f.close()
+
+    locations_file.close()
+    addresses_file.close()
     return locationsRead
 
 
