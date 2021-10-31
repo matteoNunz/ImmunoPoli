@@ -351,6 +351,8 @@ def readHours():
     hoursRead = []
     with open("Files/Hours.txt" , 'r', encoding = 'utf8') as f:
         for line in f:
+            if line is "\n":
+                continue
             hoursRead.append(line.rstrip('\n'))
     f.close()
     return hoursRead
@@ -364,6 +366,8 @@ def readNames():
     namesRead = []
     with open("Files/Names.txt" , 'r', encoding = 'utf8') as f:
         for line in f:
+            if line is "\n":
+                continue
             namesRead.append(line.rstrip('\n'))
     f.close()
     return namesRead
@@ -377,6 +381,8 @@ def readSurnames():
     surnamesRead = []
     with open("Files/Surnames.txt" , 'r', encoding = 'utf8') as f:
         for line in f:
+            if line is "\n":
+                continue
             surnamesRead.append(line.rstrip('\n'))
     f.close()
     return surnamesRead
@@ -393,6 +399,8 @@ def readLocations():
     with open("Files/PublicPlaces.txt", 'r', encoding='utf8') as locations_file, \
             open("Files/Addresses.txt", 'r', encoding='utf8') as addresses_file:
         for (location_line, address_line) in zip(locations_file, addresses_file):
+            if location_line is "\n" and address_line is "\n":
+                continue
             locationDetails = location_line.split(",")
             addressDetails = address_line.split(",")
             details = []
@@ -407,6 +415,25 @@ def readLocations():
     return locationsRead
 
 
+def readHouseAddresses():
+    """
+    Method that reads different addresses from a file
+    :return: a list of addresses
+    """
+    addressesRead = []
+    with open("Files/HouseAddresses.txt" , 'r', encoding = 'utf8') as f:
+        for line in f:
+            if line is "\n":
+                continue
+            details = line.split(",")
+            address = []
+            for detail in details:
+                address.append(detail)
+            addressesRead.append(address)
+    f.close()
+    return addressesRead
+
+
 def readDates():
     """
     Method that reads dates from a file
@@ -415,6 +442,8 @@ def readDates():
     datesList = []
     with open("Files/Dates.txt"  , 'r', encoding = 'utf8') as f:
         for line in f:
+            if line is "\n":
+                continue
             datesList.append(line.rstrip('\n'))
     f.close()
     return datesList
@@ -690,7 +719,6 @@ def runQueryRead(d , query):
     return results
 
 
-
 def print_database():
     """
     Method that prints the whole database inside a predefined
@@ -715,6 +743,9 @@ if __name__ == '__main__':
     # Read locations
     locations = readLocations()
     print("Locations read")
+    # Read house addresses
+    houseAddresses = readHouseAddresses()
+    print("House addresses read")
     # Read dates
     dates = readDates()
     print("Dates read")
@@ -790,5 +821,4 @@ if __name__ == '__main__':
     with driver.session() as session:
         graph = session.read_transaction(findAll)
     print("The structure is: ")
-    #print(graph)
     print_database()
