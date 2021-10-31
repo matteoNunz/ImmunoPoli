@@ -12,11 +12,11 @@ from enum import IntEnum
 
 
 MAX_NUMBER_OF_FAMILY_MEMBER = 5
-NUMBER_OF_FAMILY = 50
+NUMBER_OF_FAMILY = 10
 
-MAX_NUMBER_OF_CONTACT_PER_DAY = 25  # For new contact relationships
+MAX_NUMBER_OF_CONTACT_PER_DAY = 10  # For new contact relationships
 
-MAX_NUMBER_OF_VISIT_PER_DAY = 50  # For new visit relationships
+MAX_NUMBER_OF_VISIT_PER_DAY = 10  # For new visit relationships
 
 
 class PersonAttribute(IntEnum):
@@ -58,8 +58,8 @@ def openConnection():
     :return: the driver for the connection
     """
     connection = nj.GraphDatabase.driver(
-        "bolt://18.204.42.164:7687",
-        auth=nj.basic_auth("neo4j", "oxygen-wishes-knives"))
+        "bolt://18.207.228.214:7687",
+        auth=nj.basic_auth("neo4j", "can-alcoholic-writing"))
     return connection
 
 
@@ -696,8 +696,8 @@ def print_database():
     Method that prints the whole database inside a predefined
     browser tab.
     """
-    NEO4J_CREDS = {'uri': "bolt://18.204.42.164:7687",
-                   'auth': ("neo4j", "oxygen-wishes-knives")}
+    NEO4J_CREDS = {'uri': "bolt://18.207.228.214:7687",
+                   'auth': ("neo4j", "can-alcoholic-writing")}
     graphistry.register(bolt=NEO4J_CREDS, api=3, protocol="https", server="hub.graphistry.com", username="PieroRendina", password="acmilan01")
     graphistry.cypher("MATCH (a)-[r]->(b) RETURN *").plot()
 
