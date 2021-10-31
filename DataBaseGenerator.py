@@ -6,8 +6,10 @@ Problem: if in the file there are empty lines at the end ---> error
 """
 
 import neo4j as nj
+import graphistry
 from random import randint
 from enum import IntEnum
+
 
 MAX_NUMBER_OF_FAMILY_MEMBER = 5
 NUMBER_OF_FAMILY = 50
@@ -39,6 +41,7 @@ class LocationAttribute(IntEnum):
     """
     TYPE = 0
     NAME = 1
+    ADDRESS = 2
     # and so on ...
 
     @classmethod
@@ -385,14 +388,22 @@ def readLocations():
     :return: a list containing the locations
     """
     locationsRead = []
-    with open("Files/PublicPlaces.txt" , 'r', encoding = 'utf8') as f:
-        for line in f:
-            locationDetails = line.split(",")
+
+    #Parallel reading from address_file and locations_file
+    with open("Files/PublicPlaces.txt", 'r', encoding='utf8') as locations_file, \
+            open("Files/Addresses.txt", 'r', encoding='utf8') as addresses_file:
+        for (location_line, address_line) in zip(locations_file, addresses_file):
+            locationDetails = location_line.split(",")
+            addressDetails = address_line.split(",")
             details = []
             for locationDetail in locationDetails:
-                details.append(locationDetail.rstrip('\n'))
+                details.append(locationDetail.lstrip().rstrip().rstrip('\n'))
+            for addressDetail in addressDetails:
+                details.append(addressDetail.lstrip().rstrip('\n'))
             locationsRead.append(details)
-    f.close()
+
+    locations_file.close()
+    addresses_file.close()
     return locationsRead
 
 
@@ -679,6 +690,18 @@ def runQueryRead(d , query):
     return results
 
 
+
+def print_database():
+    """
+    Method that prints the whole database inside a predefined
+    browser tab.
+    """
+    NEO4J_CREDS = {'uri': "bolt://18.204.42.164:7687",
+                   'auth': ("neo4j", "oxygen-wishes-knives")}
+    graphistry.register(bolt=NEO4J_CREDS, api=3, protocol="https", server="hub.graphistry.com", username="PieroRendina", password="acmilan01")
+    graphistry.cypher("MATCH (a)-[r]->(b) RETURN *").plot()
+
+
 if __name__ == '__main__':
     # Read hours from the file
     hours = readHours()
@@ -740,27 +763,32 @@ if __name__ == '__main__':
     driver = openConnection()
 
     # Delete the nodes already present
-    # with driver.session() as session:
-    #    numberOfNodes = session.write_transaction(deleteAll)
+    with driver.session() as session:
+        numberOfNodes = session.write_transaction(deleteAll)
 
     # Generate the structure performing the families creation
-    # runQueryWrite(driver , generalQuery)
+    runQueryWrite(driver , generalQuery)
 
     # Generate random contacts with app tracing
     # Take Person ids
     personIds = getPersonIds()
     # Generate the relationships
-    # createRelationshipsAppContact(driver , personIds)
+    createRelationshipsAppContact(driver , personIds)
 
     # Generate random visits
     # Take Location ids
     locationIds = getLocationsIds()
     # Generate the relationship
-    # createRelationshipsVisit(driver , personIds , locationIds)
+    createRelationshipsVisit(driver , personIds , locationIds)
 
     # Verify the nodes are been created
     with driver.session() as session:
         numberOfNodes = session.read_transaction(countAll)
     print("Number of nodes: " + str(numberOfNodes))
 
-
+    # Get the whole structure
+    with driver.session() as session:
+        graph = session.read_transaction(findAll)
+    print("The structure is: ")
+    #print(graph)
+    print_database()
