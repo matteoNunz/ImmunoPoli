@@ -8,7 +8,6 @@ Problem: if in the file there are empty lines at the end ---> error
 import neo4j as nj
 from random import randint
 from enum import IntEnum
-import pandas as pd
 
 MAX_NUMBER_OF_FAMILY_MEMBER = 5
 NUMBER_OF_FAMILY = 50
@@ -181,6 +180,62 @@ def findAll(tx):
 
     result = tx.run(query)
     return [(record["node1"], record["relationship"], record["node2"]) for record in result]
+
+
+def findAllPerson(tx):
+    """
+    Method that finds all the nodes in the data base
+    :param tx: is the transaction
+    :return: a list of nodes
+    """
+    query = (
+        "MATCH (p:Person) "
+        "RETURN p , ID(p);"
+    )
+    results = tx.run(query).data()
+    return results
+
+
+def findAllHome(tx):
+    """
+    Method that finds all the nodes in the data base
+    :param tx: is the transaction
+    :return: a list of nodes
+    """
+    query = (
+        "MATCH (h:House) "
+        "RETURN h , ID(h);"
+    )
+    results = tx.run(query).data()
+    return results
+
+
+def findAllLocation(tx):
+    """
+    Method that finds all the nodes in the data base
+    :param tx: is the transaction
+    :return: a list of nodes
+    """
+    query = (
+        "MATCH (l:Location) "
+        "RETURN l , ID(l);"
+    )
+    results = tx.run(query).data()
+    return results
+
+
+def findAllRelationships(tx):
+    """
+    Method that finds all the relationships in the data base
+    :param tx: is the transaction
+    :return: a list of relationships
+    """
+    query = (
+        "MATCH (n1)-[r]-(n2) "
+        "RETURN ID(n1) , r , ID(n2);"
+    )
+    results = tx.run(query).data()
+    return results
 
 
 def getFriendsOf(tx, name):
@@ -685,31 +740,27 @@ if __name__ == '__main__':
     driver = openConnection()
 
     # Delete the nodes already present
-    with driver.session() as session:
-        numberOfNodes = session.write_transaction(deleteAll)
+    # with driver.session() as session:
+    #    numberOfNodes = session.write_transaction(deleteAll)
 
     # Generate the structure performing the families creation
-    runQueryWrite(driver , generalQuery)
+    # runQueryWrite(driver , generalQuery)
 
     # Generate random contacts with app tracing
     # Take Person ids
     personIds = getPersonIds()
     # Generate the relationships
-    createRelationshipsAppContact(driver , personIds)
+    # createRelationshipsAppContact(driver , personIds)
 
     # Generate random visits
     # Take Location ids
     locationIds = getLocationsIds()
     # Generate the relationship
-    createRelationshipsVisit(driver , personIds , locationIds)
+    # createRelationshipsVisit(driver , personIds , locationIds)
 
     # Verify the nodes are been created
     with driver.session() as session:
         numberOfNodes = session.read_transaction(countAll)
     print("Number of nodes: " + str(numberOfNodes))
 
-    # Get the whole structure
-    with driver.session() as session:
-        graph = session.read_transaction(findAll)
-    print("The structure is: ")
-    print(graph)
+
