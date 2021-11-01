@@ -1,0 +1,10 @@
+Pfizer-BioNTech,St Louis
+Pfizer-BioNTech,Sanford
+Pfizer-BioNTech,Rocky Mount
+ModernaTX,New Hampshire
+ModernaTX,Montreal
+Johnson & Johnson,Bloomington
+Johnson & Johnson,Merck
+Sputnik V,Gamaleya
+Sinopharm,Beijing
+AstraZeneca,Alderley Park
