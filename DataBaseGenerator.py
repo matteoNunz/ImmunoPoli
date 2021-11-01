@@ -340,61 +340,6 @@ def findPerson(tx, name, age=None):
         return [(record["name"], record["age"]) for record in result]
 
 
-def exampleFunction():
-    # Open a connection
-    driver = openConnection()
-
-    # Create a node Person
-    # createPerson("Matteo" , 22)
-
-    with driver.session() as session:
-        numberOfNodes = session.read_transaction(countAll)
-    print("Number of nodes: " + str(numberOfNodes))
-
-    with driver.session() as session:
-        session.write_transaction(createPerson, "Matteo", 22)
-
-    with driver.session() as session:
-        session.write_transaction(createFriendOf, "Matteo", "Marco")
-
-    # Verify the node is been added
-    with driver.session() as session:
-        numberOfNodes = session.read_transaction(countAll)
-    print("Number of nodes: " + str(numberOfNodes))
-
-    # Get the friends of Matteo
-    with driver.session() as session:
-        numberOfNodes = session.read_transaction(getFriendsOf, "Matteo")
-    print("Friends of Matteo are: " + str(numberOfNodes))
-
-    # Get the whole structure
-    with driver.session() as session:
-        graph = session.read_transaction(findAll)
-    print("The structure is: ")
-    print(graph)
-
-    # with driver.session() as session:
-    #    session.write_transaction(randomMatch)
-
-    # Get the whole structure
-    with driver.session() as session:
-        graph = session.read_transaction(findAll)
-    print("The structure is: ")
-    print(graph)
-
-    # Delete all the nodes
-    with driver.session() as session:
-        session.write_transaction(deleteAll)
-
-    # Verify the all the nodes are been removed
-    with driver.session() as session:
-        numberOfNodes = session.read_transaction(countAll)
-    print("Number of nodes: " + str(numberOfNodes))
-
-    # Close the connection
-    closeConnection(driver)
-
-
 def readHours():
     """
     Method that reads the possible hours from a file
@@ -768,7 +713,7 @@ def createRelationshipsVisit(d , pIds , lIds , datesList , hoursList):
         )
         # Execute the query
         with d.session() as s:
-            s.write_transaction(createVisit , query , personId , locationId)
+            s.write_transaction(createVisit , query , personId , locationId , date , startHour , endHour)
 
 
 def createRelationshipsGetVaccine(d, pIds, vIds):
@@ -1039,6 +984,7 @@ def getVaccinesIds():
 
     return vIds
 
+
 def getTestsIds():
     """
     Method that retrieves all the ids of test Node
@@ -1054,6 +1000,7 @@ def getTestsIds():
     print(tIds)
 
     return tIds
+
 
 def getTestsId(tx):
     """
