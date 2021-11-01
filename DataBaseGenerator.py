@@ -9,7 +9,7 @@ import neo4j as nj
 import graphistry
 from random import randint , random
 from enum import IntEnum
-
+import datetime
 
 MAX_NUMBER_OF_FAMILY_MEMBER = 5
 NUMBER_OF_FAMILY = 10
@@ -23,6 +23,10 @@ MAX_CIVIC_NUMBER = 100
 PHONE_NUMBER_LENGTH = 10
 
 PROBABILITY_TO_HAVE_APP = 0.5
+
+MAX_NUMBER_OF_VACCINE_PER_DAY = 10  # For new get vaccinated relationships
+
+MAX_NUMBER_OF_TEST_PER_DAY = 10  # For new make test relationships
 
 
 class PersonAttribute(IntEnum):
@@ -79,6 +83,23 @@ class HouseAttribute(IntEnum):
     def numberOfAttribute(cls):
         numAttribute = 0
         for _ in HouseAttribute:
+            numAttribute += 1
+        return numAttribute
+
+
+class VaccineAttribute(IntEnum):
+    """
+    Class enum for the attribute of a Location
+    """
+    NAME = 0
+    PRODUCER = 1
+
+    # and so on ...
+
+    @classmethod
+    def numberOfAttribute(cls):
+        numAttribute = 0
+        for _ in VaccineAttribute:
             numAttribute += 1
         return numAttribute
 
@@ -352,7 +373,7 @@ def exampleFunction():
     print("The structure is: ")
     print(graph)
 
-    #with driver.session() as session:
+    # with driver.session() as session:
     #    session.write_transaction(randomMatch)
 
     # Get the whole structure
@@ -471,7 +492,7 @@ def readDates():
     :return: a list of dates
     """
     datesList = []
-    with open("Files/Dates.txt"  , 'r', encoding = 'utf8') as f:
+    with open("Files/Dates.txt" , 'r', encoding = 'utf8') as f:
         for line in f:
             if line is "\n":
                 continue
@@ -480,7 +501,42 @@ def readDates():
     return datesList
 
 
-def createFamilies(namesList , surnamesList):
+def readVaccines():
+    """
+    Method that reads the possible vaccines from a file
+    :return: a list containing the vaccines
+    """
+    vaccinesRead = []
+
+    with open("Files/Vaccines.txt", 'r', encoding='utf8') as vaccine_file:
+        for (vaccine_lines) in (vaccine_file):
+            vaccineDetails = vaccine_lines.split(",")
+            details = []
+            for vaccineDetail in vaccineDetails:
+                details.append(vaccineDetail.lstrip().rstrip().rstrip('\n'))
+            vaccinesRead.append(details)
+
+    vaccine_file.close()
+    return vaccinesRead
+
+
+def readTests():
+    """
+    Method that reads the possible locations from a file
+    :return: a list containing the locations
+    """
+    testsList = []
+
+    with open("Files/Tests.txt", 'r', encoding='utf8') as f:
+        for line in f:
+            if line is "\n":
+                continue
+            testsList.append(line.rstrip('\n'))
+    f.close()
+    return testsList
+
+
+def createFamilies(namesList, surnamesList):
     """
     Method that initialize a list of all the family relationships
     :return: a list of list (a list of family)
@@ -609,6 +665,37 @@ def createNodeLocations(locationsList):
     return locationsQuery
 
 
+def createNodeVaccines(vaccinesList):
+    """
+    Method that creates the query for the creation of the vaccines node
+    :param vaccinesList: is a list containing all the vaccines
+    :return: a query
+    """
+    vaccinesQuery = []
+    for vaccineEl in vaccinesList:
+        currentQuery = (
+                "CREATE (v:Vaccine {name: \"" + str(vaccineEl[int(VaccineAttribute.NAME)]) + "\" , producer: \"" +
+                str(vaccineEl[int(VaccineAttribute.PRODUCER)]) + "\"}); "
+        )
+        vaccinesQuery.append(currentQuery)
+    return vaccinesQuery
+
+
+def createNodeTests(testsList):
+    """
+    Method that creates the query for the creation of the tests
+    :param testsList: is a list containing all the possible type of tests
+    :return: a query
+    """
+    testsQuery = []
+    for testEl in testsList:
+        currentQuery = (
+                "CREATE (t:Test {name: \"" + str(testEl) + "\"}); "
+        )
+        testsQuery.append(currentQuery)
+    return testsQuery
+
+
 def createRelationshipsAppContact(d , pIds , datesList , hoursList):
     """
     Method that creates random relationship
@@ -681,7 +768,101 @@ def createRelationshipsVisit(d , pIds , lIds , datesList , hoursList):
         )
         # Execute the query
         with d.session() as s:
-            s.write_transaction(createVisit , query , personId , locationId , date , startHour , endHour)
+            s.write_transaction(createVisit , query , personId , locationId)
+
+
+def createRelationshipsGetVaccine(d, pIds, vIds):
+    """
+    Method that creates GET vaccine relationships
+    :param d: is the connection (driver)
+    :param pIds: is a list of Person ids
+    :param vIds: is a list of Vaccine ids
+    :return: nothing
+    """
+    # Choose how many new visit relationships
+    numberOfVaccines = randint(1, MAX_NUMBER_OF_VACCINE_PER_DAY)
+    print(vIds)
+    for _ in range(0, numberOfVaccines):
+        vIndex = randint(0, len(vIds) - 1)
+        vaccineId = vIds[vIndex]
+        pIndex = randint(0, len(pIds) - 1)
+        personId = pIds[pIndex]
+        date = datetime.date.today() - datetime.timedelta(days=randint(-15, 45))
+        country = "Italy"
+        # For the future: maybe do a random country
+        # Ask to  neo4j server how many vaccines the user did
+        query = (
+            "MATCH (p:Person)-[r]->(v:Vaccine) "
+            "WHERE ID(p) = $personId AND type(r)='GET'"
+            "RETURN count(p) as count,ID(v) as vaccineID,r.expirationDate as date"
+        )
+        with d.session() as s:
+            datas = s.read_transaction(gettingNumberVaccines, query, personId)
+
+        # if no vaccines do one, else make the second vaccine
+        if len(datas) == 0:
+            expDate = date + datetime.timedelta(days=28)
+        else:
+            if len(datas) == 1:
+                string1 = datas[0]["date"].split("-")
+                date = datetime.date(int(string1[2].split(",")[0]), int(string1[1]), int(string1[0]))
+                expDate = date + datetime.timedelta(days=365)
+                vaccineId = datas[0]["vaccineID"]
+            else:
+                return
+        date = date.strftime("%d-%m-%Y,%H:%M")
+        expDate = expDate.strftime("%d-%m-%Y,%H:%M")
+
+        query = (
+            "MATCH (p:Person) , (v:Vaccine) "
+            "WHERE ID(p) = $personId AND ID(v) = $vaccineId "
+            "MERGE (p)-[:GET{date:$date,country:$country,expirationDate:$expDate}]->(v); "
+        )
+
+        # Execute the query
+        with d.session() as s:
+            s.write_transaction(createGettingVaccine, query, personId, vaccineId, date, country, expDate)
+
+
+def createRelationshipsMakeTest(d, pIds, tIds, hours):
+    """
+    Method that creates MAKE test relationships
+    :param d: is the connection (driver)
+    :param pIds: is a list of Person ids
+    :param tIds: is a list of Test ids
+    :return: nothing
+    """
+    # Choose how many new visit relationships
+    numberOfTest = randint(1, MAX_NUMBER_OF_TEST_PER_DAY)
+    print(tIds)
+    for _ in range(0, numberOfTest):
+        tIndex = randint(0, len(tIds) - 1)
+        testId = tIds[tIndex]
+        pIndex = randint(0, len(pIds) - 1)
+        personId = pIds[pIndex]
+        date = datetime.date.today() - datetime.timedelta(days=randint(0, 9))
+        hoursIndex = randint(0, len(hours)-1)
+        hour = hours[hoursIndex]
+        date = date.strftime("%d-%m-%Y")
+        date = date + "," + str(hour)
+
+        r = randint(0, 1)
+        if r == 1:
+            result = "Positive"
+        else:
+            result = "Negative"
+
+
+        query = (
+            "MATCH (p:Person) , (t:Test) "
+            "WHERE ID(p) = $personId AND ID(t) = $testId "
+            "MERGE (p)-[:MAKE{date:$date,result:$result}]->(t); "
+        )
+
+
+        # Execute the query
+        with d.session() as s:
+            s.write_transaction(createMakingTest, query, personId, testId, date, result)
 
 
 def createVisit(tx , query , personId , locationId , date , startHour , endHour):
@@ -700,7 +881,47 @@ def createVisit(tx , query , personId , locationId , date , startHour , endHour)
            endHour = endHour)
 
 
-def createContact(tx , query , pId1 , pId2 , hour , date):
+def createGettingVaccine(tx, query, personId, vaccineId, date, country, expDate):
+    """
+    Method that executes the query to create a VISIT relationship
+    :param tx: is the transaction
+    :param query: is the query to create a visit relationship
+    :param personId: is the id of the Person
+    :param vaccineId: is the id of the Vaccine
+    :param date: date of the vaccine
+    :param country: country
+    :param expDate: expiration date of the vaccine
+    :return: nothing
+    """
+    tx.run(query, personId=personId, vaccineId=vaccineId, date=date, country=country, expDate=expDate)
+
+
+def gettingNumberVaccines(tx, query, personId):
+    """
+    Method that executes the query to create a GET vaccinated relationship
+    :param tx: is the transaction
+    :param query: is the query to create a visit relationship
+    :param personId: is the id of the Person
+    :return:  a list of the vaccines already administered to the Person
+    """
+    return tx.run(query, personId=personId).data()
+
+
+def createMakingTest(tx, query, personId, testId, date, result):
+    """
+    Method that executes the query to create a VISIT relationship
+    :param tx: is the transaction
+    :param query: is the query to create a visit relationship
+    :param personId: is the id of the Person
+    :param testId: is the id of the Test
+    :param date: date of the vaccine
+    :param result: result of the test
+    :return: nothing
+    """
+    tx.run(query, personId=personId, testId=testId, date=date, result=result)
+
+
+def createContact(tx, query, pId1, pId2 , hour , date):
     """
     Method that executes the query to create a CONTACT_APP relationship
     :param date: the date of the contact
@@ -787,7 +1008,69 @@ def getLocationsId(tx):
     return idsList
 
 
-def runQuery(tx , query , isReturn = False):
+def getVaccinesId(tx):
+    """
+    Method that retrieve a list of location ids
+    :param tx: is the transaction
+    :return: a list of ids
+    """
+    query = (
+        "MATCH (v:Vaccine)"
+        "RETURN ID(v)"
+    )
+
+    idsList = tx.run(query).data()
+    return idsList
+
+
+def getVaccinesIds():
+    """
+    Method that retrieves all the ids of Vaccine Node
+    :return: a list of integer corresponding to the vaccine ids
+    """
+    with driver.session() as s:
+        ids = s.write_transaction(getVaccinesId)
+    print(ids)
+
+    vIds = []
+    for idEl in ids:
+        vIds.append(idEl["ID(v)"])
+    print(vIds)
+
+    return vIds
+
+def getTestsIds():
+    """
+    Method that retrieves all the ids of test Node
+    :return: a list of integer corresponding to the test ids
+    """
+    with driver.session() as s:
+        ids = s.write_transaction(getTestsId)
+    print(ids)
+
+    tIds = []
+    for idEl in ids:
+        tIds.append(idEl["ID(t)"])
+    print(tIds)
+
+    return tIds
+
+def getTestsId(tx):
+    """
+    Method that retrieve a list of location ids
+    :param tx: is the transaction
+    :return: a list of ids
+    """
+    query = (
+        "MATCH (t:Test)"
+        "RETURN ID(t)"
+    )
+
+    idsList = tx.run(query).data()
+    return idsList
+
+
+def runQuery(tx, query, isReturn=False):
     """
     Method that runs a generic query
     :param tx: is the transaction
@@ -857,6 +1140,11 @@ if __name__ == '__main__':
     # Read dates
     dates = readDates()
     print("Dates read")
+    vaccines = readVaccines()
+    print("Vaccines read")
+    tests = readTests()
+    print("Tests read")
+
 
     """
     print("Hours are: " + str(hours))
@@ -888,10 +1176,21 @@ if __name__ == '__main__':
     cQuery , rQuery = createNodesFamily(families , houseAddresses)
     # Generate the locations node
     lQuery = createNodeLocations(locations)
+    # Generate the vaccines nodes
+    vQuery = createNodeVaccines(vaccines)
+    # Generate the tests nodes
+    tQuery = createNodeTests(tests)
+
+    # Adds the creation node queries to the generalQuery
     for subQuery in cQuery:
         generalQuery.append(subQuery)
     for subQuery in lQuery:
         generalQuery.append(subQuery)
+    for subQuery in vQuery:
+        generalQuery.append(subQuery)
+    for subQuery in tQuery:
+        generalQuery.append(subQuery)
+    # Adds the relation queries to the generalQuery
     for subQuery in rQuery:
         generalQuery.append(subQuery)
 
@@ -905,8 +1204,8 @@ if __name__ == '__main__':
     with driver.session() as session:
         numberOfNodes = session.write_transaction(deleteAll)
 
-    # Generate the structure performing the families creation
-    runQueryWrite(driver , generalQuery)
+    # Generate the structure performing the node and relationship creation
+    runQueryWrite(driver, generalQuery)
 
     # Generate random contacts with app tracing
     # Take Person ids of people with app attribute equal to True)
@@ -919,6 +1218,18 @@ if __name__ == '__main__':
     locationIds = getLocationsIds()
     # Generate the relationship
     createRelationshipsVisit(driver , personIds , locationIds , dates , hours)
+
+    # Generate random vaccines
+    # Take vaccines ids
+    vaccineIds = getVaccinesIds()
+    # Generate the relationship
+    createRelationshipsGetVaccine(driver, personIds, vaccineIds)
+
+    # Generate random tests
+    # Take tests ids
+    testsIds = getTestsIds()
+    # Generate the relationship
+    createRelationshipsMakeTest(driver, personIds, testsIds,hours)
 
     # Verify the nodes are been created
     with driver.session() as session:
