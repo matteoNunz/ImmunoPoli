@@ -7,16 +7,22 @@ Problem: if in the file there are empty lines at the end ---> error
 
 import neo4j as nj
 import graphistry
-from random import randint
+from random import randint , random
 from enum import IntEnum
 
 
 MAX_NUMBER_OF_FAMILY_MEMBER = 5
 NUMBER_OF_FAMILY = 10
 
-MAX_NUMBER_OF_CONTACT_PER_DAY = 10  # For new contact relationships
+MAX_NUMBER_OF_CONTACT_PER_DAY = 5  # For new contact relationships
 
-MAX_NUMBER_OF_VISIT_PER_DAY = 10  # For new visit relationships
+MAX_NUMBER_OF_VISIT_PER_DAY = 5  # For new visit relationships
+
+MAX_CIVIC_NUMBER = 100
+
+PHONE_NUMBER_LENGTH = 10
+
+PROBABILITY_TO_HAVE_APP = 0.5
 
 
 class PersonAttribute(IntEnum):
@@ -25,6 +31,10 @@ class PersonAttribute(IntEnum):
     """
     NAME = 0
     SURNAME = 1
+    AGE = 2
+    MAIL = 3
+    NUMBER = 4
+    APP = 5
     # And so on...
 
     @classmethod
@@ -42,12 +52,33 @@ class LocationAttribute(IntEnum):
     TYPE = 0
     NAME = 1
     ADDRESS = 2
+    CIVIC_NUMBER = 3
+    CAP = 4
+    CITY = 5
+    PROVINCE = 6
     # and so on ...
 
     @classmethod
     def numberOfAttribute(cls):
         numAttribute = 0
         for _ in LocationAttribute:
+            numAttribute += 1
+        return numAttribute
+
+
+class HouseAttribute(IntEnum):
+    """
+    Class enum for the creation of the House
+    """
+    ADDRESS = 0
+    CAP = 1
+    CITY = 2
+    PROVINCE = 3
+
+    @classmethod
+    def numberOfAttribute(cls):
+        numAttribute = 0
+        for _ in HouseAttribute:
             numAttribute += 1
         return numAttribute
 
@@ -395,7 +426,7 @@ def readLocations():
     """
     locationsRead = []
 
-    #Parallel reading from address_file and locations_file
+    # Parallel reading from address_file and locations_file
     with open("Files/PublicPlaces.txt", 'r', encoding='utf8') as locations_file, \
             open("Files/Addresses.txt", 'r', encoding='utf8') as addresses_file:
         for (location_line, address_line) in zip(locations_file, addresses_file):
@@ -465,9 +496,32 @@ def createFamilies(namesList , surnamesList):
         for j in range(0 , len(familyEl)):
             familyEl[j] = [None] * PersonAttribute.numberOfAttribute()
             # Append a random name
-            familyEl[j][int(PersonAttribute.NAME)] = str(namesList[randint(0 , len(names) - 1)])
+            name = str(namesList[randint(0 , len(names) - 1)])
+            familyEl[j][int(PersonAttribute.NAME)] = name
             # Append the next surname
-            familyEl[j][int(PersonAttribute.SURNAME)] = str(surnamesList[surnameIndex])
+            surname = str(surnamesList[surnameIndex])
+            familyEl[j][int(PersonAttribute.SURNAME)] = surname
+            # Append a random age
+            if j == 0:
+                age = randint(18 , 99)
+            else:
+                age = randint(1 , 99)
+            familyEl[j][int(PersonAttribute.AGE)] = age
+            # Append the mail
+            mail = name + "." + surname + str(age) + "@immunoPoli.it"
+            familyEl[j][int(PersonAttribute.MAIL)] = mail
+            # Append the phone number
+            number = 0
+            for i in range(1 , PHONE_NUMBER_LENGTH + 1):
+                number += i * randint(0 , 9)
+            familyEl[j][int(PersonAttribute.NUMBER)] = number
+            # Append the app attribute
+            if random() < PROBABILITY_TO_HAVE_APP:
+                app = "True"
+            else:
+                app = "False"
+            familyEl[j][int(PersonAttribute.APP)] = app
+
             # In every family there will be at least 2 surnames
             # In case of friends living together there is a probability of 30% to have more than 2 surnames in a family
             if j == 0 and randint(0 , 100) < 30:  # Family of not familiar
@@ -483,9 +537,10 @@ def createFamilies(namesList , surnamesList):
     return familiesList
 
 
-def createNodesFamily(familiesList):
+def createNodesFamily(familiesList , houseAddressesList):
     """
     Method that append some command to the general query
+    :param houseAddressesList: is the list containing addresses ofr houses
     :param familiesList: is the list of families
     :return: nothing
     """
@@ -495,14 +550,23 @@ def createNodesFamily(familiesList):
         for memberEl in familyEl:
             currentQuery = (
                 "CREATE (p:Person {name: \"" + str(memberEl[int(PersonAttribute.NAME)]) + "\" , surname: \"" +
-                str(memberEl[int(PersonAttribute.SURNAME)]) + "\"}); "
+                str(memberEl[int(PersonAttribute.SURNAME)]) + "\" , age: \"" + str(memberEl[int(PersonAttribute.AGE)]) +
+                "\" , mail: \"" + str(memberEl[int(PersonAttribute.MAIL)]) + "\" , number: \"" +
+                str(memberEl[int(PersonAttribute.NUMBER)]) + "\" , app: \"" +
+                str(memberEl[int(PersonAttribute.APP)]) + "\"}); "
             )
             creationQuery.append(currentQuery)
         # Create the name of the house
         memberFamily = familyEl[0]
         familyName = memberFamily[PersonAttribute.NAME] + " " + memberFamily[PersonAttribute.SURNAME] + " house"
+        addressIndex = randint(0 , len(houseAddressesList) - 1)
+        address = houseAddressesList[addressIndex]
+        civicNumber = randint(0 , MAX_CIVIC_NUMBER)
         currentQuery = (
-            "CREATE (h:House {name: \"" + str(familyName) + "\"}); "
+            "CREATE (h:House {name: \"" + str(familyName) + "\" , address: \"" + str(address[HouseAttribute.ADDRESS]) +
+            "\",  civic_number: \"" + str(civicNumber) + "\" , CAP: \"" + str(address[HouseAttribute.CAP]) +
+            "\", city:  \"" + str(address[HouseAttribute.CITY]) + "\" , province: \""
+            + str(address[HouseAttribute.PROVINCE]) + "\"}); "
         )
         creationQuery.append(currentQuery)
 
@@ -511,8 +575,12 @@ def createNodesFamily(familiesList):
             currentQuery = (
                 "MATCH (p:Person) , (h:House) "
                 "WHERE p.name = \"" + str(memberEl[int(PersonAttribute.NAME)]) +
-                "\" AND p.surname = \"" + str(memberEl[int(PersonAttribute.SURNAME)]) + "\" AND h.name = \""
-                + str(familyName) + "\" "
+                "\" AND p.surname = \"" + str(memberEl[int(PersonAttribute.SURNAME)]) + "\" AND p.age= \"" +
+                str(memberEl[int(PersonAttribute.AGE)]) + "\" AND h.name = \"" + str(familyName) +
+                "\" AND h.address = \"" + str(address[HouseAttribute.ADDRESS]) + "\" AND h.civic_number = \"" +
+                str(civicNumber) + "\" AND h.CAP = \"" + str(address[HouseAttribute.CAP]) +
+                "\" AND h.city = \"" + str(address[HouseAttribute.CITY]) + "\" AND h.province = \"" +
+                str(address[HouseAttribute.PROVINCE]) + "\" "
                 "CREATE (p)-[:LIVE]->(h);"
             )
             relationshipsQuery.append(currentQuery)
@@ -529,16 +597,23 @@ def createNodeLocations(locationsList):
     locationsQuery = []
     for locationEl in locationsList:
         currentQuery = (
-            "CREATE (l:Location {name: \"" + str(locationEl[int(LocationAttribute.NAME)]) + "\" , type: '" +
-            str(locationEl[int(LocationAttribute.TYPE)]) + "'}); "
+            "CREATE (l:Location {name: \"" + str(locationEl[int(LocationAttribute.NAME)]) + "\" , type: \"" +
+            str(locationEl[int(LocationAttribute.TYPE)]) + "\" , address: \"" +
+            str(locationEl[int(LocationAttribute.ADDRESS)]) + "\" , civic_number: \"" +
+            str(locationEl[int(LocationAttribute.CIVIC_NUMBER)]) + "\", CAP: \"" +
+            str(locationEl[int(LocationAttribute.CAP)]) + "\" , city: \"" +
+            str(locationEl[int(LocationAttribute.CITY)]) + "\" , province: \"" +
+            str(locationEl[int(LocationAttribute.PROVINCE)]) + "\"}); "
         )
         locationsQuery.append(currentQuery)
     return locationsQuery
 
 
-def createRelationshipsAppContact(d , pIds):
+def createRelationshipsAppContact(d , pIds , datesList , hoursList):
     """
     Method that creates random relationship
+    :param hoursList: list of possible hours
+    :param datesList: list of possible dates
     :param d: is the connection (driver)
     :param pIds: list of Person ids
     :return: nothing
@@ -552,22 +627,29 @@ def createRelationshipsAppContact(d , pIds):
         pId1 = pIds[randomIndex]
         randomIndex = randint(0 , len(pIds) - 1)
         pId2 = pIds[randomIndex]
+        # Choose the hour/date
+        dateIndex = randint(0 , len(datesList) - 1)
+        date = datesList[dateIndex]
+        hourIndex = randint(0 , len(hoursList) - 1)
+        hour = hoursList[hourIndex]
         # Verify if it's the same node
         if pId1 == pId2:
             continue
         query = (
             "MATCH (p1:Person) , (p2:Person) "
             "WHERE ID(p1) = $pId1 AND ID(p2) = $pId2 "
-            "MERGE (p1)-[:APP_CONTACT]-(p2)"
+            "MERGE (p1)-[:APP_CONTACT { hour: $hour , date: $date}]-(p2)"
         )
         # Execute the query
         with d.session() as s:
-            s.write_transaction(createContact , query , pId1 , pId2)
+            s.write_transaction(createContact , query , pId1 , pId2 , hour , date)
 
 
-def createRelationshipsVisit(d , pIds , lIds):
+def createRelationshipsVisit(d , pIds , lIds , datesList , hoursList):
     """
     Method that creates VISIT relationships
+    :param hoursList: list of possible hours
+    :param datesList: list of possible dates
     :param d: is the connection (driver)
     :param pIds: is a list of Person ids
     :param lIds: is a list of Location ids
@@ -581,49 +663,65 @@ def createRelationshipsVisit(d , pIds , lIds):
         locationId = lIds[lIndex]
         pIndex = randint(0 , len(pIds) - 1)
         personId = pIds[pIndex]
+        # Choose the hour/date
+        dateIndex = randint(0 , len(datesList) - 1)
+        date = datesList[dateIndex]
+        startHourIndex = randint(0 , len(hoursList) - 1)
+        if startHourIndex == len(hoursList) - 1:
+            startHourIndex = len(hoursList) - 2
+        startHour = hoursList[startHourIndex]
+        endHourIndex = randint(startHourIndex , len(hoursList) - 1)
+        endHour = hoursList[endHourIndex]
         # For the future: here check if in case of more than 1 relationship already present it has a different hour/date
         # Maybe this can be avoided with MERGE instead of CREATE
         query = (
             "MATCH (p:Person) , (l:Location) "
             "WHERE ID(p) = $personId AND ID(l) = $locationId "
-            "MERGE (p)-[:VISIT]->(l); "
+            "MERGE (p)-[:VISIT {date: $date , start_hour: $startHour , end_hour: $endHour}]->(l); "
         )
         # Execute the query
         with d.session() as s:
-            s.write_transaction(createVisit , query , personId , locationId)
+            s.write_transaction(createVisit , query , personId , locationId , date , startHour , endHour)
 
 
-def createVisit(tx , query , personId , locationId):
+def createVisit(tx , query , personId , locationId , date , startHour , endHour):
     """
     Method that executes the query to create a VISIT relationship
+    :param endHour: ending time of the visit
+    :param startHour: starting time of the visit
+    :param date: date of the visit
     :param tx: is the transaction
     :param query: is the query to create a visit relationship
     :param personId: is the id of the Person
     :param locationId: is the id of the Location
     :return: nothing
     """
-    tx.run(query , personId = personId , locationId = locationId)
+    tx.run(query , personId = personId , locationId = locationId , date = date , startHour = startHour ,
+           endHour = endHour)
 
 
-def createContact(tx , query , pId1 , pId2):
+def createContact(tx , query , pId1 , pId2 , hour , date):
     """
     Method that executes the query to create a CONTACT_APP relationship
+    :param date: the date of the contact
+    :param hour: the hour of the contact
     :param tx: is the transaction
     :param query: is the query to perform
     :param pId1: is the id of the first Person
     :param pId2: is the id of the second Person
     :return: nothing
     """
-    tx.run(query , pId1 = pId1 , pId2 = pId2)
+    tx.run(query , pId1 = pId1 , pId2 = pId2 , hour = hour , date = date)
 
 
-def getPersonIds():
+def getPersonIds(withApp = False):
     """
     Method that retrieves all the ids of Person Node
+    :param withApp: if True, retrieve the id of person with app = True
     :return: a list of integer corresponding to the person ids
     """
     with driver.session() as s:
-        ids = s.write_transaction(getPersonId)
+        ids = s.write_transaction(getPersonId , withApp)
     print(ids)
 
     pIds = []
@@ -634,15 +732,24 @@ def getPersonIds():
     return pIds
 
 
-def getPersonId(tx):
+def getPersonId(tx , withApp):
     """
     Method that retrieves the ids of Person in the data base
+    :param tx: is the transaction
+    :param withApp: if True, retrieve the id of person with app = True
     :return: a list of ids
     """
-    query = (
-        "MATCH (p:Person)"
-        "RETURN ID(p)"
-    )
+    if not withApp:
+        query = (
+            "MATCH (p:Person) "
+            "RETURN ID(p);"
+        )
+    else:
+        query = (
+            "MATCH (p:Person) "
+            "WHERE p.app = \"True\" "
+            "RETURN ID(p);"
+        )
 
     idsList = tx.run(query).data()
     return idsList
@@ -710,7 +817,7 @@ def runQueryWrite(d , queryList):
 def runQueryRead(d , query):
     """
     Method that run a generic query
-    :param driver: is the connection to the database
+    :param d: is the connection to the database
     :param query: is the query to run -> it's already completed
     :return: nothing
     """
@@ -726,7 +833,8 @@ def print_database():
     """
     NEO4J_CREDS = {'uri': "bolt://18.207.228.214:7687",
                    'auth': ("neo4j", "can-alcoholic-writing")}
-    graphistry.register(bolt=NEO4J_CREDS, api=3, protocol="https", server="hub.graphistry.com", username="PieroRendina", password="acmilan01")
+    graphistry.register(bolt=NEO4J_CREDS, api=3, protocol="https", server="hub.graphistry.com",
+                        username="PieroRendina", password="acmilan01")
     graphistry.cypher("MATCH (a)-[r]->(b) RETURN *").plot()
 
 
@@ -777,7 +885,7 @@ if __name__ == '__main__':
     generalQuery = []
 
     # Generate all the Person Nodes and the family relationships
-    cQuery , rQuery = createNodesFamily(families)
+    cQuery , rQuery = createNodesFamily(families , houseAddresses)
     # Generate the locations node
     lQuery = createNodeLocations(locations)
     for subQuery in cQuery:
@@ -801,16 +909,16 @@ if __name__ == '__main__':
     runQueryWrite(driver , generalQuery)
 
     # Generate random contacts with app tracing
-    # Take Person ids
-    personIds = getPersonIds()
+    # Take Person ids of people with app attribute equal to True)
+    personIds = getPersonIds(True)
     # Generate the relationships
-    createRelationshipsAppContact(driver , personIds)
+    createRelationshipsAppContact(driver , personIds , dates , hours)
 
     # Generate random visits
     # Take Location ids
     locationIds = getLocationsIds()
     # Generate the relationship
-    createRelationshipsVisit(driver , personIds , locationIds)
+    createRelationshipsVisit(driver , personIds , locationIds , dates , hours)
 
     # Verify the nodes are been created
     with driver.session() as session:
