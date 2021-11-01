@@ -28,6 +28,11 @@ MAX_NUMBER_OF_VACCINE_PER_DAY = 10  # For new get vaccinated relationships
 
 MAX_NUMBER_OF_TEST_PER_DAY = 10  # For new make test relationships
 
+BOLT = "bolt://18.207.228.214:7687"
+USER = "neo4j"
+PASSWORD = "can-alcoholic-writing"
+
+
 
 class PersonAttribute(IntEnum):
     """
@@ -110,8 +115,7 @@ def openConnection():
     :return: the driver for the connection
     """
     connection = nj.GraphDatabase.driver(
-        "bolt://18.207.228.214:7687",
-        auth=nj.basic_auth("neo4j", "can-alcoholic-writing"))
+        BOLT , auth=nj.basic_auth(USER, PASSWORD))
     return connection
 
 
@@ -454,7 +458,7 @@ def readVaccines():
     vaccinesRead = []
 
     with open("Files/Vaccines.txt", 'r', encoding='utf8') as vaccine_file:
-        for (vaccine_lines) in (vaccine_file):
+        for vaccine_lines in vaccine_file:
             vaccineDetails = vaccine_lines.split(",")
             details = []
             for vaccineDetail in vaccineDetails:
@@ -513,8 +517,8 @@ def createFamilies(namesList, surnamesList):
             familyEl[j][int(PersonAttribute.MAIL)] = mail
             # Append the phone number
             number = 0
-            for i in range(1 , PHONE_NUMBER_LENGTH + 1):
-                number += i * randint(0 , 9)
+            for i in range(0 , PHONE_NUMBER_LENGTH):
+                number += randint(0 , 9) * 10 ** i
             familyEl[j][int(PersonAttribute.NUMBER)] = number
             # Append the app attribute
             if random() < PROBABILITY_TO_HAVE_APP:
@@ -732,7 +736,7 @@ def createRelationshipsGetVaccine(d, pIds, vIds):
         vaccineId = vIds[vIndex]
         pIndex = randint(0, len(pIds) - 1)
         personId = pIds[pIndex]
-        date = datetime.date.today() - datetime.timedelta(days=randint(-15, 45))
+        date = datetime.date.today() - datetime.timedelta(days=randint(0, 60))
         country = "Italy"
         # For the future: maybe do a random country
         # Ask to  neo4j server how many vaccines the user did
@@ -1061,8 +1065,7 @@ def print_database():
     Method that prints the whole database inside a predefined
     browser tab.
     """
-    NEO4J_CREDS = {'uri': "bolt://18.207.228.214:7687",
-                   'auth': ("neo4j", "can-alcoholic-writing")}
+    NEO4J_CREDS = {'uri': BOLT , 'auth': (USER, PASSWORD)}
     graphistry.register(bolt=NEO4J_CREDS, api=3, protocol="https", server="hub.graphistry.com",
                         username="PieroRendina", password="acmilan01")
     graphistry.cypher("MATCH (a)-[r]->(b) RETURN *").plot()
@@ -1163,6 +1166,7 @@ if __name__ == '__main__':
     # Generate random visits
     # Take Location ids
     locationIds = getLocationsIds()
+    personId = getPersonIds()
     # Generate the relationship
     createRelationshipsVisit(driver , personIds , locationIds , dates , hours)
 
