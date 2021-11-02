@@ -12,7 +12,7 @@ from enum import IntEnum
 import datetime
 
 MAX_NUMBER_OF_FAMILY_MEMBER = 5
-NUMBER_OF_FAMILY = 10
+NUMBER_OF_FAMILY = 5
 
 MAX_NUMBER_OF_CONTACT_PER_DAY = 5  # For new contact relationships
 
@@ -23,6 +23,7 @@ MAX_CIVIC_NUMBER = 100
 PHONE_NUMBER_LENGTH = 10
 
 PROBABILITY_TO_HAVE_APP = 0.5
+PROBABILITY_TO_BE_POSITIVE = 0.5
 
 MAX_NUMBER_OF_VACCINE_PER_DAY = 10  # For new get vaccinated relationships
 
@@ -344,21 +345,6 @@ def findPerson(tx, name, age=None):
         return [(record["name"], record["age"]) for record in result]
 
 
-def readHours():
-    """
-    Method that reads the possible hours from a file
-    :return: a list containing the hours
-    """
-    hoursRead = []
-    with open("Files/Hours.txt" , 'r', encoding = 'utf8') as f:
-        for line in f:
-            if line is "\n":
-                continue
-            hoursRead.append(line.rstrip('\n'))
-    f.close()
-    return hoursRead
-
-
 def readNames():
     """
     Method that reads the possible names from a file
@@ -433,21 +419,6 @@ def readHouseAddresses():
             addressesRead.append(address)
     f.close()
     return addressesRead
-
-
-def readDates():
-    """
-    Method that reads dates from a file
-    :return: a list of dates
-    """
-    datesList = []
-    with open("Files/Dates.txt" , 'r', encoding = 'utf8') as f:
-        for line in f:
-            if line is "\n":
-                continue
-            datesList.append(line.rstrip('\n'))
-    f.close()
-    return datesList
 
 
 def readVaccines():
@@ -645,11 +616,9 @@ def createNodeTests(testsList):
     return testsQuery
 
 
-def createRelationshipsAppContact(d , pIds , datesList , hoursList):
+def createRelationshipsAppContact(d , pIds):
     """
     Method that creates random relationship
-    :param hoursList: list of possible hours
-    :param datesList: list of possible dates
     :param d: is the connection (driver)
     :param pIds: list of Person ids
     :return: nothing
@@ -664,10 +633,12 @@ def createRelationshipsAppContact(d , pIds , datesList , hoursList):
         randomIndex = randint(0 , len(pIds) - 1)
         pId2 = pIds[randomIndex]
         # Choose the hour/date
-        dateIndex = randint(0 , len(datesList) - 1)
-        date = datesList[dateIndex]
-        hourIndex = randint(0 , len(hoursList) - 1)
-        hour = hoursList[hourIndex]
+        date = datetime.date.today() - datetime.timedelta(days=randint(0, 9))
+        date = date.strftime("%d-%m-%Y")
+        h = randint(0 , 23)
+        minutes = randint(0 , 59)
+        hour = str(h) + ":" + str(minutes)
+
         # Verify if it's the same node
         if pId1 == pId2:
             continue
@@ -681,11 +652,9 @@ def createRelationshipsAppContact(d , pIds , datesList , hoursList):
             s.write_transaction(createContact , query , pId1 , pId2 , hour , date)
 
 
-def createRelationshipsVisit(d , pIds , lIds , datesList , hoursList):
+def createRelationshipsVisit(d , pIds , lIds):
     """
     Method that creates VISIT relationships
-    :param hoursList: list of possible hours
-    :param datesList: list of possible dates
     :param d: is the connection (driver)
     :param pIds: is a list of Person ids
     :param lIds: is a list of Location ids
@@ -700,14 +669,15 @@ def createRelationshipsVisit(d , pIds , lIds , datesList , hoursList):
         pIndex = randint(0 , len(pIds) - 1)
         personId = pIds[pIndex]
         # Choose the hour/date
-        dateIndex = randint(0 , len(datesList) - 1)
-        date = datesList[dateIndex]
-        startHourIndex = randint(0 , len(hoursList) - 1)
-        if startHourIndex == len(hoursList) - 1:
-            startHourIndex = len(hoursList) - 2
-        startHour = hoursList[startHourIndex]
-        endHourIndex = randint(startHourIndex , len(hoursList) - 1)
-        endHour = hoursList[endHourIndex]
+        date = datetime.date.today() - datetime.timedelta(days=randint(0, 7))
+        date = date.strftime("%d-%m-%Y")
+        h = randint(0 , 22)
+        minutes = randint(0 , 59)
+        startHour = str(h) + ":" + str(minutes)
+        h = randint(h , 23)
+        minutes = randint(0, 59)
+        endHour = str(h) + ":" + str(minutes)
+
         # For the future: here check if in case of more than 1 relationship already present it has a different hour/date
         # Maybe this can be avoided with MERGE instead of CREATE
         query = (
@@ -759,7 +729,7 @@ def createRelationshipsGetVaccine(d, pIds, vIds):
                 vaccineId = datas[0]["vaccineID"]
             else:
                 return
-        date = date.strftime("%d-%m-%Y,%H:%M")
+        date = date.strftime("%d-%m-%Y")
         expDate = expDate.strftime("%d-%m-%Y,%H:%M")
 
         query = (
@@ -773,7 +743,7 @@ def createRelationshipsGetVaccine(d, pIds, vIds):
             s.write_transaction(createGettingVaccine, query, personId, vaccineId, date, country, expDate)
 
 
-def createRelationshipsMakeTest(d, pIds, tIds, hours):
+def createRelationshipsMakeTest(d, pIds, tIds):
     """
     Method that creates MAKE test relationships
     :param d: is the connection (driver)
@@ -789,29 +759,26 @@ def createRelationshipsMakeTest(d, pIds, tIds, hours):
         testId = tIds[tIndex]
         pIndex = randint(0, len(pIds) - 1)
         personId = pIds[pIndex]
-        date = datetime.date.today() - datetime.timedelta(days=randint(0, 9))
-        hoursIndex = randint(0, len(hours)-1)
-        hour = hours[hoursIndex]
+        date = datetime.date.today() + datetime.timedelta(days=randint(0, 9))
+        h = randint(0 , 23)
+        minutes = randint(0 , 59)
         date = date.strftime("%d-%m-%Y")
-        date = date + "," + str(hour)
+        hour = str(h) + ":" + str(minutes)
 
-        r = randint(0, 1)
-        if r == 1:
+        if random() < PROBABILITY_TO_BE_POSITIVE:
             result = "Positive"
         else:
             result = "Negative"
 
-
         query = (
             "MATCH (p:Person) , (t:Test) "
             "WHERE ID(p) = $personId AND ID(t) = $testId "
-            "MERGE (p)-[:MAKE{date:$date,result:$result}]->(t); "
+            "MERGE (p)-[:MAKE{date:$date , hour:$hour,result:$result}]->(t); "
         )
-
 
         # Execute the query
         with d.session() as s:
-            s.write_transaction(createMakingTest, query, personId, testId, date, result)
+            s.write_transaction(createMakingTest, query, personId, testId, date,hour, result)
 
 
 def createVisit(tx , query , personId , locationId , date , startHour , endHour):
@@ -856,7 +823,7 @@ def gettingNumberVaccines(tx, query, personId):
     return tx.run(query, personId=personId).data()
 
 
-def createMakingTest(tx, query, personId, testId, date, result):
+def createMakingTest(tx, query, personId, testId, date, hour , result):
     """
     Method that executes the query to create a VISIT relationship
     :param tx: is the transaction
@@ -867,7 +834,7 @@ def createMakingTest(tx, query, personId, testId, date, result):
     :param result: result of the test
     :return: nothing
     """
-    tx.run(query, personId=personId, testId=testId, date=date, result=result)
+    tx.run(query, personId=personId, testId=testId, date=date, hour=hour , result=result)
 
 
 def createContact(tx, query, pId1, pId2 , hour , date):
@@ -1072,9 +1039,6 @@ def print_database():
 
 
 if __name__ == '__main__':
-    # Read hours from the file
-    hours = readHours()
-    print("Hours read")
     # Read names from the file
     names = readNames()
     print("Names read")
@@ -1087,9 +1051,6 @@ if __name__ == '__main__':
     # Read house addresses
     houseAddresses = readHouseAddresses()
     print("House addresses read")
-    # Read dates
-    dates = readDates()
-    print("Dates read")
     vaccines = readVaccines()
     print("Vaccines read")
     tests = readTests()
@@ -1161,14 +1122,14 @@ if __name__ == '__main__':
     # Take Person ids of people with app attribute equal to True)
     personIds = getPersonIds(True)
     # Generate the relationships
-    createRelationshipsAppContact(driver , personIds , dates , hours)
+    createRelationshipsAppContact(driver , personIds)
 
     # Generate random visits
     # Take Location ids
     locationIds = getLocationsIds()
     personId = getPersonIds()
     # Generate the relationship
-    createRelationshipsVisit(driver , personIds , locationIds , dates , hours)
+    createRelationshipsVisit(driver , personIds , locationIds)
 
     # Generate random vaccines
     # Take vaccines ids
@@ -1180,7 +1141,7 @@ if __name__ == '__main__':
     # Take tests ids
     testsIds = getTestsIds()
     # Generate the relationship
-    createRelationshipsMakeTest(driver, personIds, testsIds,hours)
+    createRelationshipsMakeTest(driver, personIds, testsIds)
 
     # Verify the nodes are been created
     with driver.session() as session:
