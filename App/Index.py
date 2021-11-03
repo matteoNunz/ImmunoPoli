@@ -289,7 +289,7 @@ def create_pi(button_6 = None, button_7= None, button_8= None, entry_1 = None, e
         image=button_image_3,
         borderwidth=1000,
         highlightthickness=0,
-        command=lambda: create_gp( button_6),
+        command=lambda: create_gp(button_6),
         relief="flat"
     )
     button_3.place(
@@ -945,6 +945,7 @@ def create_ce(button_6 = None):
 
     canvas.delete("all")
     global button_list
+
     for x in button_list:
         x.destroy()
 
@@ -1125,16 +1126,18 @@ def create_ce(button_6 = None):
         height=50.0
     )
 
-    window.mainloop()
 
     button_list = [button_1, button_2, button_3, button_4, button_5]
+    window.mainloop()
 
 
 def create_p(button_6 = None):
     canvas.delete("all")
+
     global button_list
     for x in button_list:
         x.destroy()
+
     if button_6 != None:
         button_6.destroy()
 
@@ -1343,9 +1346,9 @@ def create_p(button_6 = None):
         height=50.0
     )
 
-    window.mainloop()
-    button_list = [button_1, button_2, button_3, button_4, button_5]
 
+    button_list = [button_1, button_2, button_3, button_4, button_5]
+    window.mainloop()
 
 window = Tk()
 window.title('SMBUD Group 20')
