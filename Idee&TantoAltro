@@ -6,15 +6,39 @@ IPOTESI:
 * ID univoco per identificare persone e luoghi --> aggiornato a 'strada + città' come identificativo univoco
 * ad un indirizzo è associata una e una sola famiglia o gruppo di conviventi --> una possibile soluzione per riuscire a modellare anche gli appartamenti che appartengono allo stesso palazzo (stesso indirizzo) è aggiungere un attributo che identifica il numero di appartamento 
 * il numero di dosi di vaccino effettuate non è esplicitato è reperibile tramite una count nella query 
-
+* non tenuto in considerazione il presunto contagio
 
 POSSIBLE QUERIES:
-* mostrare tutti i contagi avvenuti direttamente e indirettamente
-* mostrare la probabilità di contagio in un luogo / ora
+* mostrare tutti i contagi avvenuti direttamente
+* mostrare tutti i contagi avvenuti indirettamente
+* mostrare la probabilità di contagio in un luogo / ora -> mostra i primi 5 luoghi con probabilità di cotnagio più alta
+* mostrare la positività in base al vaccino effettuato
+* in base al cap individuare quanta gente si è vaccinata
+* numero di contatti tramite app di una persona in un range temporale
+* famiglie(case) con almeno un membro positivo (10g)
+* controllare che tutti quelli che hanno avuto un contatto con un positivo abbiano fatto il tampone
+    -> mostra chi non lo ha ancora fatto e SEGNALARLO
+* controlla quanti tamponi sono stati fatti in un mese
+* controlla quanti vaccini sono stati in un mese
+* controlla quanti positivi in un mese
+* cercare età media dei positivi
+
 
 POSSIBLE COMMANDS:
-* aggiornamento tracciamento con applicazione
-* aggiornamento nuovo test positivo
+* aggiornamento tracciamento con applicazione (delete old relationships)
+* aggiornamento nuovo test positivo -> relazione Infect (Union & Distinct)
+* crea nuovi tamponi con le persone che hanno la relazione Infect
+* crea nuove persone
+* crea nuove visite
+* update morti (nodo Paradise dove collegare le persone)
+
+USER QUERY:
+* visualizzare i suoi dati
+* visualizzare contatti
+
+USER COMMAND:
+* modificare i propri dati
+
 
 APP: 
 * nella schermata --> iniziale scelta | APP MANAGER | o | USER |
@@ -26,3 +50,14 @@ Per quanto riguarda la questione luogo facendo le query per generare il tutto mi
     si possono considerare solo nodi che ereditano da Place mantenendo nodi Home e nodi Location dove la differenza
     principale è la label, mentre il resto rimarrebbe uguale come abbiamo detto (tranne attributo nome e tipo)
     In questo modo anche per query future è molto più easy distinguere i luoghi tra casa e luogo pubblico
+
+
+Query:
+
+-contatti indiretti tramite app
+match (p1:Person)-[:APP_CONTACT*]->(p2:Person) return p1 , p2
+
+-cercare età media dei positivi
+MATCH (pp:Person)-[r:MAKE]->(t:Test)
+WHERE r.result = "Positive" AND r.date >= today() - deltaDays()
+RETURN (SUM(toFloat(pp.age)) / COUNT(pp))
