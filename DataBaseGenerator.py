@@ -351,9 +351,9 @@ def readNames():
     :return: a list containing the names
     """
     namesRead = []
-    with open("Files/Names.txt" , 'r', encoding = 'utf8') as f:
+    with open("Files/Names.txt", 'r', encoding='utf8') as f:
         for line in f:
-            if line is "\n":
+            if line=="\n":
                 continue
             namesRead.append(line.rstrip('\n'))
     f.close()
@@ -366,9 +366,9 @@ def readSurnames():
     :return: a list containing the surnames
     """
     surnamesRead = []
-    with open("Files/Surnames.txt" , 'r', encoding = 'utf8') as f:
+    with open("Files/Surnames.txt", 'r', encoding='utf8') as f:
         for line in f:
-            if line is "\n":
+            if line=="\n":
                 continue
             surnamesRead.append(line.rstrip('\n'))
     f.close()
@@ -386,7 +386,7 @@ def readLocations():
     with open("Files/PublicPlaces.txt", 'r', encoding='utf8') as locations_file, \
             open("Files/Addresses.txt", 'r', encoding='utf8') as addresses_file:
         for (location_line, address_line) in zip(locations_file, addresses_file):
-            if location_line is "\n" and address_line is "\n":
+            if location_line == "\n" and address_line == "\n":
                 continue
             locationDetails = location_line.split(",")
             addressDetails = address_line.split(",")
@@ -410,7 +410,7 @@ def readHouseAddresses():
     addressesRead = []
     with open("Files/HouseAddresses.txt" , 'r', encoding = 'utf8') as f:
         for line in f:
-            if line is "\n":
+            if line=="\n":
                 continue
             details = line.split(",")
             address = []
@@ -449,7 +449,7 @@ def readTests():
 
     with open("Files/Tests.txt", 'r', encoding='utf8') as f:
         for line in f:
-            if line is "\n":
+            if line=="\n":
                 continue
             testsList.append(line.rstrip('\n'))
     f.close()
@@ -635,8 +635,10 @@ def createRelationshipsAppContact(d , pIds):
         # Choose the hour/date
         date = datetime.date.today() - datetime.timedelta(days=randint(0, 9))
         date = date.strftime("%d-%m-%Y")
-        h = randint(0 , 23)
-        minutes = randint(0 , 59)
+        h = randint(0, 23)
+        minutes = randint(0, 59)
+        if minutes < 10:
+            minutes = "0"+str(minutes)
         hour = str(h) + ":" + str(minutes)
 
         # Verify if it's the same node
@@ -671,8 +673,10 @@ def createRelationshipsVisit(d , pIds , lIds):
         # Choose the hour/date
         date = datetime.date.today() - datetime.timedelta(days=randint(0, 7))
         date = date.strftime("%d-%m-%Y")
-        h = randint(0 , 22)
-        minutes = randint(0 , 59)
+        h = randint(0, 22)
+        minutes = randint(0, 59)
+        if minutes < 10:
+            minutes = "0"+str(minutes)
         startHour = str(h) + ":" + str(minutes)
         h = randint(h , 23)
         minutes = randint(0, 59)
@@ -762,6 +766,8 @@ def createRelationshipsMakeTest(d, pIds, tIds):
         date = datetime.date.today() + datetime.timedelta(days=randint(0, 9))
         h = randint(0 , 23)
         minutes = randint(0 , 59)
+        if minutes < 10:
+            minutes = "0"+str(minutes)
         date = date.strftime("%d-%m-%Y")
         hour = str(h) + ":" + str(minutes)
 
