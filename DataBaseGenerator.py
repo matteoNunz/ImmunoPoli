@@ -6,7 +6,6 @@ Problem: if in the file there are empty lines at the end ---> error
 """
 
 import neo4j as nj
-import graphistry
 from random import randint , random
 from enum import IntEnum
 import datetime
@@ -1033,15 +1032,11 @@ def runQueryRead(d , query):
     return results
 
 
-def print_database():
-    """
-    Method that prints the whole database inside a predefined
-    browser tab.
-    """
+"""def print_database():
     NEO4J_CREDS = {'uri': BOLT , 'auth': (USER, PASSWORD)}
     graphistry.register(bolt=NEO4J_CREDS, api=3, protocol="https", server="hub.graphistry.com",
                         username="PieroRendina", password="acmilan01")
-    graphistry.cypher("MATCH (a)-[r]->(b) RETURN *").plot()
+    graphistry.cypher("MATCH (a)-[r]->(b) RETURN *").plot()"""
 
 
 if __name__ == '__main__':
@@ -1158,4 +1153,3 @@ if __name__ == '__main__':
     with driver.session() as session:
         graph = session.read_transaction(findAll)
     print("The structure is: ")
-    print_database()
