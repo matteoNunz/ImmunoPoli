@@ -392,6 +392,20 @@ def findAllMakeTestRelationships(tx):
     return results
 
 
+def findAllInfectedRelationships(tx):
+    """
+    Method that finds all INFECTED relationships in the data base
+    :param tx: is the transaction
+    :return: a list of relationships
+    """
+    query = (
+        "MATCH (n1)-[r:INFECTED]-(n2) "
+        "RETURN ID(n1) , r , ID(n2);"
+    )
+    results = tx.run(query).data()
+    return results
+
+
 def getFriendsOf(tx, name):
     """
     Method that retrieves the friends of a specified Person
@@ -974,25 +988,54 @@ def createRelationshipsInfect(id , daysBack):
     )
 
     date = datetime.date.today() - datetime.timedelta(daysBack)
-    infectedId = []
+    infectedIds = []
     with driver.session() as s:
-        familyInfected = s.read_transaction(createInfect , familyQuery , id , None)
-        appInfected = s.read_transaction(createInfect , appContactQuery , id , date)
-        locationInfected = s.read_transaction(createInfect , locationContactQuery , id , date)
+        familyInfected = s.read_transaction(findInfectInFamily , familyQuery , id)
+        appInfected = s.read_transaction(findInfect , appContactQuery , id , date)
+        locationInfected = s.read_transaction(findInfect , locationContactQuery , id , date)
+        print(familyInfected)
         for el in familyInfected , appInfected , locationInfected:
-            infectedId.append(el)
-    return infectedId
+            if len(el) > 0:
+                # Take just the id
+                infectedIds.append(el[0]['ID(ip)'])
+
+        for infectedId in infectedIds:
+            query = (
+                "MATCH (pp:Person) , (ip:Person) "
+                "WHERE ID(pp) = $id AND ID(ip) = $ipid "
+                "CREATE (pp)-[:INFECTED]->(ip);"
+            )
+            s.write_transaction(createInfect , query , id , infectedId)
 
 
-def createInfect(tx , query , id , date):
+def createInfect(tx , query , id , ipid):
     """
-    Method that executes the query to create a INFECT relationship
+    Method that create the relationship Infect
+    """
+    tx.run(query , id = id , ipid = ipid)
+
+
+def findInfectInFamily(tx , query , id):
+    """
+    Method that executes the query to find the infected member of a family
+    :param tx: is the transaction
+    :param query: is the query to execute
+    :param id: is the id of the positive Person
+    """
+    result = tx.run(query , id = id).data()
+    return result
+
+
+def findInfect(tx , query , id , date):
+    """
+    Method that executes the query to find the Person infected by other Persons
     :param tx: is the transaction
     :param query: is the query to execute
     :param id: is the id of the positive Person
     :param date: is the date from wich start the tracking
     """
-    tx.run(query , id = id , date = date)
+    result = tx.run(query , id = id , date = date).data()
+    return result
 
 
 def createContact(tx, query, pId1, pId2 , hour , date):
@@ -1201,6 +1244,7 @@ def print_database_with_pyvis():
         appContactRelationships = s.read_transaction(findAllAppContactRelationships)
         getRelationships = s.read_transaction(findAllGetVaccineRelationships)
         makeRelationships = s.read_transaction(findAllMakeTestRelationships)
+        infectRelationships = s.read_transaction(findAllInfectedRelationships)
 
     # print(personNodes)
     # print(houseNodes)
@@ -1259,6 +1303,8 @@ def print_database_with_pyvis():
         relationships.append(relationship)
     for relationship in makeRelationships:
         relationships.append(relationship)
+    for relationship in infectRelationships:
+        relationships.append(relationship)
 
     for relationship in relationships:
         id1 = relationship['ID(n1)']
@@ -1284,6 +1330,8 @@ def print_database_with_pyvis():
                                              + ",hour: " + str(relationship['r.hour']) + ",result: "
                                              + str(relationship['r.result']) ,
                              color = 'black')
+        elif rType == 'INFECTED':
+            network.add_edge(id1 , id2 , title = rType , color = 'red')
 
     window = tk.Tk()
     window.title = 'Example of plot'
@@ -1374,11 +1422,8 @@ if __name__ == '__main__':
     # Search all the infected Person tracked
     trackedPersonIds = []
     for positiveId in positiveIds:
-        trackedIds = createRelationshipsInfect(positiveId , 7)
-        for id in trackedIds:
-            trackedPersonIds.append(id)
-    print("Infected are:")
-    print(trackedPersonIds)
+        print(positiveId['ID(p)'])
+        createRelationshipsInfect(positiveId['ID(p)'] , 7)
 
     # Print the whole structure
     print_database_with_pyvis()
@@ -1431,6 +1476,7 @@ if __name__ == '__main__':
     # Search all the infected Person tracked
     trackedPersonIds = []
     for positiveId in positiveIds:
+        print(type(positiveId))
         trackedIds = createRelationshipsInfect(positiveId , 7)
         for id in trackedIds:
             trackedPersonIds.append(id)
