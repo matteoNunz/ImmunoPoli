@@ -1,100 +1,100 @@
-Restaurant , Pizzeria Lobidu
-Restaurant , Il Trancio Magico
-Restaurant , Luxale
-Restaurant , Filante
-Restaurant , Elisir
-Restaurant , Casereccio
-Restaurant , Acqua Viva
-Restaurant , Hiro
-Restaurant , Le Tentazioni
-Restaurant , Kanji Evo
-Restaurant , Il Cenacolo
-Restaurant , Trattoria dall'Oste
-Restaurant , Assaje
-Restaurant , Sorbillo
-Restaurant , Gennaro Rapido
-Restaurant , Cracco
-Restaurant , Officina Dell'Hamburger
-Restaurant , Il Delfino
-Restaurant , Marghe
-Restaurant , Ghe Pensi Mi
-Restaurant , Da Salvatore
-Restaurant , All'Antico Vinaio
-Restaurant , Ocean Break
-Restaurant , American Graffiti
-Restaurant , El Carnicero
-Restaurant , Osteria Brunello
-Restaurant , Mamma Milano
-Gym    , Gymnic 
-Gym    , Quinto elemento
-Gym    , Fit Active
-Gym    , MioCLub
-Gym    , Dinamika Fitness
-Gym    , YouFit
-Gym    , Keasy Fit
-Gym    , Virgin Active
-Gym    , 20 hours fit
-Gym    , Mc Fit
-Gym    , Fit Express
-Gym    , Centro Sportivo Giuriati
-Swimming Pool    , MioCLub
-Swimming Pool    , Piscina Piola
-Swimming Pool    , Patrini Gardens and Pools
-Swimming Pool    , Piscina Colonna
-Swimming Pool    , Bagni Misteriosi
-Swimming Pool    , Acquasalus
-Swimming Pool    , Centro Balneare Argelati
-Supermarket , Carrefour
-Supermarket , Esselunga
-Supermarket , Lidl
-Supermarket , Carrefour Express
-Supermarket , Pam
-Supermarket , MD
-Supermarket , Penny Market
-Supermarket , Tigotà
-Supermarket , Acqua e Sapone
-Supermarket , Iper
-Supermarket , Super Dì
-Supermarket , Iper Futura
-Supermarket , Maxi Futura
-Supermarket , Conad
-Supermarket , Coop
-Supermarket , Iper Coop
-Supermarket , Tigros
-Supermarket , Arcaplanet
-Bar    , Street bar
-Bar    , Birrificio Lambrate
-Bar    , Matricola
-Bar    , Terrazza Aperol
-Bar    , Terrazza 21
-Bar    , Ceresio 7
-Bar    , BanghraBar
-Bar    , Garage
-Bar    , Garden
-Bar    , Bar Roma
-Bar    , Dolce Far Niente
-Bar    , In & Out
-Bar    , Gran Caffè
-Bar    , La Prosciutteria
-Bar    , Trapizzino
-Bar    , Tigella's
-Bar    , Tempesta
-Bar    , Piqua Café
-University , Politecnico di Milano
-University , Politecnico di Torino
-University , Bocconi
-University , Normale di Pisa
-University , Politecnico di Bari
-University , Bicocca
-University , Statale di Milano
-Theater    , Arena di Verona
-Theater    , La Fenice
-Theater    , Goldoni
-Cinema     , Plinius Multisala
-Cinema     , Multisala Colosseo
-Cinema     , Space Cinema Odeon
-Hospital   , Policlinico di Milano
-Hospital   , Fiera Milano
-Hospital   , Fate Bene Fratelli
-Hospital   , Mauriziano Umberto
-Hospital   , Santa Maria della Misericordia
+Restaurant , Pizzeria Lobidu , Via IV Novembre, 13, 21049, Tradate, VA
+Restaurant , Il Trancio Magico , Via Lodovico Montegani, 5, 20141, Milano, MI
+Restaurant , Luxale , Via N. Locarno, 10, 21017, Samarate, VA
+Restaurant , Filante , Piazzale Susa, 1, 20133, Milano, MI
+Restaurant , Elisir , Via Cesare Battisti, 17, 21043, Castiglione Olona, VA
+Restaurant , Casereccio , Contrada San Luca, 3, 85054, Muro lucano, PZ
+Restaurant , Acqua Viva , Contrada Acquaviva, 1, 85054, Muro Lucano, PZ
+Restaurant , Hiro , Via Giuseppe Ripamonti, 13, 20136, Milano, MI
+Restaurant , Le Tentazioni , Via Roma, 32, 85054, Muro Lucano, PZ
+Restaurant , Kanji Evo , Via Giuseppe Broggi, 17, 20129, Milano, MI
+Restaurant , Il Cenacolo , Via Giovanni Boccaccio, 33, 20123, Milano, MI
+Restaurant , Trattoria dall'Oste , Borgo S. Lorenzo, 31, 50121, Firenze, FI
+Restaurant , Assaje , Piazzale Segrino, 1, 20159, Milano, MI
+Restaurant , Sorbillo , Largo Corsia dei Servi, 11, 20122, Milano, MI
+Restaurant , Gennaro Rapido , Via Vigilio Inama, 17, 20133, Milano, MI
+Restaurant , Cracco , Corso Vittorio Emanuele II,3 , 20121, Milano, MI
+Restaurant , Officina Dell'Hamburger , Via Giovanni Giolitti, 12, 20025, Legnano, MI
+Restaurant , Il Delfino , Viale Gran Sasso, 26, 20131, Milano, MI
+Restaurant , Marghe , Via Plinio, 6, 20129, Milano, MI
+Restaurant , Ghe Pensi Mi , Piazza Morbegno, 2, 20125, Milano, MI
+Restaurant , Da Salvatore , Viale Brianza, 35, 20127, Milano, MI
+Restaurant , All'Antico Vinaio , Via Lupetta, 12, 20123, Milano, MI
+Restaurant , Ocean Break , Viale Monte Nero, 39, 20135, Milano, MI
+Restaurant , American Graffiti , Via Achille, 4, 20152, Milano, MI
+Restaurant , El Carnicero , Via Spartaco, 31, 20151, Milano, MI
+Restaurant , Osteria Brunello , Corso Garibaldi, 117, 20121, Milano, MI
+Restaurant , Mamma Milano , Via Alessandro Volta, 7, 20121, Milano, MI
+Gym    , Gymnic  , Via Giulio Cesare, 13, 21040, Venegono Superiore, VA
+Gym    , Quinto elemento , Via Dalla Chiesa, 22, 21040, Venegono Inferiore, VA
+Gym    , Fit Active , Via Giuseppe Ungaretti, 34, 21047, Saronno, VA
+Gym    , MioCLub , Via dei Pradacci, 5, 21049, Tradate, VA
+Gym    , Dinamika Fitness , Via Albert Einstein, 20, 42027, Montecchio Emilia, RE
+Gym    , YouFit , Via Bergamo, 4, 20135, Milano, MI
+Gym    , Keasy Fit , Via Sapri, 64, 20156, Milano, MI
+Gym    , Virgin Active , Viale Alcide de Gasperi, 2, 20151, Milano, MI
+Gym    , 20 hours fit , Piazzetta Bossi, 4, 20121, Milano, MI
+Gym    , Mc Fit , Via Luisa Battistotti Sassi, 11, 20133, Milano, MI
+Gym    , Fit Express , Viale Italia, 52, 20094, Corsico, MI
+Gym    , Centro Sportivo Giuriati , Via Carlo Pascal, 6, 20133, Milano, MI
+Swimming Pool    , MioCLub , Via Pietro Nenni, 8, 21012, Cassano Magnago, VA
+Swimming Pool    , Piscina Piola , Via Giuseppe Zanoia, 2, 20131, Milano, MI
+Swimming Pool    , Patrini Gardens and Pools , Via Dino Compagni, 2, 20131, Milano, MI
+Swimming Pool    , Piscina Colonna , Via Conservatorio, 2, 20122, Milano, MI
+Swimming Pool    , Bagni Misteriosi , Via Carlo Botta, 18, 20135, Milano, MI
+Swimming Pool    , Acquasalus , Via Maestri Campionesi, 28, 20135, Milano, MI
+Swimming Pool    , Centro Balneare Argelati , Via Giovanni Segantini, 6, 20143, Milano, MI
+Supermarket , Carrefour , Via Gustavo Modena, 8, 20153, Milano, MI
+Supermarket , Esselunga , Viale Piave, 38, 20129, Milano, MI
+Supermarket , Lidl , Viale Ortles, 7, 20139, Milano, MI
+Supermarket , Carrefour Express , Via Europa, 7, 20097, San Donato Milanese, MI
+Supermarket , Pam , Viale Sabotino, 6, 20135, Milano, MI
+Supermarket , MD , Via Nicola Palmieri, 58, 20141, Milano, MI
+Supermarket , Penny Market , Via Moncucco, 22, 20142, Milano, MI
+Supermarket , Tigotà , Corso San Gottardo, 24, 20136, Milano, MI
+Supermarket , Acqua e Sapone , Via delle Orchidee, 4, 20147, Milano, MI
+Supermarket , Iper , Via Eugenio Curiel, 25, 20089, Rozzano, MI
+Supermarket , Super Dì , Viale Lombardia, 65, 20131, Milano, MI
+Supermarket , Iper Futura , Via Isca del Pioppo, 5, 85100, Potenza, PZ
+Supermarket , Maxi Futura , Via Trinità, 1, 84036, Sala Consilina, SA
+Supermarket , Conad , Piazzale Bologna, 7, 20139, Milano, MI
+Supermarket , Coop , Viale Umbria, 48, 20137, Milano, MI
+Supermarket , Iper Coop , Via Benozzo Gozzoli, 130, 20152, Milano, MI
+Supermarket , Tigros , Viale Europa, 30, 20090, Cusago, MI
+Supermarket , Arcaplanet , Corso Indipendenza, 20, 20129, Milano, MI
+Bar    , Street bar , Via Antonio da Recanate, 2, 20124, Milano, MI
+Bar    , Birrificio Lambrate , Via Adelchi, 5, 20131, Milano, MI
+Bar    , Matricola , Viale Romagna, 43, 20133, Milano, MI
+Bar    , Terrazza Aperol , Galleria Vittorio Emanuele II, 3, 20121, Milano, MI
+Bar    , Terrazza 21 , Piazza del Duomo, 21, 20122, Milano, MI
+Bar    , Ceresio 7 , Via Ceresio, 7, 20154, Milano, MI
+Bar    , BanghraBar , Corso Sempione, 1, 20145, Milano, MI
+Bar    , Garage , Piazza Luigi Einaudi, 1, 22076, Mozzate, CO
+Bar    , Garden , Via Luino, 26, 21037, Lavena Ponte Tresa, VA
+Bar    , Bar Roma , Via Roma, 7, 20867, Caponago, MB
+Bar    , Dolce Far Niente , Corso Paolo Bernacchi, 44, 21049, Tradate, VA
+Bar    , In & Out , Via Gradisca, 14, 21049, Tradate, VA
+Bar    , Gran Caffè , Corso di Porta Vittoria, 47, 20122, Milano, MI
+Bar    , La Prosciutteria , Corso Garibaldi, 55, 20121, Milano, MI
+Bar    , Trapizzino , Via Marghera, 12, 20149, Milano, MI
+Bar    , Tigella's , Via Anfiteatro, 6, 20121, Milano, MI
+Bar    , Tempesta , Via D. Chiesa, 37, 21040, Venegono Inferiore, VA
+Bar    , Piqua Café , Via Comunale, 5, 66016, Guardiagrele, CH
+University , Politecnico di Milano , Piazza Leonardo da Vinci, 32, 20133, Milano, MI
+University , Politecnico di Torino , Corso Castelfidardo, 39, 10129, Torino, TO
+University , Bocconi , Via Roberto Sarfatti, 25, 20100, Milano, MI
+University , Normale di Pisa , Piazza dei Cavalieri, 7, 56126, Pisa, PI
+University , Politecnico di Bari , Via Edoardo Orabona, 4, 70126, Bari, BA
+University , Bicocca , Piazza dell'Ateneo Nuovo, 1, 20126, Milano, MI
+University , Statale di Milano , Via Festa del Perdono, 7, 20122, Milano, MI
+Theater    , Arena di Verona , Piazza Bra, 1, 37121, Verona, VR
+Theater    , La Fenice , Campo San Fantin, 1965, 30124, Venezia, VE
+Theater    , Goldoni , Via San Marco ,4650, 30124, Venezia, VE
+Cinema     , Plinius Multisala , Viale Abruzzi, 28, 20131, Milano, MI
+Cinema     , Multisala Colosseo , Viale Monte Nero, 84, 20135, Milano, MI
+Cinema     , Space Cinema Odeon , Via Santa Radegonda, 8, 20121, Milano, MI
+Hospital   , Policlinico di Milano , Via Francesco Sforza, 35, 20122, Milano, MI
+Hospital   , Fiera Milano , Viale Lodovico Scarampo, 6, 20149, Milano, MI
+Hospital   , Fate Bene Fratelli , Via di Ponte Quattro Capi, 39, 00186, Roma, RM
+Hospital   , Mauriziano Umberto , Largo Filippo Turati, 62, 10128, Torino, TO
+Hospital   , Santa Maria della Misericordia , Viale Tre Martiri, 140, 45100, Rovigo, RO

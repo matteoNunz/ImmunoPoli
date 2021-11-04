@@ -6,16 +6,17 @@ Problem: if in the file there are empty lines at the end ---> error
 """
 
 import neo4j as nj
+from pyvis.network import Network
 from random import randint , random
 from enum import IntEnum
 import datetime
 
 MAX_NUMBER_OF_FAMILY_MEMBER = 5
-NUMBER_OF_FAMILY = 20
+NUMBER_OF_FAMILY = 50
 
-MAX_NUMBER_OF_CONTACT_PER_DAY = 50  # For new contact relationships
+MAX_NUMBER_OF_CONTACT_PER_DAY = 10  # For new contact relationships
 
-MAX_NUMBER_OF_VISIT_PER_DAY = 10  # For new visit relationships
+MAX_NUMBER_OF_VISIT_PER_DAY = 50  # For new visit relationships
 
 MAX_CIVIC_NUMBER = 100
 
@@ -28,10 +29,9 @@ MAX_NUMBER_OF_VACCINE_PER_DAY = 30  # For new get vaccinated relationships
 
 MAX_NUMBER_OF_TEST_PER_DAY = 20  # For new make test relationships
 
-BOLT = "bolt://3.86.153.255:7687"
+BOLT = "bolt://52.87.206.215:7687"
 USER = "neo4j"
-PASSWORD = "tachometers-gyroscope-properties"
-
+PASSWORD = "controls-inches-halyard"
 
 
 class PersonAttribute(IntEnum):
@@ -243,7 +243,7 @@ def findAll(tx):
 
 def findAllPerson(tx):
     """
-    Method that finds all the nodes in the data base
+    Method that finds all the nodes Person in the data base
     :param tx: is the transaction
     :return: a list of nodes
     """
@@ -257,7 +257,7 @@ def findAllPerson(tx):
 
 def findAllHome(tx):
     """
-    Method that finds all the nodes in the data base
+    Method that finds all the nodes House in the data base
     :param tx: is the transaction
     :return: a list of nodes
     """
@@ -271,7 +271,7 @@ def findAllHome(tx):
 
 def findAllLocation(tx):
     """
-    Method that finds all the nodes in the data base
+    Method that finds all the nodes Location in the data base
     :param tx: is the transaction
     :return: a list of nodes
     """
@@ -283,15 +283,99 @@ def findAllLocation(tx):
     return results
 
 
-def findAllRelationships(tx):
+def findAllVaccine(tx):
     """
-    Method that finds all the relationships in the data base
+    Method that finds all the nodes Vaccine in the data base
+    :param tx: is the transaction
+    :return: a list of nodes
+    """
+    query = (
+        "MATCH (v:Vaccine) "
+        "RETURN v , ID(v);"
+    )
+    results = tx.run(query).data()
+    return results
+
+
+def findAllTest(tx):
+    """
+    Method that finds all the nodes Test in the data base
+    :param tx: is the transaction
+    :return: a list of nodes
+    """
+    query = (
+        "MATCH (t:Test) "
+        "RETURN t , ID(t);"
+    )
+    results = tx.run(query).data()
+    return results
+
+
+def findAllLiveRelationships(tx):
+    """
+    Method that finds all Live relationships in the data base
     :param tx: is the transaction
     :return: a list of relationships
     """
     query = (
-        "MATCH (n1)-[r]-(n2) "
+        "MATCH (n1)-[r:LIVE]-(n2) "
         "RETURN ID(n1) , r , ID(n2);"
+    )
+    results = tx.run(query).data()
+    return results
+
+
+def findAllAppContactRelationships(tx):
+    """
+    Method that finds all App_Contact relationships in the data base
+    :param tx: is the transaction
+    :return: a list of relationships
+    """
+    query = (
+        "MATCH (n1)-[r:APP_CONTACT]-(n2) "
+        "RETURN ID(n1) , r , r.date , r.hour, ID(n2);"
+    )
+    results = tx.run(query).data()
+    return results
+
+
+def findAllVisitRelationships(tx):
+    """
+    Method that finds all VISIT relationships in the data base
+    :param tx: is the transaction
+    :return: a list of relationships
+    """
+    query = (
+        "MATCH (n1)-[r:VISIT]-(n2) "
+        "RETURN ID(n1) , r , r.date , r.start_hour , r.end_hour , ID(n2);"
+    )
+    results = tx.run(query).data()
+    return results
+
+
+def findAllGetVaccineRelationships(tx):
+    """
+    Method that finds all GET (a vaccine) relationships in the data base
+    :param tx: is the transaction
+    :return: a list of relationships
+    """
+    query = (
+        "MATCH (n1)-[r:GET]-(n2) "
+        "RETURN ID(n1) , r , r.date , r.country , r.expirationDate , ID(n2);"
+    )
+    results = tx.run(query).data()
+    return results
+
+
+def findAllMakeTestRelationships(tx):
+    """
+    Method that finds all MAKE (a test) relationships in the data base
+    :param tx: is the transaction
+    :return: a list of relationships
+    """
+    query = (
+        "MATCH (n1)-[r:MAKE]-(n2) "
+        "RETURN ID(n1) , r , r.date , r.hour , r.result , ID(n2);"
     )
     results = tx.run(query).data()
     return results
@@ -382,22 +466,16 @@ def readLocations():
     locationsRead = []
 
     # Parallel reading from address_file and locations_file
-    with open("Files/PublicPlaces.txt", 'r', encoding='utf8') as locations_file, \
-            open("Files/Addresses.txt", 'r', encoding='utf8') as addresses_file:
-        for (location_line, address_line) in zip(locations_file, addresses_file):
-            if location_line == "\n" and address_line == "\n":
+    with open("Files/PublicPlaces.txt", 'r', encoding='utf8') as f:
+        for line in f:
+            if line == "\n":
                 continue
-            locationDetails = location_line.split(",")
-            addressDetails = address_line.split(",")
-            details = []
-            for locationDetail in locationDetails:
-                details.append(locationDetail.lstrip().rstrip().rstrip('\n'))
-            for addressDetail in addressDetails:
-                details.append(addressDetail.lstrip().rstrip('\n'))
-            locationsRead.append(details)
-
-    locations_file.close()
-    addresses_file.close()
+            details = line.split(",")
+            address = []
+            for detail in details:
+                address.append(detail.rstrip('\n'))
+            locationsRead.append(address)
+        f.close()
     return locationsRead
 
 
@@ -409,12 +487,12 @@ def readHouseAddresses():
     addressesRead = []
     with open("Files/HouseAddresses.txt" , 'r', encoding = 'utf8') as f:
         for line in f:
-            if line=="\n":
+            if line == "\n":
                 continue
             details = line.split(",")
             address = []
             for detail in details:
-                address.append(detail)
+                address.append(detail.rstrip('\n'))
             addressesRead.append(address)
     f.close()
     return addressesRead
@@ -638,7 +716,7 @@ def createRelationshipsAppContact(d , pIds):
         minutes = randint(0, 59)
         if minutes < 10:
             minutes = "0"+str(minutes)
-        hour = str(h) + ":" + str(minutes)
+        hour = str(h) + ":" + str(minutes) + ":00"
 
         # Verify if it's the same node
         if pId1 == pId2:
@@ -836,10 +914,37 @@ def createMakingTest(tx, query, personId, testId, date, hour , result):
     :param personId: is the id of the Person
     :param testId: is the id of the Test
     :param date: date of the vaccine
+    :param hour: hour of the test
     :param result: result of the test
     :return: nothing
     """
     tx.run(query, personId=personId, testId=testId, date=date, hour=hour , result=result)
+
+
+def createRelationshipsInfect(id , daysBack):
+    """
+    Method that find all the contact of a positive person
+    :param daysBack: is the number of days to look in the past
+    :param id: is the id of the positive person
+    :return: a list of people who got in contact with the positive person
+    """
+    familyQuery = (
+        "MATCH (pp:Person)-[LIVE]->(h:House)<-[LIVE]-(ip:Person)"
+        "WHERE ID(pp) = $id AND ip <> pp"
+        "RETURN ID(ip)"
+    )
+    appContactQuery = (
+        "MATCH (pp:Person)-[r1:APP_CONTACT]->(ip:Person) , (pp:Person)<-[r2:APP_CONTACT]-(ip:Person)"
+        "WHERE ID(pp) = $id AND r1.date > $(today() - $daysBack) OR r2.date > $(today() - $daysBack)"
+        "RETURN DISTINCT ID(ip)"
+    )
+    locationContactQuery = (
+        "MATCH (pp:Person)-[r1:VISIT]->(l:Location)<-[r2:Visit]-(ip:Person)"
+        "WHERE ID(pp) = $id AND ip <> pp AND r1.date > $(today() - $daysBack) AND r2.date = r1.date AND"
+        "((r1.starHour < r2.startHour AND r1.endHour > r2.startHour) OR "
+        "(r2.startHour < r1.startHour AND r2.endHour > r1.startHour))"
+        "RETURN DISTINCT ID(ip) , l"
+    )
 
 
 def createContact(tx, query, pId1, pId2 , hour , date):
@@ -1036,10 +1141,118 @@ def runQueryRead(d , query):
     NEO4J_CREDS = {'uri': BOLT , 'auth': (USER, PASSWORD)}
     graphistry.register(bolt=NEO4J_CREDS, api=3, protocol="https", server="hub.graphistry.com",
                         username="PieroRendina", password="acmilan01")
-    graphistry.cypher("MATCH (a)-[r]->(b) RETURN *").plot()"""
+    # graphistry.cypher("MATCH (a)-[r]->(b) RETURN *").plot()
+    structureToPrint = graphistry.cypher("MATCH (a)-[r]->(b) RETURN *")
+    print(structureToPrint)
+"""
+
+
+def print_database_with_pyvis():
+    """
+    Method use to print the database structure in local using pyvis library
+    :return: nothing, just print
+    """
+    with driver.session() as s:
+        personNodes = s.read_transaction(findAllPerson)
+        houseNodes = s.read_transaction(findAllHome)
+        locationNodes = s.read_transaction(findAllLocation)
+        vaccineNodes = s.read_transaction(findAllVaccine)
+        testNodes = s.read_transaction(findAllTest)
+        liveRelationships = s.read_transaction(findAllLiveRelationships)
+        visitRelationships = s.read_transaction(findAllVisitRelationships)
+        appContactRelationships = s.read_transaction(findAllAppContactRelationships)
+        getRelationships = s.read_transaction(findAllGetVaccineRelationships)
+        makeRelationships = s.read_transaction(findAllMakeTestRelationships)
+
+    # print(personNodes)
+    # print(houseNodes)
+    # print(locationNodes)
+    # print(vaccineNodes)
+    # print(testNodes)
+    # print(liveRelationships)
+    # print(visitRelationships)
+    # print(appContactRelationships)
+    # print(getRelationships)
+    print(makeRelationships)
+    network = Network('500px' , '500px')
+    # network.enable_physics(True)
+    # Add Person nodes
+    for personNode in personNodes:
+        network.add_node(personNode["ID(p)"] ,
+                         label = personNode["ID(p)"] ,
+                         title = personNode['p']['name'] + " " +
+                                    personNode['p']['surname'] + "",
+                         color = 'orange')
+    # Add House nodes
+    for houseNode in houseNodes:
+        network.add_node(houseNode['ID(h)'] ,
+                         label = houseNode['ID(h)'] ,
+                         title = houseNode['h']['name'] ,
+                         color = 'blue')
+    # Add Location nodes
+    for locationNode in locationNodes:
+        network.add_node(locationNode['ID(l)'] ,
+                         label = locationNode['ID(l)'] ,
+                         title = str(locationNode['l']['name']) + "," + str(locationNode['l']['address']) + ","
+                                 + str(locationNode['l']['civic_number']) + "," + str(locationNode['l']['CAP']) + ","
+                                 + str(locationNode['l']['city']) + "," + str(locationNode['l']['province']) + ","
+                                 + str(locationNode['l']['type']) ,
+                         color = 'red')
+    # Add Vaccine nodes
+    for vaccineNode in vaccineNodes:
+        network.add_node(vaccineNode['ID(v)'] ,
+                         label = vaccineNode['ID(v)'] ,
+                         title = str(vaccineNode['v']['name']) + "," + str(vaccineNode['v']['producer']) ,
+                         color = 'gray')
+    # Add Test nodes
+    for testNode in testNodes:
+        network.add_node(testNode['ID(t)'] ,
+                         label = testNode['ID(t)'] ,
+                         title = str(testNode['t']['name']) ,
+                         color = 'green')
+    # Add Live relationships
+    relationships = []
+    for relationship in liveRelationships:
+        relationships.append(relationship)
+    for relationship in appContactRelationships:
+        relationships.append(relationship)
+    for relationship in visitRelationships:
+        relationships.append(relationship)
+    for relationship in getRelationships:
+        relationships.append(relationship)
+    for relationship in makeRelationships:
+        relationships.append(relationship)
+
+    for relationship in relationships:
+        id1 = relationship['ID(n1)']
+        id2 = relationship['ID(n2)']
+        rType = relationship['r'][1]
+        if rType == 'LIVE':
+            network.add_edge(id1 , id2 , title = rType , color = 'black')
+        elif rType == 'APP_CONTACT':
+            network.add_edge(id1, id2, title = rType + ",date: " + str(relationship['r.date']) + ",hour: "
+                                             + str(relationship['r.hour']) , color = 'black')
+        elif rType == 'VISIT':
+            network.add_edge(id1 , id2 , title = rType + ",date: " + str(relationship['r.date'])
+                                             + ",start_hour: " + str(relationship['r.start_hour'])
+                                             + ",end_hour: " + str(relationship['r.end_hour']) ,
+                             color = 'black')
+        elif rType == 'GET':
+            network.add_edge(id1 , id2 , title = rType + ",date: " + str(relationship['r.date'])
+                                             + ",expiration_date: " + str(relationship['r.expirationDate'])
+                                             + ",country: " + str(relationship['r.country']) ,
+                             color = 'black')
+        elif rType == 'MAKE':
+            network.add_edge(id1 , id2 , title = rType + ",date: " + str(relationship['r.date']
+                                             + ",hour: " + str(relationship['r.hour']) + ",result: "
+                                             + str(relationship['r.result'])) ,
+                             color = 'black')
+
+    network.show('graph.html')
 
 
 if __name__ == '__main__':
+
     # Read names from the file
     names = readNames()
     print("Names read")
@@ -1057,7 +1270,6 @@ if __name__ == '__main__':
     tests = readTests()
     print("Tests read")
 
-
     """
     print("Hours are: " + str(hours))
     print("Locations are: " + str(locations))
@@ -1071,15 +1283,6 @@ if __name__ == '__main__':
     # Create the family list
     families = createFamilies(names , surnames)
     print("Families created")
-
-    """
-    i = 0
-    for family in families:
-        print("Family number " + str(i))
-        for member in family:
-            print(member[int(PersonAttribute.NAME)] + " " + member[int(PersonAttribute.SURNAME)])
-        i += 1
-    """
 
     # Query is an attribute that will contain the whole query to instantiate the database
     generalQuery = []
@@ -1111,6 +1314,10 @@ if __name__ == '__main__':
 
     # Open the connection
     driver = openConnection()
+
+    # Print the whole structure
+    print_database_with_pyvis()
+    exit()
 
     # Delete the nodes already present
     with driver.session() as session:
@@ -1149,7 +1356,5 @@ if __name__ == '__main__':
         numberOfNodes = session.read_transaction(countAll)
     print("Number of nodes: " + str(numberOfNodes))
 
-    # Get the whole structure
-    with driver.session() as session:
-        graph = session.read_transaction(findAll)
-    print("The structure is: ")
+    # Print the whole structure
+    print_database_with_pyvis()
