@@ -6,15 +6,26 @@ Problem: if in the file there are empty lines at the end ---> error
 """
 
 import neo4j as nj
+import tkinter as tk
+import tkinterweb
+
+from matplotlib import pyplot as plt
 from pyvis.network import Network
+from tkinterhtml import HtmlFrame
 from random import randint , random
 from enum import IntEnum
 import datetime
 
-MAX_NUMBER_OF_FAMILY_MEMBER = 5
-NUMBER_OF_FAMILY = 50
+from matplotlib.backends.backend_tkagg import (
+    FigureCanvasTkAgg, NavigationToolbar2Tk)
+# Implement the default Matplotlib key bindings.
+from matplotlib.backend_bases import key_press_handler
+from matplotlib.figure import Figure
 
-MAX_NUMBER_OF_CONTACT_PER_DAY = 10  # For new contact relationships
+MAX_NUMBER_OF_FAMILY_MEMBER = 5
+NUMBER_OF_FAMILY = 5
+
+MAX_NUMBER_OF_CONTACT_PER_DAY = 50  # For new contact relationships
 
 MAX_NUMBER_OF_VISIT_PER_DAY = 50  # For new visit relationships
 
@@ -23,7 +34,7 @@ MAX_CIVIC_NUMBER = 100
 PHONE_NUMBER_LENGTH = 10
 
 PROBABILITY_TO_HAVE_APP = 0.5
-PROBABILITY_TO_BE_POSITIVE = 0.5
+PROBABILITY_TO_BE_POSITIVE = 1
 
 MAX_NUMBER_OF_VACCINE_PER_DAY = 30  # For new get vaccinated relationships
 
@@ -724,7 +735,8 @@ def createRelationshipsAppContact(d , pIds):
         query = (
             "MATCH (p1:Person) , (p2:Person) "
             "WHERE ID(p1) = $pId1 AND ID(p2) = $pId2 "
-            "MERGE (p1)-[:APP_CONTACT { hour: $hour , date: date($date)}]-(p2)"
+            "MERGE (p1)-[:APP_CONTACT { hour: $hour , date: date($date)}]->(p2) "
+            "MERGE (p1)<-[:APP_CONTACT { hour: $hour , date: date($date)}]-(p2)"
         )
         # Execute the query
         with d.session() as s:
@@ -921,6 +933,21 @@ def createMakingTest(tx, query, personId, testId, date, hour , result):
     tx.run(query, personId=personId, testId=testId, date=date, hour=hour , result=result)
 
 
+def findAllPositivePerson():
+    """
+    Method that finds all the positive person
+    :return: a list of positive ids
+    """
+    query = (
+        "MATCH (p:Person)-[r:MAKE]->(t:Test) "
+        "WHERE r.result = \"Positive\" "
+        "RETURN DISTINCT ID(p);"
+    )
+
+    positiveIdsFounds = runQueryRead(driver , query)
+    return positiveIdsFounds
+
+
 def createRelationshipsInfect(id , daysBack):
     """
     Method that find all the contact of a positive person
@@ -929,22 +956,43 @@ def createRelationshipsInfect(id , daysBack):
     :return: a list of people who got in contact with the positive person
     """
     familyQuery = (
-        "MATCH (pp:Person)-[LIVE]->(h:House)<-[LIVE]-(ip:Person)"
-        "WHERE ID(pp) = $id AND ip <> pp"
-        "RETURN ID(ip)"
+        "MATCH (pp:Person)-[:LIVE]->(h:House)<-[:LIVE]-(ip:Person) "
+        "WHERE ID(pp) = $id AND ip <> pp "
+        "RETURN DISTINCT ID(ip) "
     )
     appContactQuery = (
-        "MATCH (pp:Person)-[r1:APP_CONTACT]->(ip:Person) , (pp:Person)<-[r2:APP_CONTACT]-(ip:Person)"
-        "WHERE ID(pp) = $id AND r1.date > $(today() - $daysBack) OR r2.date > $(today() - $daysBack)"
-        "RETURN DISTINCT ID(ip)"
+        "MATCH (pp:Person)-[r1:APP_CONTACT]->(ip:Person) "
+        "WHERE ID(pp) = $id AND r1.date > date($date) "
+        "RETURN DISTINCT ID(ip) "
     )
     locationContactQuery = (
-        "MATCH (pp:Person)-[r1:VISIT]->(l:Location)<-[r2:Visit]-(ip:Person)"
-        "WHERE ID(pp) = $id AND ip <> pp AND r1.date > $(today() - $daysBack) AND r2.date = r1.date AND"
-        "((r1.starHour < r2.startHour AND r1.endHour > r2.startHour) OR "
-        "(r2.startHour < r1.startHour AND r2.endHour > r1.startHour))"
+        "MATCH (pp:Person)-[r1:VISIT]->(l:Location)<-[r2:Visit]-(ip:Person) "
+        "WHERE ID(pp) = $id AND ip <> pp AND r1.date > date($date) AND r2.date = r1.date AND "
+        "((r1.starHour < r2.startHour AND r1.endHour > r2.startHour) OR "  # toDo maybe need to fix Time
+        "(r2.startHour < r1.startHour AND r2.endHour > r1.startHour)) "
         "RETURN DISTINCT ID(ip) , l"
     )
+
+    date = datetime.date.today() - datetime.timedelta(daysBack)
+    infectedId = []
+    with driver.session() as s:
+        familyInfected = s.read_transaction(createInfect , familyQuery , id , None)
+        appInfected = s.read_transaction(createInfect , appContactQuery , id , date)
+        locationInfected = s.read_transaction(createInfect , locationContactQuery , id , date)
+        for el in familyInfected , appInfected , locationInfected:
+            infectedId.append(el)
+    return infectedId
+
+
+def createInfect(tx , query , id , date):
+    """
+    Method that executes the query to create a INFECT relationship
+    :param tx: is the transaction
+    :param query: is the query to execute
+    :param id: is the id of the positive Person
+    :param date: is the date from wich start the tracking
+    """
+    tx.run(query , id = id , date = date)
 
 
 def createContact(tx, query, pId1, pId2 , hour , date):
@@ -1108,7 +1156,7 @@ def runQuery(tx, query, isReturn=False):
     result = tx.run(query)
 
     if isReturn:
-        return result
+        return result.data()
 
 
 def runQueryWrite(d , queryList):
@@ -1137,16 +1185,6 @@ def runQueryRead(d , query):
     return results
 
 
-"""def print_database():
-    NEO4J_CREDS = {'uri': BOLT , 'auth': (USER, PASSWORD)}
-    graphistry.register(bolt=NEO4J_CREDS, api=3, protocol="https", server="hub.graphistry.com",
-                        username="PieroRendina", password="acmilan01")
-    # graphistry.cypher("MATCH (a)-[r]->(b) RETURN *").plot()
-    structureToPrint = graphistry.cypher("MATCH (a)-[r]->(b) RETURN *")
-    print(structureToPrint)
-"""
-
-
 def print_database_with_pyvis():
     """
     Method use to print the database structure in local using pyvis library
@@ -1173,9 +1211,8 @@ def print_database_with_pyvis():
     # print(visitRelationships)
     # print(appContactRelationships)
     # print(getRelationships)
-    print(makeRelationships)
+    # print(makeRelationships)
     network = Network('500px' , '500px')
-    # network.enable_physics(True)
     # Add Person nodes
     for personNode in personNodes:
         network.add_node(personNode["ID(p)"] ,
@@ -1243,11 +1280,26 @@ def print_database_with_pyvis():
                                              + ",country: " + str(relationship['r.country']) ,
                              color = 'black')
         elif rType == 'MAKE':
-            network.add_edge(id1 , id2 , title = rType + ",date: " + str(relationship['r.date']
+            network.add_edge(id1 , id2 , title = rType + ",date: " + str(relationship['r.date'])
                                              + ",hour: " + str(relationship['r.hour']) + ",result: "
-                                             + str(relationship['r.result'])) ,
+                                             + str(relationship['r.result']) ,
                              color = 'black')
 
+    window = tk.Tk()
+    window.title = 'Example of plot'
+    window.geometry("400x400")
+    # canvas = tk.Canvas(window)
+    # f = plt.Figure(figsize = (5 , 5) , dpi = 100)
+    # canvas = FigureCanvasTkAgg(network , window)
+    # canvas.draw()
+
+    # frame = HtmlFrame(window , horizontal_scrollbar="auto")
+    # frame.set_content('graph.html')
+    # frame = tkinterweb.HtmlFrame(window)
+    # frame.load_website('file:///graph.html')
+    # frame.pack(fill = "both" , expand = True)
+
+    # window.mainloop()
     network.show('graph.html')
 
 
@@ -1315,6 +1367,19 @@ if __name__ == '__main__':
     # Open the connection
     driver = openConnection()
 
+    # Find all the positive Person
+    positiveIds = findAllPositivePerson()
+    print("Positive are:")
+    print(positiveIds)
+    # Search all the infected Person tracked
+    trackedPersonIds = []
+    for positiveId in positiveIds:
+        trackedIds = createRelationshipsInfect(positiveId , 7)
+        for id in trackedIds:
+            trackedPersonIds.append(id)
+    print("Infected are:")
+    print(trackedPersonIds)
+
     # Print the whole structure
     print_database_with_pyvis()
     exit()
@@ -1358,3 +1423,16 @@ if __name__ == '__main__':
 
     # Print the whole structure
     print_database_with_pyvis()
+
+    # Find all the positive Person
+    positiveIds = findAllPositivePerson()
+    print("Positive are:")
+    print(positiveIds)
+    # Search all the infected Person tracked
+    trackedPersonIds = []
+    for positiveId in positiveIds:
+        trackedIds = createRelationshipsInfect(positiveId , 7)
+        for id in trackedIds:
+            trackedPersonIds.append(id)
+    print("Infected are:")
+    print(trackedPersonIds)
