@@ -34,4 +34,4 @@ The Graphical User Interface is made with Tkinter library
 ```sh
 pyhton3 Index.py
 ```
-![alt text](https://github.com/matteoNunz/ImmunoPoli.git/App/Images/index.png)
+![front page](https://github.com/matteoNunz/ImmunoPoli/App/Images/index.png?raw=true)
