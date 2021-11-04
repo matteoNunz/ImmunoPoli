@@ -8,7 +8,7 @@
 
 - Group components
 - Database Generator
-- GUI application 
+- GUI 
 
 ## Group Components
 
@@ -34,4 +34,17 @@ The Graphical User Interface is made with Tkinter library
 ```sh
 pyhton3 Index.py
 ```
-![front page](https://github.com/matteoNunz/ImmunoPoli/App/Images/index.png?raw=true)
+![front page](App/Images/index.png?raw=true)
+A customer can log in as a "User" or an "App Manager" with his personal and secrete ID.
+
+The User can:
+- visualize his personal information 
+- modify some of his personal information 
+- visualize his green pass
+- visualize covid alerts 
+- visualize the list of palaces he visited in the last ten days 
+
+The App Manager can:
+- add new covid test results
+- perform queries to the database 
+- see common trends 
