@@ -18,7 +18,7 @@
 | Nunziante |  Matteo| matteo.nunziante@mail.polimi.it | 913670 | 10670132
 | Rendina |Piero | piero.rendina@mail.polimi.it  || 
 | Sanchini |  Andrea | andrea.sanchini@mail.polimi.it |  | 
-| Zuccolotto |Enrico | enrico.zuccolotto@mail.polimi.it  |  | 
+| Zuccolotto |Enrico | enrico.zuccolotto@mail.polimi.it  | 993209 | 10666354
 
 ## Database Generator
 
