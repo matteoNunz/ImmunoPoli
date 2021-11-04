@@ -11,7 +11,7 @@ IPOTESI:
 POSSIBLE QUERIES:
 * mostrare tutti i contagi avvenuti direttamente
 * mostrare tutti i contagi avvenuti indirettamente
-* mostrare la probabilità di contagio in un luogo / ora -> mostra i primi 5 luoghi con probabilità di cotnagio più alta
+* mostrare la probabilità di contagio in un luogo / ora -> mostra i primi 5 luoghi con probabilità di contagio più alta
 * mostrare la positività in base al vaccino effettuato
 * in base al cap individuare quanta gente si è vaccinata
 * numero di contatti tramite app di una persona in un range temporale
@@ -51,13 +51,38 @@ Per quanto riguarda la questione luogo facendo le query per generare il tutto mi
     principale è la label, mentre il resto rimarrebbe uguale come abbiamo detto (tranne attributo nome e tipo)
     In questo modo anche per query future è molto più easy distinguere i luoghi tra casa e luogo pubblico
 
+- Da aggiornare campi dei nodi vaccino
+- Sistemare diagramma E-R (relazione reside diventa live, collegate con private house)
 
 Query:
 
 -contatti indiretti tramite app
-match (p1:Person)-[:APP_CONTACT*]->(p2:Person) return p1 , p2
+    MATCH (p1:Person)-[:APP_CONTACT*]->(p2:Person) RETURN p1 , p2
 
 -cercare età media dei positivi
-MATCH (pp:Person)-[r:MAKE]->(t:Test)
-WHERE r.result = "Positive" AND r.date >= today() - deltaDays()
-RETURN (SUM(toFloat(pp.age)) / COUNT(pp))
+    MATCH (pp:Person)-[r:MAKE]->(t:Test)
+    WHERE r.result = "Positive" AND r.date >= date() - duration({days: 10})
+    RETURN (SUM(DISTINCT(toFloat(pp.age))) / COUNT(DISTINCT(pp)))
+
+- persone che abitano con persone che hanno avuto un tampone positivo
+  negli ultimi 10 gg:
+	MATCH (p:Person)-[:LIVE]->(h:House)<-[:LIVE]-(p1:Person)-[r:MAKE {result: "Positive"}]->()
+	WHERE r.result = "Positive" AND r.date >= date() - duration({days: 10})
+	RETURN p
+
+- case con almeno un positivo (10gg):
+	MATCH (h:House)<-[:LIVE]-(p:Person)-[r:MAKE {result: "Positive"}]->()
+	WHERE r.result = "Positive" AND r.date >= date() - duration({days: 10})
+	RETURN h
+
+- test effettuati negli ultimi 30gg:
+    MATCH (p:Person)-[m:MAKE]->(t:Test)
+    WHERE date() <= m.date AND m.date >= date() - duration({days: 30})
+    RETURN COUNT(m)
+
+- test effettuati in un certo mese:
+  MATCH (p:Person)-[m:MAKE]->(t:Test)
+  WHERE m.date.month = #numero_mese (1...12)
+  RETURN COUNT(m)
+
+

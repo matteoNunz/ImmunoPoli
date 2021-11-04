@@ -12,11 +12,11 @@ from enum import IntEnum
 import datetime
 
 MAX_NUMBER_OF_FAMILY_MEMBER = 5
-NUMBER_OF_FAMILY = 5
+NUMBER_OF_FAMILY = 20
 
-MAX_NUMBER_OF_CONTACT_PER_DAY = 5  # For new contact relationships
+MAX_NUMBER_OF_CONTACT_PER_DAY = 50  # For new contact relationships
 
-MAX_NUMBER_OF_VISIT_PER_DAY = 5  # For new visit relationships
+MAX_NUMBER_OF_VISIT_PER_DAY = 10  # For new visit relationships
 
 MAX_CIVIC_NUMBER = 100
 
@@ -25,13 +25,13 @@ PHONE_NUMBER_LENGTH = 10
 PROBABILITY_TO_HAVE_APP = 0.5
 PROBABILITY_TO_BE_POSITIVE = 0.5
 
-MAX_NUMBER_OF_VACCINE_PER_DAY = 10  # For new get vaccinated relationships
+MAX_NUMBER_OF_VACCINE_PER_DAY = 30  # For new get vaccinated relationships
 
-MAX_NUMBER_OF_TEST_PER_DAY = 10  # For new make test relationships
+MAX_NUMBER_OF_TEST_PER_DAY = 20  # For new make test relationships
 
-BOLT = "bolt://18.207.228.214:7687"
+BOLT = "bolt://3.86.153.255:7687"
 USER = "neo4j"
-PASSWORD = "can-alcoholic-writing"
+PASSWORD = "tachometers-gyroscope-properties"
 
 
 
@@ -634,7 +634,7 @@ def createRelationshipsAppContact(d , pIds):
         pId2 = pIds[randomIndex]
         # Choose the hour/date
         date = datetime.date.today() - datetime.timedelta(days=randint(0, 9))
-        date = date.strftime("%d-%m-%Y")
+        date = date.strftime("%Y-%m-%d")
         h = randint(0, 23)
         minutes = randint(0, 59)
         if minutes < 10:
@@ -647,7 +647,7 @@ def createRelationshipsAppContact(d , pIds):
         query = (
             "MATCH (p1:Person) , (p2:Person) "
             "WHERE ID(p1) = $pId1 AND ID(p2) = $pId2 "
-            "MERGE (p1)-[:APP_CONTACT { hour: $hour , date: $date}]-(p2)"
+            "MERGE (p1)-[:APP_CONTACT { hour: $hour , date: date($date)}]-(p2)"
         )
         # Execute the query
         with d.session() as s:
@@ -672,7 +672,7 @@ def createRelationshipsVisit(d , pIds , lIds):
         personId = pIds[pIndex]
         # Choose the hour/date
         date = datetime.date.today() - datetime.timedelta(days=randint(0, 7))
-        date = date.strftime("%d-%m-%Y")
+        date = date.strftime("%Y-%m-%d")
         h = randint(0, 22)
         minutes = randint(0, 59)
         if minutes < 10:
@@ -687,7 +687,7 @@ def createRelationshipsVisit(d , pIds , lIds):
         query = (
             "MATCH (p:Person) , (l:Location) "
             "WHERE ID(p) = $personId AND ID(l) = $locationId "
-            "MERGE (p)-[:VISIT {date: $date , start_hour: $startHour , end_hour: $endHour}]->(l); "
+            "MERGE (p)-[:VISIT {date: date($date) , start_hour: $startHour , end_hour: $endHour}]->(l); "
         )
         # Execute the query
         with d.session() as s:
@@ -728,18 +728,18 @@ def createRelationshipsGetVaccine(d, pIds, vIds):
         else:
             if len(datas) == 1:
                 string1 = datas[0]["date"].split("-")
-                date = datetime.date(int(string1[2].split(",")[0]), int(string1[1]), int(string1[0]))
+                date = datetime.date(int(string1[0]), int(string1[1]), int(string1[2].split(",")[0]))
                 expDate = date + datetime.timedelta(days=365)
                 vaccineId = datas[0]["vaccineID"]
             else:
                 return
-        date = date.strftime("%d-%m-%Y")
-        expDate = expDate.strftime("%d-%m-%Y,%H:%M")
+        date = date.strftime("%Y-%m-%d")
+        expDate = expDate.strftime("%Y-%m-%d,%H:%M")
 
         query = (
             "MATCH (p:Person) , (v:Vaccine) "
             "WHERE ID(p) = $personId AND ID(v) = $vaccineId "
-            "MERGE (p)-[:GET{date:$date,country:$country,expirationDate:$expDate}]->(v); "
+            "MERGE (p)-[:GET{date:date($date),country:$country,expirationDate:$expDate}]->(v); "
         )
 
         # Execute the query
@@ -768,7 +768,7 @@ def createRelationshipsMakeTest(d, pIds, tIds):
         minutes = randint(0 , 59)
         if minutes < 10:
             minutes = "0"+str(minutes)
-        date = date.strftime("%d-%m-%Y")
+        date = date.strftime("%Y-%m-%d")
         hour = str(h) + ":" + str(minutes)
 
         if random() < PROBABILITY_TO_BE_POSITIVE:
@@ -779,7 +779,7 @@ def createRelationshipsMakeTest(d, pIds, tIds):
         query = (
             "MATCH (p:Person) , (t:Test) "
             "WHERE ID(p) = $personId AND ID(t) = $testId "
-            "MERGE (p)-[:MAKE{date:$date , hour:$hour,result:$result}]->(t); "
+            "MERGE (p)-[:MAKE{date:date($date) , hour:$hour,result:$result}]->(t); "
         )
 
         # Execute the query
