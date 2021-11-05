@@ -42,6 +42,9 @@ Person :
 
 personal_information = [ id , name , surname , age , phone , email , address , civic number , city ]
 new_field_pi = [ new phone , new email ]
+green_pass = [ type, date , country  , expiration day ]
+tests = [ [test], [test], ... ]
+places = [ [place, date, start h, end h , risk], [place, date, start h, end h , risk], ...  ]
 
 checked id login :
 - empty id field
@@ -87,6 +90,11 @@ for the following list the format was specified in the comments above
 """
 personal_information = []
 new_fields_pi = []
+green_pass = []
+tests = []
+places = []
+
+"""error message"""
 error = None
 
 
@@ -98,7 +106,7 @@ def relative_to_assets(path: str) -> Path:
     """
     return ASSETS_PATH / Path(path)
 
-
+"""CONNECTION MANAGING"""
 def open_connection():
     """
     Method that starts a connection with the database
@@ -116,7 +124,7 @@ def close_connection(connection):
     """
     connection.close()
 
-
+"""DATABASE QUERIES"""
 def find_person_by_ID(tx, ID):
     """
     Method that finds a Person given it's ID
@@ -162,6 +170,101 @@ def update_information_by_ID(tx, ID):
     tx.run(query, ID=ID, NUMBER = new_fields_pi[0], MAIL = new_fields_pi[1])
     find_person_by_ID(session,personal_information[0])
 
+
+def find_gp_by_ID(tx,ID):
+    """
+        Method that finds a green pass given the ID of the person
+        :param tx: is the transaction
+        :param ID: is the ID to find
+        :return: all the nodes that have attribute equal to ID
+        """
+    global green_pass
+    green_pass = []
+
+    query = (
+        "MATCH(p: Person)-[r: GET]->(v: Vaccine) "
+        "WHERE id(p) = $ID "
+        "RETURN v.name, r.date, r.country, r.expirationDate "
+        "ORDER BY r.date "
+        "desc LIMIT 1 "
+    )
+
+    result = tx.run(query, ID=ID)
+    for relation in result:
+        green_pass.append(relation.data()['v.name'])
+        green_pass.append(relation.data()['r.date'])
+        green_pass.append(relation.data()['r.country'])
+        green_pass.append(relation.data()['r.expirationDate'])
+
+
+def find_covid_tests_by_ID(tx,ID):
+    """
+    Method that queries the database for collecting tests information
+    :param tx: is the transaction
+    :param ID: is the ID of the person
+    """
+
+    global tests
+    tests = []
+
+    query = (
+        "MATCH(p: Person)-[r: MAKE]->(n:Test) "
+        "WHERE id(p) = $ID "
+        "RETURN n.name, r.date, r.hour, r.result"
+    )
+
+    result = tx.run(query, ID=ID)
+
+    for relation in result:
+        test = [relation.data()['n.name'], relation.data()['r.date']]
+        x = relation.data()['r.hour']
+        x = str(x)
+        x = x[0:8]
+        test.append(x)
+        test.append(relation.data()['r.result'])
+        tests.append(test)
+
+
+def find_covid_exposures_by_ID(tx,ID):
+    """
+    Method that queries the database for collecting covid exposures
+    :param tx: is the transaction
+    :param ID: is the ID of the person
+    """
+    print("to be make")
+
+
+def find_place_visited(tx, ID):
+    """
+    Method that queries the database for collecting covid exposures
+    :param tx: is the transaction
+    :param ID: is the ID of the person
+    """
+    global places
+    places = []
+
+    query = (
+        "MATCH (p:Person)-[r:VISIT]->(l:Location) "
+        "WHERE id(p) = $ID  "
+        "RETURN r.date, l.name, r.start_hour, r.end_hour"
+    )
+
+    result = tx.run(query, ID=ID)
+
+    for relation in result:
+        place = [ relation.data()['l.name'],relation.data()['r.date']]
+        x = relation.data()['r.start_hour']
+        x = str(x)
+        x = x[0:8]
+        place.append(x)
+        y = relation.data()['r.end_hour']
+        y = str(y)
+        y = y[0:8]
+        place.append(y)
+        places.append(place)
+
+
+"""PAGE BUILDER"""
 def save_pi_changes(phone, email):
     """
     Method that catches and checks new entries inserted by user.
@@ -184,11 +287,11 @@ def save_pi_changes(phone, email):
            int_phone = int(phone)
         except ValueError:
             error = canvas.create_text(
-                436,
-                236,
+                338,
+                322,
                 anchor="nw",
                 text="ERROR: \nwrong phone format \nplease insert a number ",
-                fill="red",
+                fill="#CA0000",
                 font=("Comfortaa Regular", 10 * -1)
             )
             return
@@ -198,21 +301,21 @@ def save_pi_changes(phone, email):
     else:
         if len(email.split("@")) != 2:
             error = canvas.create_text(
-                436,
-                236,
+                338,
+                322,
                 anchor="nw",
                 text="ERROR: \nwrong email format \n'@' is missing ",
-                fill="red",
+                fill="#CA0000",
                 font=("Comfortaa Regular", 10 * -1)
             )
             return
         elif len(email.split(".")) < 2:
             error = canvas.create_text(
-                436,
-                236,
+                338,
+                322,
                 anchor="nw",
                 text="ERROR: \nwrong email format \n'.' is missing ",
-                fill="red",
+                fill="#CA0000",
                 font=("Comfortaa Regular", 10 * -1)
             )
             return
@@ -982,7 +1085,7 @@ def create_pi():
         image=button_image_1,
         borderwidth=1000,
         highlightthickness=0,
-        command=lambda: create_ce(button_6),
+        command=lambda: create_ce(),
         relief="flat"
     )
     button_1.place(
@@ -998,7 +1101,7 @@ def create_pi():
         image=button_image_2,
         borderwidth=1000,
         highlightthickness=0,
-        command=lambda: create_p(button_6),
+        command=lambda: create_p(),
         relief="flat"
     )
     button_2.place(
@@ -1014,7 +1117,7 @@ def create_pi():
         image=button_image_3,
         borderwidth=1000,
         highlightthickness=0,
-        command=lambda: create_gp(button_6),
+        command=lambda: create_gp(),
         relief="flat"
     )
     button_3.place(
@@ -1045,7 +1148,7 @@ def create_pi():
         image=button_image_5,
         borderwidth=1000,
         highlightthickness=0,
-        command=lambda: create_ct(button_6),
+        command=lambda: create_ct(),
         relief="flat"
     )
     button_5.place(
@@ -1152,7 +1255,7 @@ def create_change_pi(list):
     window.mainloop()
 
 
-def create_gp(button_6=None):
+def create_gp():
     """
     Method that creates user page for seeing his green pass if exist
     :param button_6: button change to destroy
@@ -1164,8 +1267,8 @@ def create_gp(button_6=None):
     global button_list
     for x in button_list:
         x.destroy()
-    if button_6 != None:
-        button_6.destroy()
+
+    find_gp_by_ID(session,personal_information[0]);
 
     canvas.create_text(
         289.0,
@@ -1183,63 +1286,6 @@ def create_gp(button_6=None):
         text="Covid Certification",
         fill="#6370FF",
         font=("Comfortaa Bold", 20 * -1)
-    )
-
-    canvas.create_text(
-        31.0,
-        201.0,
-        anchor="nw",
-        text="Date:",
-        fill="#000000",
-        font=("Comfortaa Bold", 16 * -1)
-    )
-
-    canvas.create_text(
-        31.0,
-        312.0,
-        anchor="nw",
-        text="Country:",
-        fill="#000000",
-        font=("Comfortaa Bold", 16 * -1)
-    )
-
-    # place
-    canvas.create_text(
-        181.0,
-        312.0,
-        anchor="nw",
-        text="...",
-        fill="#000000",
-        font=("Comfortaa Regular", 16 * -1)
-    )
-
-    canvas.create_text(
-        31.0,
-        425.0,
-        anchor="nw",
-        text="Expiration Date:",
-        fill="#000000",
-        font=("Comfortaa Bold", 16 * -1)
-    )
-
-    # date
-    canvas.create_text(
-        181.0,
-        425.0,
-        anchor="nw",
-        text="...",
-        fill="#000000",
-        font=("Comfortaa Regular", 16 * -1)
-    )
-
-    # Expiration
-    canvas.create_text(
-        181.0,
-        201.0,
-        anchor="nw",
-        text="...",
-        fill="#000000",
-        font=("Comfortaa Regular", 16 * -1)
     )
 
     button_image_1 = PhotoImage(
@@ -1329,10 +1375,96 @@ def create_gp(button_6=None):
         image=image_image_1
     )
 
+    if len(green_pass) != 4:
+        canvas.create_text(
+            31.0,
+            201.0,
+            anchor="nw",
+            text="Zero doses of covid vaccine was found",
+            fill="#CA0000",
+            font=("Comfortaa Bold", 16 * -1)
+        )
+        button_list = [button_1, button_2, button_3, button_4, button_5]
+        window.mainloop()
+        return
+
+    canvas.create_text(
+        31.0,
+        201.0,
+        anchor="nw",
+        text="Type:",
+        fill="#000000",
+        font=("Comfortaa Bold", 16 * -1)
+    )
+
+    canvas.create_text(
+        31.0,
+        272.0,
+        anchor="nw",
+        text="Date:",
+        fill="#000000",
+        font=("Comfortaa Bold", 16 * -1)
+    )
+
+    canvas.create_text(
+        31.0,
+        342.0,
+        anchor="nw",
+        text="Country:",
+        fill="#000000",
+        font=("Comfortaa Bold", 16 * -1)
+    )
+
+    canvas.create_text(
+        31.0,
+        425.0,
+        anchor="nw",
+        text="Expiration Date:",
+        fill="#000000",
+        font=("Comfortaa Bold", 16 * -1)
+    )
+
+    canvas.create_text(
+        181.0,
+        201.0,
+        anchor="nw",
+        text= green_pass[0],
+        fill="#000000",
+        font=("Comfortaa Bold", 16 * -1)
+    )
+
+    canvas.create_text(
+        181.0,
+        272.0,
+        anchor="nw",
+        text=green_pass[1],
+        fill="#000000",
+        font=("Comfortaa Bold", 16 * -1)
+    )
+
+    canvas.create_text(
+        181.0,
+        342.0,
+        anchor="nw",
+        text=green_pass[2],
+        fill="#000000",
+        font=("Comfortaa Bold", 16 * -1)
+    )
+
+
+    canvas.create_text(
+        181.0,
+        425.0,
+        anchor="nw",
+        text=green_pass[3],
+        fill="#000000",
+        font=("Comfortaa Bold", 16 * -1)
+    )
+
     image_image_2 = PhotoImage(
         file=relative_to_assets("image_2.png"))
     image_2 = canvas.create_image(
-        359.0,
+        375.0,
         315.0,
         image=image_image_2
     )
@@ -1340,19 +1472,18 @@ def create_gp(button_6=None):
     window.mainloop()
 
 
-def create_ct(button_6=None):
+def create_ct():
     """
         Method that creates user page for seeing covid test done
         :param button_6: button change to destroy
         :return
     """
+    find_covid_tests_by_ID(session, personal_information[0])
 
     canvas.delete("all")
     global button_list
     for x in button_list:
         x.destroy()
-    if button_6 != None:
-        button_6.destroy()
 
     image_image_1 = PhotoImage(
         file=relative_to_assets("image_1.png"))
@@ -1368,7 +1499,6 @@ def create_ct(button_6=None):
         anchor="nw",
         text="ImmunoPoli",
         fill="#000000",
-
         font=("Comfortaa Regular", 20 * -1)
     )
 
@@ -1385,7 +1515,7 @@ def create_ct(button_6=None):
         31.0,
         186.0,
         anchor="nw",
-        text="Date",
+        text="Type",
         fill="#000000",
         font=("Comfortaa Bold", 16 * -1)
     )
@@ -1394,7 +1524,7 @@ def create_ct(button_6=None):
         143.0,
         187.0,
         anchor="nw",
-        text="Hour",
+        text="Date",
         fill="#000000",
         font=("Comfortaa Bold", 16 * -1)
     )
@@ -1403,7 +1533,7 @@ def create_ct(button_6=None):
         256.0,
         187.0,
         anchor="nw",
-        text="Type",
+        text="Hour",
         fill="#000000",
         font=("Comfortaa Bold", 16 * -1)
     )
@@ -1417,55 +1547,50 @@ def create_ct(button_6=None):
         font=("Comfortaa Bold", 16 * -1)
     )
 
-    # date
-    canvas.create_text(
-        31.0,
-        216.0,
-        anchor="nw",
-        text="...",
-        fill="#000000",
-        font=("Comfortaa Regular", 16 * -1)
-    )
+    for i in range(len(tests)):
 
-    # time
-    canvas.create_text(
-        143.0,
-        217.0,
-        anchor="nw",
-        text="...",
-        fill="#000000",
-        font=("Comfortaa Regular", 16 * -1)
-    )
+        delta = 32 * i
 
-    # type
-    canvas.create_text(
-        256.0,
-        217.0,
-        anchor="nw",
-        text="...",
-        fill="#000000",
-        font=("Comfortaa Regular", 16 * -1)
-    )
+        canvas.create_text(
+            31.0,
+            216.0 + delta,
+            anchor="nw",
+            text=tests[i][0],
+            fill="#000000",
+            font=("Comfortaa Regular", 16 * -1)
+        )
 
-    # result
-    canvas.create_text(
-        372.0,
-        217.0,
-        anchor="nw",
-        text="...",
-        fill="#FF0000",
-        font=("Comfortaa Regular", 16 * -1)
-    )
+        canvas.create_text(
+            143.0,
+            217.0 + delta,
+            anchor="nw",
+            text=tests[i][1],
+            fill="#000000",
+            font=("Comfortaa Regular", 16 * -1)
+        )
 
-    # date example distance
-    canvas.create_text(
-        31.0,
-        248.0,
-        anchor="nw",
-        text="...",
-        fill="#000000",
-        font=("Comfortaa Regular", 16 * -1)
-    )
+        canvas.create_text(
+            256.0,
+            217.0 + delta,
+            anchor="nw",
+            text=tests[i][2],
+            fill="#000000",
+            font=("Comfortaa Regular", 16 * -1)
+        )
+
+        color = "#FF0000"
+        if tests[i][3] == 'Positive':
+            color = "#CA0000"
+        else:
+            color = "#039300"
+        canvas.create_text(
+            372.0,
+            217.0 + delta,
+            anchor="nw",
+            text=tests[i][3],
+            fill=color,
+            font=("Comfortaa Regular", 16 * -1)
+        )
 
     button_image_1 = PhotoImage(
         file=relative_to_assets("button_1.png"))
@@ -1549,21 +1674,18 @@ def create_ct(button_6=None):
     window.mainloop()
 
 
-def create_ce(button_6=None):
+def create_ce():
     """
         Method that creates user page for seeing possible covid exposure
        :param button_6: button change to destroy
        :return
    """
-
+    find_covid_exposures_by_ID(session,personal_information[0])
     canvas.delete("all")
     global button_list
 
     for x in button_list:
         x.destroy()
-
-    if button_6 != None:
-        button_6.destroy()
 
     image_image_1 = PhotoImage(
         file=relative_to_assets("image_1.png"))
@@ -1743,21 +1865,19 @@ def create_ce(button_6=None):
     window.mainloop()
 
 
-def create_p(button_6=None):
+def create_p():
     """
         Method that creates user page for seeing places visited recently
         :param button_6: button change to destroy
         :return
     """
+    find_place_visited(session, personal_information[0])
 
     canvas.delete("all")
 
     global button_list
     for x in button_list:
         x.destroy()
-
-    if button_6 != None:
-        button_6.destroy()
 
     image_image_1 = PhotoImage(
         file=relative_to_assets("image_1.png"))
@@ -1790,16 +1910,34 @@ def create_p(button_6=None):
         31.0,
         186.0,
         anchor="nw",
+        text="Place",
+        fill="#000000",
+        font=("Comfortaa Bold", 16 * -1)
+    )
+
+    canvas.create_text(
+        147.0,
+        186.0,
+        anchor="nw",
         text="Date",
         fill="#000000",
         font=("Comfortaa Bold", 16 * -1)
     )
 
     canvas.create_text(
-        110.0,
-        187.0,
+        250.0,
+        186.0,
         anchor="nw",
-        text="Place",
+        text="Start H.",
+        fill="#000000",
+        font=("Comfortaa Bold", 16 * -1)
+    )
+
+    canvas.create_text(
+        334.0,
+        186.0,
+        anchor="nw",
+        text="End H.",
         fill="#000000",
         font=("Comfortaa Bold", 16 * -1)
     )
@@ -1813,77 +1951,64 @@ def create_p(button_6=None):
         font=("Comfortaa Bold", 16 * -1)
     )
 
-    canvas.create_text(
-        31.0,
-        214.0,
-        anchor="nw",
-        text="...",
-        fill="#000000",
-        font=("Comfortaa Regular", 16 * -1)
-    )
+    for i in range(len(places)):
 
-    canvas.create_text(
-        110.0,
-        215.0,
-        anchor="nw",
-        text="...",
-        fill="#000000",
-        font=("Comfortaa Regular", 16 * -1)
-    )
+        delta = 32 * i
 
-    canvas.create_text(
-        420.0,
-        214.0,
-        anchor="nw",
-        text="...",
-        fill="#2CAB00",
-        font=("Comfortaa Regular", 16 * -1)
-    )
+        canvas.create_text(
+            31.0,
+            214.0 + delta,
+            anchor="nw",
+            text=places[i][0],
+            fill="#000000",
+            font=("Comfortaa Bold", 16 * -1)
+        )
 
-    canvas.create_text(
-        31.0,
-        246.0,
-        anchor="nw",
-        text="...",
-        fill="#000000",
-        font=("Comfortaa Regular", 16 * -1)
-    )
+        canvas.create_text(
+            147.0,
+            214.0 + delta,
+            anchor="nw",
+            text=places[i][1],
+            fill="#000000",
+            font=("Comfortaa Bold", 16 * -1)
+        )
 
-    canvas.create_text(
-        259.0,
-        185.0,
-        anchor="nw",
-        text="Start H.",
-        fill="#000000",
-        font=("Comfortaa Bold", 16 * -1)
-    )
+        canvas.create_text(
+            250.0,
+            214.0 + delta,
+            anchor="nw",
+            text=places[i][2],
+            fill="#000000",
+            font=("Comfortaa Bold", 16 * -1)
+        )
 
-    canvas.create_text(
-        264.0,
-        217.0,
-        anchor="nw",
-        text="...",
-        fill="#000000",
-        font=("Comfortaa Regular", 16 * -1)
-    )
+        canvas.create_text(
+            334.0,
+            214.0 + delta,
+            anchor="nw",
+            text=places[i][3],
+            fill="#000000",
+            font=("Comfortaa Bold", 16 * -1)
+        )
 
-    canvas.create_text(
-        341.0,
-        185.0,
-        anchor="nw",
-        text="End H.",
-        fill="#000000",
-        font=("Comfortaa Bold", 16 * -1)
-    )
+        #to be calculate
+        risk = 0
+        color = "#000000"
+        if risk < 30:
+            color = "#039300"
+        elif risk < 65:
+            color = "#FF7A00"
+        else:
+            color = "#CA0000"
 
-    canvas.create_text(
-        341.0,
-        213.0,
-        anchor="nw",
-        text="...",
-        fill="#000000",
-        font=("Comfortaa Regular", 16 * -1)
-    )
+        canvas.create_text(
+            420.0,
+            214.0 + delta,
+            anchor="nw",
+            text="Risk",
+            fill= color,
+            font=("Comfortaa Bold", 16 * -1)
+        )
 
     button_image_1 = PhotoImage(
         file=relative_to_assets("button_1.png"))
