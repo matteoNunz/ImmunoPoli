@@ -12,6 +12,13 @@ canvas.create_text : creates a text field
 - PhotoImage : loads an image
 - Button : creates a button
 
+Abbreviations:
+
+- pi = personal information
+- gp = green pass
+-
+
+
 Buttons:
 
 - button__1 : user front page
@@ -31,9 +38,29 @@ Buttons:
 - button_22 : database query
 - button_33 : add covid results
 
+Person :
+
+personal_information = [ id , name , surname , age , phone , email , address , civic number , city ]
+new_field_pi = [ new phone , new email ]
+
+checked id login :
+- empty id field
+- negative id
+- out of range id
+- not a number
+
+cheked mail:
+- contains @
+- contains .
+
+checked phone number:
+- it's an integer
+
 """
 
 from pathlib import Path
+import neo4j as nj
+import numpy
 
 # from tkinter import *
 # Explicit imports to satisfy Flake8
@@ -41,6 +68,10 @@ from tkinter import Tk, Canvas, Entry, Text, Button, PhotoImage
 
 OUTPUT_PATH = Path(__file__).parent
 ASSETS_PATH = OUTPUT_PATH / Path("./Images")
+
+BOLT = "bolt://52.87.206.215:7687"
+USER = "neo4j"
+PASSWORD = "controls-inches-halyard"
 
 """
 list of buttons that don't belong to canvas that have to be delete before building a page 
@@ -51,6 +82,13 @@ list of entry that don't belong to canvas that have to be delete before building
 """
 entry_list = []
 
+"""
+for the following list the format was specified in the comments above 
+"""
+personal_information = []
+new_fields_pi = []
+error = None
+
 
 def relative_to_assets(path: str) -> Path:
     """
@@ -59,6 +97,173 @@ def relative_to_assets(path: str) -> Path:
     :return: complete path
     """
     return ASSETS_PATH / Path(path)
+
+
+def open_connection():
+    """
+    Method that starts a connection with the database
+    :return: the driver for the connection
+    """
+    connection = nj.GraphDatabase.driver(
+        BOLT, auth=nj.basic_auth(USER, PASSWORD))
+    return connection
+
+
+def close_connection(connection):
+    """
+    Method that close a connection
+    :param connection: is the connection to terminate
+    """
+    connection.close()
+
+
+def find_person_by_ID(tx, ID):
+    """
+    Method that finds a Person given it's ID
+    :param tx: is the transaction
+    :param ID: is the ID to find
+    :return: all the nodes that have attribute equal to ID
+    """
+    global personal_information
+    personal_information = []
+
+    query = (
+        "MATCH (p:Person)-[r:LIVE]->(a:House) "
+        "WHERE id(p) = $ID "
+        "RETURN p,a"
+    )
+    result = tx.run(query, ID=ID)
+
+    personal_information.append(ID)
+
+    for node in result:
+        personal_information.append(node.data()['p'].get('name'))
+        personal_information.append(node.data()['p'].get('surname'))
+        personal_information.append(node.data()['p'].get('age'))
+        personal_information.append(node.data()['p'].get('number'))
+        personal_information.append(node.data()['p'].get('mail'))
+        personal_information.append(node.data()['a'].get('address'))
+        personal_information.append(node.data()['a'].get('civic_number'))
+        personal_information.append(node.data()['a'].get('city'))
+
+
+def update_information_by_ID(tx, ID):
+    """
+    Method that queries the database for update some user information
+    :param tx: is the transaction
+    :param ID: is the ID of the person that decides to update his information
+    """
+    query = (
+    "MATCH (p: Person) "
+    "WHERE id(p) = $ID "
+    "SET p.mail = $MAIL, p.number = $NUMBER "
+    "RETURN p"
+    )
+    tx.run(query, ID=ID, NUMBER = new_fields_pi[0], MAIL = new_fields_pi[1])
+    find_person_by_ID(session,personal_information[0])
+
+def save_pi_changes(phone, email):
+    """
+    Method that catches and checks new entries inserted by user.
+    If a field is empty its information will be replaced by older one
+    :param phone: new phone
+    :param email: new email
+    :param address: new address
+    """
+    global error
+    if error is not None:
+        canvas.delete(error)
+
+    if (phone == '') and (email =='') :
+        create_pi()
+
+    if phone == '':
+        int_phone = personal_information[4]
+    else:
+        try:
+           int_phone = int(phone)
+        except ValueError:
+            error = canvas.create_text(
+                436,
+                236,
+                anchor="nw",
+                text="ERROR: \nwrong phone format \nplease insert a number ",
+                fill="red",
+                font=("Comfortaa Regular", 10 * -1)
+            )
+            return
+
+    if email == '':
+        email = personal_information[5]
+    else:
+        if len(email.split("@")) != 2:
+            error = canvas.create_text(
+                436,
+                236,
+                anchor="nw",
+                text="ERROR: \nwrong email format \n'@' is missing ",
+                fill="red",
+                font=("Comfortaa Regular", 10 * -1)
+            )
+            return
+        elif len(email.split(".")) < 2:
+            error = canvas.create_text(
+                436,
+                236,
+                anchor="nw",
+                text="ERROR: \nwrong email format \n'.' is missing ",
+                fill="red",
+                font=("Comfortaa Regular", 10 * -1)
+            )
+            return
+
+    global new_fields_pi
+    new_fields_pi.append(phone)
+    new_fields_pi.append(email)
+    global session
+    update_information_by_ID(session,personal_information[0])
+    create_pi()
+
+
+def collect_user_information(ID_person, subtitle):
+    """
+    Method that is able to collect data and call personal information page constructor
+    :param ID_person: id inserted by the user
+    """
+
+    # no integer or empty
+    try:
+        ID = int(ID_person)
+    except ValueError:
+        canvas.itemconfig(subtitle, text="The following field must be fulfilled with a number", fill="red")
+        canvas.coords(subtitle, 160, 363)
+        return
+
+    global session
+
+    global personal_information
+    find_person_by_ID(session, ID)
+
+    # id is not link to any person (also negative )
+    if len(personal_information) < 3:
+        canvas.itemconfig(subtitle, text="The following field must be fulfilled with an existing ID", fill="red")
+        canvas.coords(subtitle, 140, 363)
+        return
+
+    canvas.delete("all")
+    global button_list
+    for x in button_list:
+        x.destroy()
+
+    global entry_list
+
+    for x in entry_list:
+        x.destroy()
+
+    entry_list = []
+    button_list = []
+
+    create_pi()
 
 
 def user_login(title, subtitle, button__1, button_0):
@@ -100,7 +305,7 @@ def user_login(title, subtitle, button__1, button_0):
         image=login_image,
         borderwidth=1000,
         highlightthickness=0,
-        command=lambda: create_user(login, entry_1),
+        command=lambda: collect_user_information(entry_1.get(), subtitle),
         relief="flat"
     )
     login.place(
@@ -110,23 +315,14 @@ def user_login(title, subtitle, button__1, button_0):
         height=36.0
     )
 
-    #update window
+    global button_list
+    button_list = [login]
+
+    global entry_list
+    entry_list = [entry_1]
+
+    # update window
     window.mainloop()
-
-
-def create_user(login, entry_1):
-    """
-    Method that manages the building of the first page after user makes the access
-    :param login: button to delete
-    :param entry_1: entry to delete
-    :return:
-    """
-
-    # clear the canvas
-    canvas.delete('all')
-    login.destroy()
-    entry_1.destroy()
-    create_pi()
 
 
 def app_manager_login(title, subtitle, button__1, button_0):
@@ -191,7 +387,6 @@ def create_app_manager(login, entry_1):
 
 
 def create_add_ct():
-
     """
     Method that creates the app manager interface for inserting new covid test results
     :return:
@@ -424,6 +619,7 @@ def create_covid_trends():
         x.destroy()
 
     entry_list = []
+    button_list = []
 
     canvas.create_text(
         22.0,
@@ -621,16 +817,9 @@ def create_db():
     window.mainloop()
 
 
-def create_pi(button_6=None, button_7=None, button_8=None, entry_1=None, entry_2=None, entry_3=None):
+def create_pi():
     """
     Method that creates user page for seeing personal information
-    :param button_6: change button to delete
-    :param button_7: save button to delete
-    :param button_8: cancel button to delete
-    :param entry_1: entry to delete -> phone
-    :param entry_2: entry to delete -> email
-    :param entry_3: entry to delete -> address
-    :return:
     """
 
     canvas.delete("all")
@@ -638,12 +827,14 @@ def create_pi(button_6=None, button_7=None, button_8=None, entry_1=None, entry_2
 
     for x in button_list:
         x.destroy()
-    if button_6 != None:
-        button_6.destroy()
-    if button_7 != None:
-        button_7.destroy()
-    if button_8 != None:
-        button_8.destroy()
+
+    global entry_list
+
+    for x in entry_list:
+        x.destroy()
+
+    entry_list = []
+    button_list = []
 
     canvas.create_text(
         31.0,
@@ -676,7 +867,7 @@ def create_pi(button_6=None, button_7=None, button_8=None, entry_1=None, entry_2
         31.0,
         281.0,
         anchor="nw",
-        text="Fiscal Code:",
+        text="Age:",
         fill="#000000",
         font=("Comfortaa Bold", 16 * -1)
     )
@@ -708,12 +899,13 @@ def create_pi(button_6=None, button_7=None, button_8=None, entry_1=None, entry_2
         font=("Comfortaa Bold", 16 * -1)
     )
 
+    global personal_information
     # name
     canvas.create_text(
         190.0,
         201.0,
         anchor="nw",
-        text="... ",
+        text=personal_information[1],
         fill="#000000",
         font=("Comfortaa Regular", 16 * -1)
     )
@@ -723,17 +915,17 @@ def create_pi(button_6=None, button_7=None, button_8=None, entry_1=None, entry_2
         190.0,
         241.0,
         anchor="nw",
-        text="...",
+        text=personal_information[2],
         fill="#000000",
         font=("Comfortaa Regular", 16 * -1)
     )
 
-    # fiscal code
+    # age
     canvas.create_text(
         190.0,
         281.0,
         anchor="nw",
-        text="...",
+        text=personal_information[3],
         fill="#000000",
         font=("Comfortaa Regular", 16 * -1)
     )
@@ -743,7 +935,7 @@ def create_pi(button_6=None, button_7=None, button_8=None, entry_1=None, entry_2
         190.0,
         321.0,
         anchor="nw",
-        text="...",
+        text="+39 " + personal_information[4],
         fill="#000000",
         font=("Comfortaa Regular", 16 * -1)
     )
@@ -753,7 +945,7 @@ def create_pi(button_6=None, button_7=None, button_8=None, entry_1=None, entry_2
         190.0,
         361.0,
         anchor="nw",
-        text="...",
+        text=personal_information[5],
         fill="#000000",
         font=("Comfortaa Regular", 16 * -1)
     )
@@ -763,7 +955,7 @@ def create_pi(button_6=None, button_7=None, button_8=None, entry_1=None, entry_2
         190.0,
         401.0,
         anchor="nw",
-        text="...",
+        text=personal_information[6] + " " + personal_information[7] + ", " + personal_information[8],
         fill="#000000",
         font=("Comfortaa Regular", 16 * -1)
     )
@@ -773,7 +965,7 @@ def create_pi(button_6=None, button_7=None, button_8=None, entry_1=None, entry_2
         image=button_image_6,
         borderwidth=1000,
         highlightthickness=0,
-        command=lambda: create_change_pi(variable_fields, button_6),
+        command=lambda: create_change_pi(variable_fields),
         relief="flat"
     )
     button_6.place(
@@ -782,7 +974,7 @@ def create_pi(button_6=None, button_7=None, button_8=None, entry_1=None, entry_2
         width=114.0,
         height=36.0
     )
-    variable_fields = [phone, email, address]
+    variable_fields = [phone, email]
 
     button_image_1 = PhotoImage(
         file=relative_to_assets("button_1.png"))
@@ -878,31 +1070,22 @@ def create_pi(button_6=None, button_7=None, button_8=None, entry_1=None, entry_2
         61.0,
         image=image_image_1
     )
-    button_list = [button_1, button_2, button_3, button_4, button_5]
-
-    if entry_1 != None:
-        entry_1.destroy()
-    if entry_2 != None:
-        entry_2.destroy()
-    if entry_3 != None:
-        entry_3.destroy()
+    button_list = [button_1, button_2, button_3, button_4, button_5, button_6]
     window.mainloop()
 
 
-def create_change_pi(list, button_6):
+def create_change_pi(list):
     """
     Method that allows user to modify some of his personal infmation
     :param list: list of fields to destroy
-    :param button_6: change button to destroy
     :return:
     """
+    global button_list
     for x in button_list:
         x.destroy()
 
     for x in list:
         canvas.delete(x)
-
-    button_6.destroy()
 
     entry_1 = Entry(
         bd=0,
@@ -926,17 +1109,6 @@ def create_change_pi(list, button_6):
         width=136.0,
         height=23.0
     )
-    entry_3 = Entry(
-        bd=0,
-        bg="#FFFFFF",
-        highlightthickness=0
-    )
-    entry_3.place(
-        x=190.0,
-        y=401.0,
-        width=136.0,
-        height=23.0
-    )
 
     # save
     button_image_8 = PhotoImage(
@@ -945,7 +1117,7 @@ def create_change_pi(list, button_6):
         image=button_image_8,
         borderwidth=1000,
         highlightthickness=0,
-        command=lambda: create_pi(None, button_8, button_7, entry_1, entry_2, entry_3),
+        command=lambda: save_pi_changes(entry_1.get(), entry_2.get()),
         relief="flat"
     )
     button_8.place(
@@ -962,7 +1134,7 @@ def create_change_pi(list, button_6):
         image=button_image_7,
         borderwidth=1000,
         highlightthickness=0,
-        command=lambda: create_pi(None, button_8, button_7, entry_1, entry_2, entry_3),
+        command=lambda: create_pi(),
         relief="flat"
     )
     button_7.place(
@@ -971,125 +1143,14 @@ def create_change_pi(list, button_6):
         width=114.0,
         height=36.0
     )
+
+    button_list = [button_7, button_8]
+
+    global entry_list
+    entry_list = [entry_1, entry_2]
+
     window.mainloop()
 
-""" 
-useless methods for the moment
-
-def cancel_pi(button_8, button_7, entry_1, entry_2, entry_3):
-    # Phone Number
-    phone = canvas.create_text(
-        190.0,
-        321.0,
-        anchor="nw",
-        text="...",
-        fill="#000000",
-        font=("Comfortaa Regular", 16 * -1)
-    )
-
-    # e-mail
-    email = canvas.create_text(
-        190.0,
-        361.0,
-        anchor="nw",
-        text="...",
-        fill="#000000",
-        font=("Comfortaa Regular", 16 * -1)
-    )
-
-    # address
-    address = canvas.create_text(
-        190.0,
-        401.0,
-        anchor="nw",
-        text="...",
-        fill="#000000",
-        font=("Comfortaa Regular", 16 * -1)
-    )
-
-    list = [phone, email, address]
-
-    button_image_6 = PhotoImage(
-        file=relative_to_assets("button_6.png"))
-    button_6 = Button(
-        image=button_image_6,
-        borderwidth=1000,
-        highlightthickness=0,
-        command=lambda: create_change_pi(list, button_6),
-        relief="flat"
-    )
-    button_6.place(
-        x=224.0,
-        y=440.0,
-        width=114.0,
-        height=36.0
-    )
-
-    button_7.destroy()
-    button_8.destroy()
-    entry_1.destroy()
-    entry_2.destroy()
-    entry_3.destroy()
-
-    create_pi()
-
-
-def save_pi(button_8, button_7, entry_1, entry_2, entry_3):
-    # Phone Number
-    phone = canvas.create_text(
-        190.0,
-        321.0,
-        anchor="nw",
-        text=entry_1.get(),
-        fill="#000000",
-        font=("Comfortaa Regular", 16 * -1)
-    )
-
-    # e-mail
-    email = canvas.create_text(
-        190.0,
-        361.0,
-        anchor="nw",
-        text=entry_2.get(),
-        fill="#000000",
-        font=("Comfortaa Regular", 16 * -1)
-    )
-
-    # address
-    address = canvas.create_text(
-        190.0,
-        401.0,
-        anchor="nw",
-        text=entry_3.get(),
-        fill="#000000",
-        font=("Comfortaa Regular", 16 * -1)
-    )
-
-    list = [phone, email, address]
-
-    button_image_6 = PhotoImage(
-        file=relative_to_assets("button_6.png"))
-    button_6 = Button(
-        image=button_image_6,
-        borderwidth=1000,
-        highlightthickness=0,
-        command=lambda: create_change_pi(list, button_6),
-        relief="flat"
-    )
-    button_6.place(
-        x=224.0,
-        y=440.0,
-        width=114.0,
-        height=36.0
-    )
-
-    button_7.destroy()
-    button_8.destroy()
-    entry_1.destroy()
-    entry_2.destroy()
-    entry_3.destroy()
-    create_pi()
-"""
 
 def create_gp(button_6=None):
     """
@@ -1994,4 +2055,9 @@ image_1 = canvas.create_image(
 )
 
 window.resizable(False, False)
+
+# Open the connection
+driver = open_connection()
+session = driver.session()
+
 window.mainloop()
