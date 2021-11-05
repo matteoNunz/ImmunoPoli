@@ -23,11 +23,11 @@ from matplotlib.backend_bases import key_press_handler
 from matplotlib.figure import Figure
 
 MAX_NUMBER_OF_FAMILY_MEMBER = 5
-NUMBER_OF_FAMILY = 5
+NUMBER_OF_FAMILY = 10
 
-MAX_NUMBER_OF_CONTACT_PER_DAY = 50  # For new contact relationships
+MAX_NUMBER_OF_CONTACT_PER_DAY = 30  # For new contact relationships
 
-MAX_NUMBER_OF_VISIT_PER_DAY = 50  # For new visit relationships
+MAX_NUMBER_OF_VISIT_PER_DAY = 30  # For new visit relationships
 
 MAX_CIVIC_NUMBER = 100
 
@@ -749,8 +749,8 @@ def createRelationshipsAppContact(d , pIds):
         query = (
             "MATCH (p1:Person) , (p2:Person) "
             "WHERE ID(p1) = $pId1 AND ID(p2) = $pId2 "
-            "MERGE (p1)-[:APP_CONTACT { hour: $hour , date: date($date)}]->(p2) "
-            "MERGE (p1)<-[:APP_CONTACT { hour: $hour , date: date($date)}]-(p2)"
+            "MERGE (p1)-[:APP_CONTACT { hour: time($hour) , date: date($date)}]->(p2) "
+            "MERGE (p1)<-[:APP_CONTACT { hour: time($hour) , date: date($date)}]-(p2)"
         )
         # Execute the query
         with d.session() as s:
@@ -790,7 +790,7 @@ def createRelationshipsVisit(d , pIds , lIds):
         query = (
             "MATCH (p:Person) , (l:Location) "
             "WHERE ID(p) = $personId AND ID(l) = $locationId "
-            "MERGE (p)-[:VISIT {date: date($date) , start_hour: $startHour , end_hour: $endHour}]->(l); "
+            "MERGE (p)-[:VISIT {date: date($date) , start_hour: time($startHour) , end_hour: time($endHour)}]->(l); "
         )
         # Execute the query
         with d.session() as s:
@@ -882,7 +882,7 @@ def createRelationshipsMakeTest(d, pIds, tIds):
         query = (
             "MATCH (p:Person) , (t:Test) "
             "WHERE ID(p) = $personId AND ID(t) = $testId "
-            "MERGE (p)-[:MAKE{date:date($date) , hour:$hour,result:$result}]->(t); "
+            "MERGE (p)-[:MAKE{date:date($date) , hour: time($hour) ,result:$result}]->(t); "
         )
 
         # Execute the query
@@ -980,10 +980,10 @@ def createRelationshipsInfect(id , daysBack):
         "RETURN DISTINCT ID(ip) "
     )
     locationContactQuery = (
-        "MATCH (pp:Person)-[r1:VISIT]->(l:Location)<-[r2:Visit]-(ip:Person) "
+        "MATCH (pp:Person)-[r1:VISIT]->(l:Location)<-[r2:VISIT]-(ip:Person) "
         "WHERE ID(pp) = $id AND ip <> pp AND r1.date > date($date) AND r2.date = r1.date AND "
-        "((r1.starHour < r2.startHour AND r1.endHour > r2.startHour) OR "  # toDo maybe need to fix Time
-        "(r2.startHour < r1.startHour AND r2.endHour > r1.startHour)) "
+        "((r1.star_hour < r2.start_hour AND r1.end_hour > r2.start_hour) OR "
+        "(r2.start_hour < r1.start_hour AND r2.end_hour > r1.start_hour)) "
         "RETURN DISTINCT ID(ip) , l"
     )
 
@@ -1415,6 +1415,7 @@ if __name__ == '__main__':
     # Open the connection
     driver = openConnection()
 
+    """
     # Find all the positive Person
     positiveIds = findAllPositivePerson()
     print("Positive are:")
@@ -1428,6 +1429,7 @@ if __name__ == '__main__':
     # Print the whole structure
     print_database_with_pyvis()
     exit()
+    """
 
     # Delete the nodes already present
     with driver.session() as session:
@@ -1476,9 +1478,5 @@ if __name__ == '__main__':
     # Search all the infected Person tracked
     trackedPersonIds = []
     for positiveId in positiveIds:
-        print(type(positiveId))
-        trackedIds = createRelationshipsInfect(positiveId , 7)
-        for id in trackedIds:
-            trackedPersonIds.append(id)
-    print("Infected are:")
-    print(trackedPersonIds)
+        print(positiveId['ID(p)'])
+        createRelationshipsInfect(positiveId['ID(p)'] , 7)
