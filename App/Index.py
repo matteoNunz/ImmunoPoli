@@ -16,7 +16,11 @@ Abbreviations:
 
 - pi = personal information
 - gp = green pass
--
+- ct = covid test
+- ce = covid exposure
+- p = place
+- db = database
+
 
 
 Buttons:
@@ -58,6 +62,12 @@ cheked mail:
 
 checked phone number:
 - it's an integer
+
+checked new ct:
+- person exist
+- test exist
+- format of date
+- format of hour
 
 """
 
@@ -106,7 +116,10 @@ def relative_to_assets(path: str) -> Path:
     """
     return ASSETS_PATH / Path(path)
 
+
 """CONNECTION MANAGING"""
+
+
 def open_connection():
     """
     Method that starts a connection with the database
@@ -124,7 +137,10 @@ def close_connection(connection):
     """
     connection.close()
 
+
 """DATABASE QUERIES"""
+
+
 def find_person_by_ID(tx, ID):
     """
     Method that finds a Person given it's ID
@@ -162,16 +178,15 @@ def update_information_by_ID(tx, ID):
     :param ID: is the ID of the person that decides to update his information
     """
     query = (
-    "MATCH (p: Person) "
-    "WHERE id(p) = $ID "
-    "SET p.mail = $MAIL, p.number = $NUMBER "
-    "RETURN p"
+        "MATCH (p: Person) "
+        "WHERE id(p) = $ID "
+        "SET p.mail = $MAIL, p.number = $NUMBER "
+        "RETURN p"
     )
-    tx.run(query, ID=ID, NUMBER = new_fields_pi[0], MAIL = new_fields_pi[1])
-    find_person_by_ID(session,personal_information[0])
+    tx.run(query, ID=ID, NUMBER=new_fields_pi[0], MAIL=new_fields_pi[1])
 
 
-def find_gp_by_ID(tx,ID):
+def find_gp_by_ID(tx, ID):
     """
         Method that finds a green pass given the ID of the person
         :param tx: is the transaction
@@ -197,7 +212,7 @@ def find_gp_by_ID(tx,ID):
         green_pass.append(relation.data()['r.expirationDate'])
 
 
-def find_covid_tests_by_ID(tx,ID):
+def find_covid_tests_by_ID(tx, ID):
     """
     Method that queries the database for collecting tests information
     :param tx: is the transaction
@@ -225,7 +240,7 @@ def find_covid_tests_by_ID(tx,ID):
         tests.append(test)
 
 
-def find_covid_exposures_by_ID(tx,ID):
+def find_covid_exposures_by_ID(tx, ID):
     """
     Method that queries the database for collecting covid exposures
     :param tx: is the transaction
@@ -252,7 +267,14 @@ def find_place_visited(tx, ID):
     result = tx.run(query, ID=ID)
 
     for relation in result:
-        place = [ relation.data()['l.name'],relation.data()['r.date']]
+        place = []
+        z = relation.data()['l.name']
+        z = str(z)
+        if len(z) > 13:
+            z = z[0:13]
+            z = z + '-'
+        place.append(z)
+        place.append(relation.data()['r.date'])
         x = relation.data()['r.start_hour']
         x = str(x)
         x = x[0:8]
@@ -264,7 +286,179 @@ def find_place_visited(tx, ID):
         places.append(place)
 
 
+def add_new_test(tx, ID, testId, date, hour, result):
+    """
+    Method that adds a new covid test
+    :param tx: is the transaction
+    :param ID: person id
+    :param tesId: test id
+    :param date: date of the test
+    :param hour: hour of the test
+    param result: result of the test -> positive or negative
+    """
+
+    query = (
+        "MATCH (p:Person) , (t:Test) "
+        "WHERE ID(p) = $ID AND ID(t) = $testId "
+        "MERGE (p)-[:MAKE{date:date($date) , hour: time($hour) ,result:$result}]->(t); "
+    )
+    tx.run(query, ID=ID, testId=testId, date=date, hour=hour, result=result)
+
+
 """PAGE BUILDER"""
+
+
+def ct_value_check(date_initial, ID_personal, hour_initial, testId_initial, result):
+    """
+    Method that checks valitidy of values inserted
+    :param ID_personal: person id
+    :param testId_initial: test id
+    :param date_initial: date of the test
+    :param hour_initial: hour of the test
+    param result: result of the test -> positive or negative
+    """
+
+    global error
+
+    if error is not None:
+        canvas.delete(error)
+
+    try:
+        ID = int(ID_personal)
+    except ValueError:
+
+        error = canvas.create_text(
+            175.0,
+            455.0,
+            anchor="nw",
+            text="ERROR: invalid ID, provide a number ",
+            fill="#CA0000",
+            font=("Comfortaa Bold", 16 * -1)
+        )
+        return
+
+    try:
+        testId = int(testId_initial)
+    except ValueError:
+        error = canvas.create_text(
+            175.0,
+            455.0,
+            anchor="nw",
+            text="ERROR: invalid test ID, provide a number ",
+            fill="#CA0000",
+            font=("Comfortaa Bold", 16 * -1)
+        )
+        return
+
+    """ check if a person or a test exist 
+    PERCHè NON FUNZIONA
+    query = (
+            "MATCH (p: Person), (t:Test) "
+            "WHERE id(p) = $ID AND testId=$testId"
+            "RETURN count(*) "
+    )
+    print(query)
+    result = session.run(query, ID=ID_personal,testId=testId_initial)
+    print(ID_personal, testId_initial)
+    for x in result:
+        count = x.data()["count(*)"]
+        print(x)
+        print(count)
+
+    if count == 0:
+        error = canvas.create_text(
+            175.0,
+            455.0,
+            anchor="nw",
+            text="ERROR: person or test doesn't exist ",
+            fill="#CA0000",
+            font=("Comfortaa Bold", 16 * -1)
+        )
+        return
+    """
+
+    date_split = date_initial.split("-")
+    if len(date_split) != 3 :
+        error = canvas.create_text(
+            175.0,
+            455.0,
+            anchor="nw",
+            text="ERROR: invalid data range",
+            fill="#CA0000",
+            font=("Comfortaa Bold", 16 * -1)
+        )
+        return
+
+    try:
+        date_split[0] = int(date_split[0])
+        date_split[1] = int(date_split[1])
+        date_split[2] = int(date_split[2])
+    except ValueError:
+        error = canvas.create_text(
+            175.0,
+            455.0,
+            anchor="nw",
+            text="ERROR: invalid data fromat, try with AAA-MM-DD ",
+            fill="#CA0000",
+            font=("Comfortaa Bold", 16 * -1)
+        )
+        return
+
+    if (1950 > date_split[0] or date_split[0] > 2021) or (
+            1 > date_split[1] or date_split[1] > 12) or (
+            1 > date_split[2] or date_split[2] > 31):
+        error = canvas.create_text(
+            175.0,
+            455.0,
+            anchor="nw",
+            text="ERROR: invalid data range",
+            fill="#CA0000",
+            font=("Comfortaa Bold", 16 * -1)
+        )
+        return
+
+    hour_split = hour_initial.split(":")
+    if len(hour_split) != 2 :
+        error = canvas.create_text(
+            175.0,
+            455.0,
+            anchor="nw",
+            text="ERROR: invalid hour range",
+            fill="#CA0000",
+            font=("Comfortaa Bold", 16 * -1)
+        )
+        return
+
+    try:
+        hour_split[0] = int(hour_split[0])
+        hour_split[1] = int(hour_split[1])
+    except ValueError:
+        error = canvas.create_text(
+            175.0,
+            455.0,
+            anchor="nw",
+            text="ERROR: invalid hour fromat, try with HH:MM ",
+            fill="#CA0000",
+            font=("Comfortaa Bold", 16 * -1)
+        )
+        return
+
+    if (0 > hour_split[0] or hour_split[0] > 23) or (0 > hour_split[1] or hour_split[1]> 59):
+        print(len(hour_split), hour_split[0], hour_split[1])
+        error = canvas.create_text(
+            175.0,
+            455.0,
+            anchor="nw",
+            text="ERROR: invalid hour range",
+            fill="#CA0000",
+            font=("Comfortaa Bold", 16 * -1)
+        )
+        return
+
+    add_new_test(session, ID, testId, date_initial, hour_initial, result)
+    create_add_ct()
+
+
 def save_pi_changes(phone, email):
     """
     Method that catches and checks new entries inserted by user.
@@ -277,14 +471,14 @@ def save_pi_changes(phone, email):
     if error is not None:
         canvas.delete(error)
 
-    if (phone == '') and (email =='') :
+    if (phone == '') and (email == ''):
         create_pi()
 
     if phone == '':
         int_phone = personal_information[4]
     else:
         try:
-           int_phone = int(phone)
+            int_phone = int(phone)
         except ValueError:
             error = canvas.create_text(
                 338,
@@ -324,8 +518,49 @@ def save_pi_changes(phone, email):
     new_fields_pi.append(phone)
     new_fields_pi.append(email)
     global session
-    update_information_by_ID(session,personal_information[0])
+    update_information_by_ID(session, personal_information[0])
     create_pi()
+
+
+def collect_app_manager_information(ID_person, subtitle):
+    """
+    Method that is able to collect data and call personal information page constructor
+    :param ID_person: id inserted by the app manager
+    """
+
+    # no integer or empty
+    try:
+        ID = int(ID_person)
+    except ValueError:
+        canvas.itemconfig(subtitle, text="The following field must be fulfilled with a number", fill="red")
+        canvas.coords(subtitle, 160, 363)
+        return
+
+    global session
+
+    global personal_information
+    find_person_by_ID(session, ID)
+
+    # id is not link to any person (also negative )
+    if len(personal_information) < 3:
+        canvas.itemconfig(subtitle, text="The following field must be fulfilled with an existing ID", fill="red")
+        canvas.coords(subtitle, 140, 363)
+        return
+
+    canvas.delete("all")
+    global button_list
+    for x in button_list:
+        x.destroy()
+
+    global entry_list
+
+    for x in entry_list:
+        x.destroy()
+
+    entry_list = []
+    button_list = []
+
+    create_add_ct()
 
 
 def collect_user_information(ID_person, subtitle):
@@ -463,7 +698,7 @@ def app_manager_login(title, subtitle, button__1, button_0):
         image=login_image,
         borderwidth=1000,
         highlightthickness=0,
-        command=lambda: create_app_manager(login, entry_1),
+        command=lambda: collect_app_manager_information(entry_1.get(), subtitle),
         relief="flat"
     )
     login.place(
@@ -472,21 +707,14 @@ def app_manager_login(title, subtitle, button__1, button_0):
         width=114.0,
         height=36.0
     )
+
+    global button_list
+    button_list = [login]
+
+    global entry_list
+    entry_list = [entry_1]
+
     window.mainloop()
-
-
-def create_app_manager(login, entry_1):
-    """
-        Method that manages the building of the first page after app manager makes the access
-        :param login: button to delete
-        :param entry_1: entry to delete
-        :return:
-    """
-
-    canvas.delete('all')
-    login.destroy()
-    entry_1.destroy()
-    create_add_ct()
 
 
 def create_add_ct():
@@ -499,6 +727,13 @@ def create_add_ct():
 
     for x in button_list:
         x.destroy()
+
+    global entry_list
+
+    for x in entry_list:
+        x.destroy()
+
+    entry_list = []
 
     canvas.create_text(
         22.0,
@@ -549,7 +784,7 @@ def create_add_ct():
         253.0,
         321.0,
         anchor="nw",
-        text="Type",
+        text="Test ID",
         fill="#000000",
         font=("Comfortaa Bold", 16 * -1)
     )
@@ -672,7 +907,7 @@ def create_add_ct():
         image=negative_image,
         borderwidth=1000,
         highlightthickness=0,
-        command=lambda: print("button_4 clicked"),
+        command=lambda: ct_value_check(entry_1.get(), entry_2.get(), entry_3.get(), entry_4.get(), 'Negative'),
         relief="flat"
     )
     negative.place(
@@ -688,7 +923,7 @@ def create_add_ct():
         image=positive_image,
         borderwidth=1000,
         highlightthickness=0,
-        command=lambda: print("positive_image clicked"),
+        command=lambda: ct_value_check(entry_1.get(), entry_2.get(), entry_3.get(), entry_4.get(), 'Positive'),
         relief="flat"
     )
     positive.place(
@@ -700,7 +935,7 @@ def create_add_ct():
 
     button_list = [positive, negative, button_1, button_2, button_3]
 
-    global entry_list
+
     entry_list = [entry_1, entry_2, entry_3, entry_4]
     window.mainloop()
 
@@ -924,6 +1159,7 @@ def create_pi():
     """
     Method that creates user page for seeing personal information
     """
+    find_person_by_ID(session, personal_information[0])
 
     canvas.delete("all")
     global button_list
@@ -1002,7 +1238,6 @@ def create_pi():
         font=("Comfortaa Bold", 16 * -1)
     )
 
-    global personal_information
     # name
     canvas.create_text(
         190.0,
@@ -1268,7 +1503,7 @@ def create_gp():
     for x in button_list:
         x.destroy()
 
-    find_gp_by_ID(session,personal_information[0]);
+    find_gp_by_ID(session, personal_information[0]);
 
     canvas.create_text(
         289.0,
@@ -1428,7 +1663,7 @@ def create_gp():
         181.0,
         201.0,
         anchor="nw",
-        text= green_pass[0],
+        text=green_pass[0],
         fill="#000000",
         font=("Comfortaa Bold", 16 * -1)
     )
@@ -1450,7 +1685,6 @@ def create_gp():
         fill="#000000",
         font=("Comfortaa Bold", 16 * -1)
     )
-
 
     canvas.create_text(
         181.0,
@@ -1680,7 +1914,7 @@ def create_ce():
        :param button_6: button change to destroy
        :return
    """
-    find_covid_exposures_by_ID(session,personal_information[0])
+    find_covid_exposures_by_ID(session, personal_information[0])
     canvas.delete("all")
     global button_list
 
@@ -1956,7 +2190,7 @@ def create_p():
         delta = 32 * i
 
         canvas.create_text(
-            31.0,
+            29.0,
             214.0 + delta,
             anchor="nw",
             text=places[i][0],
@@ -1991,7 +2225,7 @@ def create_p():
             font=("Comfortaa Bold", 16 * -1)
         )
 
-        #to be calculate
+        # to be calculate
         risk = 0
         color = "#000000"
         if risk < 30:
@@ -2006,7 +2240,7 @@ def create_p():
             214.0 + delta,
             anchor="nw",
             text="Risk",
-            fill= color,
+            fill=color,
             font=("Comfortaa Bold", 16 * -1)
         )
 
