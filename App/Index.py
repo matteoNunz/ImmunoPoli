@@ -1615,7 +1615,7 @@ def create_gp():
             31.0,
             201.0,
             anchor="nw",
-            text="Zero doses of covid vaccine was found",
+            text="Zero doses of covid vaccine were found",
             fill="#CA0000",
             font=("Comfortaa Bold", 16 * -1)
         )
