@@ -23,22 +23,23 @@ from matplotlib.backend_bases import key_press_handler
 from matplotlib.figure import Figure
 
 MAX_NUMBER_OF_FAMILY_MEMBER = 5
-NUMBER_OF_FAMILY = 10
+NUMBER_OF_FAMILY = 100
 
-MAX_NUMBER_OF_CONTACT_PER_DAY = 30  # For new contact relationships
+MAX_NUMBER_OF_CONTACT_PER_DAY = 50  # For new contact relationships
 
-MAX_NUMBER_OF_VISIT_PER_DAY = 30  # For new visit relationships
+MAX_NUMBER_OF_VISIT_PER_DAY = 300  # For new visit relationships
 
 MAX_CIVIC_NUMBER = 100
 
 PHONE_NUMBER_LENGTH = 10
 
 PROBABILITY_TO_HAVE_APP = 0.5
-PROBABILITY_TO_BE_POSITIVE = 1
+PROBABILITY_TO_BE_POSITIVE = 0.5
+PROBABILITY_TO_BE_TESTED_AFTER_INFECTED = 0.8
 
-MAX_NUMBER_OF_VACCINE_PER_DAY = 30  # For new get vaccinated relationships
+MAX_NUMBER_OF_VACCINE_PER_DAY = 50  # For new get vaccinated relationships
 
-MAX_NUMBER_OF_TEST_PER_DAY = 20  # For new make test relationships
+MAX_NUMBER_OF_TEST_PER_DAY = 50  # For new make test relationships
 
 BOLT = "bolt://52.87.206.215:7687"
 USER = "neo4j"
@@ -329,7 +330,7 @@ def findAllLiveRelationships(tx):
     :return: a list of relationships
     """
     query = (
-        "MATCH (n1)-[r:LIVE]-(n2) "
+        "MATCH (n1:Person)-[r:LIVE]-(n2:House) "
         "RETURN ID(n1) , r , ID(n2);"
     )
     results = tx.run(query).data()
@@ -343,7 +344,7 @@ def findAllAppContactRelationships(tx):
     :return: a list of relationships
     """
     query = (
-        "MATCH (n1)-[r:APP_CONTACT]-(n2) "
+        "MATCH (n1:Person)-[r:APP_CONTACT]->(n2:Person) "
         "RETURN ID(n1) , r , r.date , r.hour, ID(n2);"
     )
     results = tx.run(query).data()
@@ -357,7 +358,7 @@ def findAllVisitRelationships(tx):
     :return: a list of relationships
     """
     query = (
-        "MATCH (n1)-[r:VISIT]-(n2) "
+        "MATCH (n1:Person)-[r:VISIT]->(n2:Location) "
         "RETURN ID(n1) , r , r.date , r.start_hour , r.end_hour , ID(n2);"
     )
     results = tx.run(query).data()
@@ -371,7 +372,7 @@ def findAllGetVaccineRelationships(tx):
     :return: a list of relationships
     """
     query = (
-        "MATCH (n1)-[r:GET]-(n2) "
+        "MATCH (n1:Person)-[r:GET]-(n2:Vaccine) "
         "RETURN ID(n1) , r , r.date , r.country , r.expirationDate , ID(n2);"
     )
     results = tx.run(query).data()
@@ -385,7 +386,7 @@ def findAllMakeTestRelationships(tx):
     :return: a list of relationships
     """
     query = (
-        "MATCH (n1)-[r:MAKE]-(n2) "
+        "MATCH (n1:Person)-[r:MAKE]-(n2:Test) "
         "RETURN ID(n1) , r , r.date , r.hour , r.result , ID(n2);"
     )
     results = tx.run(query).data()
@@ -399,8 +400,8 @@ def findAllInfectedRelationships(tx):
     :return: a list of relationships
     """
     query = (
-        "MATCH (n1)-[r:INFECTED]-(n2) "
-        "RETURN ID(n1) , r , ID(n2);"
+        "MATCH (n1:Person)-[r:INFECTED]->(n2:Person) "
+        "RETURN ID(n1) , r , r.date , r.name , ID(n2);"
     )
     results = tx.run(query).data()
     return results
@@ -461,9 +462,9 @@ def readNames():
     namesRead = []
     with open("Files/Names.txt", 'r', encoding='utf8') as f:
         for line in f:
-            if line=="\n":
+            if line == "\n":
                 continue
-            namesRead.append(line.rstrip('\n'))
+            namesRead.append(line.rstrip('\n').rstrip().lstrip())
     f.close()
     return namesRead
 
@@ -478,7 +479,7 @@ def readSurnames():
         for line in f:
             if line=="\n":
                 continue
-            surnamesRead.append(line.rstrip('\n'))
+            surnamesRead.append(line.rstrip('\n').rstrip().lstrip())
     f.close()
     return surnamesRead
 
@@ -498,7 +499,7 @@ def readLocations():
             details = line.split(",")
             address = []
             for detail in details:
-                address.append(detail.rstrip('\n'))
+                address.append(detail.rstrip('\n').rstrip().lstrip())
             locationsRead.append(address)
         f.close()
     return locationsRead
@@ -517,7 +518,7 @@ def readHouseAddresses():
             details = line.split(",")
             address = []
             for detail in details:
-                address.append(detail.rstrip('\n'))
+                address.append(detail.rstrip('\n').rstrip().lstrip())
             addressesRead.append(address)
     f.close()
     return addressesRead
@@ -553,7 +554,7 @@ def readTests():
         for line in f:
             if line=="\n":
                 continue
-            testsList.append(line.rstrip('\n'))
+            testsList.append(line.rstrip('\n').rstrip().lstrip())
     f.close()
     return testsList
 
@@ -971,20 +972,22 @@ def createRelationshipsInfect(id , daysBack):
     """
     familyQuery = (
         "MATCH (pp:Person)-[:LIVE]->(h:House)<-[:LIVE]-(ip:Person) "
-        "WHERE ID(pp) = $id AND ip <> pp "
-        "RETURN DISTINCT ID(ip) "
+        "WHERE ID(pp) = $id AND ip <> pp AND NOT (ip)<-[:INFECTED]-(pp)"
+        "RETURN DISTINCT ID(ip);"
     )
     appContactQuery = (
         "MATCH (pp:Person)-[r1:APP_CONTACT]->(ip:Person) "
-        "WHERE ID(pp) = $id AND r1.date > date($date) "
-        "RETURN DISTINCT ID(ip) "
+        "WHERE ID(pp) = $id AND r1.date > date($date) AND NOT "
+        "(pp)-[:INFECTED{date: r1.date}]->(ip)"
+        "RETURN DISTINCT ID(ip) , r1.date;"
     )
     locationContactQuery = (
         "MATCH (pp:Person)-[r1:VISIT]->(l:Location)<-[r2:VISIT]-(ip:Person) "
         "WHERE ID(pp) = $id AND ip <> pp AND r1.date > date($date) AND r2.date = r1.date AND "
         "((r1.star_hour < r2.start_hour AND r1.end_hour > r2.start_hour) OR "
-        "(r2.start_hour < r1.start_hour AND r2.end_hour > r1.start_hour)) "
-        "RETURN DISTINCT ID(ip) , l"
+        "(r2.start_hour < r1.start_hour AND r2.end_hour > r1.start_hour)) AND NOT "
+        "(pp)-[:INFECTED{name: l.name , date: r1.date}]->(ip)"
+        "RETURN DISTINCT ID(ip) , r1.date , l.name;"
     )
 
     date = datetime.date.today() - datetime.timedelta(daysBack)
@@ -998,6 +1001,19 @@ def createRelationshipsInfect(id , daysBack):
             if len(el) > 0:
                 # Take just the id
                 infectedIds.append(el[0]['ID(ip)'])
+        print("Family infected by " + str(id))
+        print(familyInfected)
+        print("App infected by " + str(id))
+        print(appInfected)
+        print("Location infected by " + str(id))
+        print(locationInfected)
+
+        infectedIds = []
+        for el in familyInfected:
+            print("Person is: " , el['ID(ip)'])
+            infectedIds.append(el['ID(ip)'])
+        print("Family infected by " , str(id))
+        print(infectedIds)
 
         for infectedId in infectedIds:
             query = (
@@ -1005,14 +1021,64 @@ def createRelationshipsInfect(id , daysBack):
                 "WHERE ID(pp) = $id AND ID(ip) = $ipid "
                 "CREATE (pp)-[:INFECTED]->(ip);"
             )
-            s.write_transaction(createInfect , query , id , infectedId)
+            s.write_transaction(createInfectFamily , query , id , infectedId)
+
+        infectedIds = []
+        for el in appInfected:
+            details = []
+            details.append(el['ID(ip)'])
+            details.append(el['r1.date'])
+            infectedIds.append(details)
+        print("App infected by " + str(id))
+        print(infectedIds)
+
+        for infectedId , infectedDate in infectedIds:
+            query = (
+                "MATCH (pp:Person) , (ip:Person) "
+                "WHERE ID(pp) = $id AND ID(ip) = $ipid "
+                "CREATE (pp)-[:INFECTED{date: date($date)}]->(ip);"
+            )
+            s.write_transaction(createInfectApp , query , id , infectedId , infectedDate)
+
+        infectedIds = []
+        print(locationInfected)
+        for el in locationInfected:
+            details = []
+            details.append(el['ID(ip)'])
+            details.append(el['r1.date'])
+            details.append(el['l.name'])
+            infectedIds.append(details)
+        print("Location infected by " + str(id))
+        print(infectedIds)
+
+        for infectedId , infectedDate , infectedPlace in infectedIds:
+            query = (
+                "MATCH (pp:Person) , (ip:Person) "
+                "WHERE ID(pp) = $id AND ID(ip) = $ipid "
+                "CREATE (pp)-[:INFECTED{date: date($date) , name: $name}]->(ip);"
+            )
+            s.write_transaction(createInfectLocation , query , id , infectedId , infectedDate , infectedPlace)
 
 
-def createInfect(tx , query , id , ipid):
+def createInfectFamily(tx , query , id , ipid):
     """
     Method that create the relationship Infect
     """
     tx.run(query , id = id , ipid = ipid)
+
+
+def createInfectApp(tx , query , id , ipid , date):
+    """
+    Method that create the relationship Infect
+    """
+    tx.run(query , id = id , ipid = ipid , date  = date)
+
+
+def createInfectLocation(tx , query , id , ipid , date , name):
+    """
+    Method that create the relationship Infect
+    """
+    tx.run(query , id = id , ipid = ipid , date = date , name = name)
 
 
 def findInfectInFamily(tx , query , id):
@@ -1256,7 +1322,7 @@ def print_database_with_pyvis():
     # print(appContactRelationships)
     # print(getRelationships)
     # print(makeRelationships)
-    network = Network('500px' , '500px')
+    network = Network('500px' , '500px' , directed = True)
     # Add Person nodes
     for personNode in personNodes:
         network.add_node(personNode["ID(p)"] ,
@@ -1331,11 +1397,21 @@ def print_database_with_pyvis():
                                              + str(relationship['r.result']) ,
                              color = 'black')
         elif rType == 'INFECTED':
-            network.add_edge(id1 , id2 , title = rType , color = 'red')
+            print("Relation infected: " , str(relationship))
+            if relationship['r.date'] is None:
+                color = 'red'
+            else:
+                color = 'green'
+            print("Color is: " + color)
 
-    window = tk.Tk()
-    window.title = 'Example of plot'
-    window.geometry("400x400")
+            title = rType + ",date: " + str(relationship['r.date']) + ",place: " + str(relationship['r.name'])
+            print("Title is: " + title)
+
+            network.add_edge(id1 , id2 , title = title , color = color)
+
+    # window = tk.Tk()
+    # window.title = 'Example of plot'
+    # window.geometry("400x400")
     # canvas = tk.Canvas(window)
     # f = plt.Figure(figsize = (5 , 5) , dpi = 100)
     # canvas = FigureCanvasTkAgg(network , window)
@@ -1348,6 +1424,7 @@ def print_database_with_pyvis():
     # frame.pack(fill = "both" , expand = True)
 
     # window.mainloop()
+    network.set_edge_smooth('dynamic')
     network.show('graph.html')
 
 
@@ -1415,6 +1492,9 @@ if __name__ == '__main__':
     # Open the connection
     driver = openConnection()
 
+    print_database_with_pyvis()
+    exit()
+
     """
     # Find all the positive Person
     positiveIds = findAllPositivePerson()
@@ -1468,9 +1548,6 @@ if __name__ == '__main__':
         numberOfNodes = session.read_transaction(countAll)
     print("Number of nodes: " + str(numberOfNodes))
 
-    # Print the whole structure
-    print_database_with_pyvis()
-
     # Find all the positive Person
     positiveIds = findAllPositivePerson()
     print("Positive are:")
@@ -1480,3 +1557,8 @@ if __name__ == '__main__':
     for positiveId in positiveIds:
         print(positiveId['ID(p)'])
         createRelationshipsInfect(positiveId['ID(p)'] , 7)
+        if random() < PROBABILITY_TO_BE_TESTED_AFTER_INFECTED:
+            createRelationshipsMakeTest(driver , positiveIds , testsIds)
+
+    # Print the whole structure
+    print_database_with_pyvis()
