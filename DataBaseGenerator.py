@@ -587,7 +587,8 @@ def createFamilies(namesList, surnamesList):
                 age = randint(1 , 99)
             familyEl[j][int(PersonAttribute.AGE)] = age
             # Append the mail
-            mail = name + "." + surname + str(age) + "@immunoPoli.it"
+            mail = name.lower() + "." + surname.lower() + str(age) + "@immunoPoli.it"
+
             familyEl[j][int(PersonAttribute.MAIL)] = mail
             # Append the phone number
             number = 0

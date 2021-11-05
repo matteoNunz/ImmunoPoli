@@ -1,0 +1,52 @@
+Queries:
+
+-contatti indiretti tramite app
+    MATCH (p1:Person)-[:APP_CONTACT*]->(p2:Person) RETURN p1 , p2
+
+-cercare età media dei positivi
+    MATCH (pp:Person)-[r:MAKE]->(t:Test)
+    WHERE r.result = "Positive" AND r.date >= date() - duration({days: 10})
+    RETURN (SUM(DISTINCT(toFloat(pp.age))) / COUNT(DISTINCT(pp)))
+
+- persone che abitano con persone che hanno avuto un tampone positivo
+  negli ultimi 10 gg:
+	MATCH (p:Person)-[:LIVE]->(h:House)<-[:LIVE]-(p1:Person)-[r:MAKE {result: "Positive"}]->()
+	WHERE r.result = "Positive" AND r.date >= date() - duration({days: 10})
+	RETURN p
+
+- case con almeno un positivo (10gg):
+	MATCH (h:House)<-[:LIVE]-(p:Person)-[r:MAKE {result: "Positive"}]->()
+	WHERE r.result = "Positive" AND r.date >= date() - duration({days: 10})
+	RETURN h
+
+- test effettuati negli ultimi 30gg:
+    MATCH (p:Person)-[m:MAKE]->(t:Test)
+    WHERE date() <= m.date AND m.date >= date() - duration({days: 30})
+    RETURN COUNT(m)
+
+- test effettuati in un certo mese:
+  MATCH (p:Person)-[m:MAKE]->(t:Test)
+  WHERE m.date.month = $numero_mese (1...12)
+  RETURN COUNT(m)
+
+- vaccinati con almeno una dose in un un certo CAP:
+    MATCH (h:House {CAP: $cap})<-[l:LIVE]-(p:Person)-[g:GET]->(v:Vaccine)
+    RETURN COUNT(DISTINCT(p))
+
+- vaccinati per ogni CAP:
+    MATCH(p:Person)-[g:GET]->(v:Vaccine), (p)-[l:LIVE]->(h:House)
+    WITH h AS house, p AS person
+    RETURN COUNT(DISTINCT(person)) AS vaccinated, house.CAP ORDER BY vaccinated DESC
+
+- primi 5 luoghi per rate di persone positive su persone totali che hanno visitato tale luogo:
+    MATCH (p:Person)-[:VISIT]->(l:Location), (p)-[m:MAKE {result: "Positive"}]->(t:Test)
+    OPTIONAL MATCH(p1:Person)-[:VISIT]->(l)
+    WHERE m.date >= date() - duration({Days: 10})
+    RETURN (COUNT(DISTINCT(p)))*1.0 / (COUNT(DISTINCT(p1))) AS rate, l.name ORDER BY rate LIMIT 5
+
+
+- persone a rischio infezione che non hanno ancora fatto un tampone (forse da controllare)
+    MATCH(p:Person)-[inf:INFECTED]->(i:person), where not (i)-[:MAKE]->(:Test) return i
+    union
+    match(p:Person)-[inf:INFECTED]->(i:Person)-[r:MAKE]->(:Test) where r.date<inf.date AND r.result = "Negative"
+    RETURN i
