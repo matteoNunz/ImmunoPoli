@@ -330,7 +330,7 @@ def findAllLiveRelationships(tx):
     :return: a list of relationships
     """
     query = (
-        "MATCH (n1:Person)-[r:LIVE]-(n2:House) "
+        "MATCH (n1:Person)-[r:LIVE]->(n2:House) "
         "RETURN ID(n1) , r , ID(n2);"
     )
     results = tx.run(query).data()
@@ -372,7 +372,7 @@ def findAllGetVaccineRelationships(tx):
     :return: a list of relationships
     """
     query = (
-        "MATCH (n1:Person)-[r:GET]-(n2:Vaccine) "
+        "MATCH (n1:Person)-[r:GET]->(n2:Vaccine) "
         "RETURN ID(n1) , r , r.date , r.country , r.expirationDate , ID(n2);"
     )
     results = tx.run(query).data()
@@ -386,7 +386,7 @@ def findAllMakeTestRelationships(tx):
     :return: a list of relationships
     """
     query = (
-        "MATCH (n1:Person)-[r:MAKE]-(n2:Test) "
+        "MATCH (n1:Person)-[r:MAKE]->(n2:Test) "
         "RETURN ID(n1) , r , r.date , r.hour , r.result , ID(n2);"
     )
     results = tx.run(query).data()
@@ -1319,7 +1319,6 @@ def print_database_with_pyvis():
         # Add nodes
         ps.PlotDBStructure.addStructure(personNodes)
         ps.PlotDBStructure.addStructure(houseNodes)
-        ps.PlotDBStructure.addStructure(liveRelationships)
         ps.PlotDBStructure.addStructure(locationNodes)
         ps.PlotDBStructure.addStructure(vaccineNodes)
         ps.PlotDBStructure.addStructure(testNodes)
