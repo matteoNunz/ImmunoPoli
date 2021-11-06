@@ -44,9 +44,28 @@ Queries:
     WHERE m.date >= date() - duration({Days: 10})
     RETURN (COUNT(DISTINCT(p)))*1.0 / (COUNT(DISTINCT(p1))) AS rate, l.name ORDER BY rate LIMIT 5
 
+    ---> Come mai non ci sono controlli sulla data in cui è stata effettuata la visita ?
+    un posto è a rischio se:
+    in un mese il 10% delle persone che lo hanno visitato sono risultate positive in un tempo ragionevole
+    DOPO che hanno effettuato la visita :
+
+        - se una persona risulta positiva n giorni dopo aver visitato il posto con n in {0..10} allora poteva essere postiva
+        anche il giorno della visita e va considerata
+
+        - considero visite_totale tutte le visite fatte nell'ultimo mese a un locale, considero visite_positive le visite di
+        persone diventate positive massimo n giorni dopo essere andate al locale --> rischio = visite_positive/visite_totali
 
 - persone a rischio infezione che non hanno ancora fatto un tampone (forse da controllare)
     MATCH(p:Person)-[inf:INFECTED]->(i:person), where not (i)-[:MAKE]->(:Test) return i
     union
     match(p:Person)-[inf:INFECTED]->(i:Person)-[r:MAKE]->(:Test) where r.date<inf.date AND r.result = "Negative"
     RETURN i
+
+    --> controlla questa:
+
+   MATCH (p:Person)-[inf:INFECTED]->(i:Person)
+   WHERE NOT EXISTS {
+      MATCH (p)-[inf:INFECTED]->(i), (p3:Person)-[m:MAKE]->(:Test)
+      WHERE m.date > inf.date AND id(i) = id(p3)
+   }
+   RETURN i
