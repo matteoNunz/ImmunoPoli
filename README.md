@@ -7,6 +7,7 @@
 ## Index
 
 - Group components
+- Enviroment setup 
 - Database Generator
 - GUI 
 
@@ -19,6 +20,14 @@
 | Rendina |Piero | piero.rendina@mail.polimi.it  || 
 | Sanchini |  Andrea | andrea.sanchini@mail.polimi.it |  | 
 | Zuccolotto |Enrico | enrico.zuccolotto@mail.polimi.it  | 993209 | 10666354
+
+## Environment Setup
+
+Download the setup file, navigate to the folder with the setup file and execute the following command:  
+
+```sh
+pip install -r config_environment.txt
+```
 
 ## Database Generator
 
@@ -34,7 +43,8 @@ The Graphical User Interface is made with Tkinter library.
 To start the application type the following command in the terminal:
 
 ```sh
-pyhton3 Index.py
+pyhton3 App/Index.py
+
 ```
 ![front page](App/Images/index.png?raw=true)
 
