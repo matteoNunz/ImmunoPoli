@@ -6,11 +6,11 @@ Problem: if in the file there are empty lines at the end ---> error
 """
 
 import neo4j as nj
+import PlotDBStructure as ps
 import tkinter as tk
 import tkinterweb
 
 from matplotlib import pyplot as plt
-from pyvis.network import Network
 from tkinterhtml import HtmlFrame
 from random import randint , random
 from enum import IntEnum
@@ -1297,8 +1297,8 @@ def runQueryRead(d , query):
 
 def print_database_with_pyvis():
     """
-    Method use to print the database structure in local using pyvis library
-    :return: nothing, just print
+    Method use to print the database structure using PlotDBStructure module
+    :return: nothing
     """
     with driver.session() as s:
         personNodes = s.read_transaction(findAllPerson)
@@ -1313,102 +1313,28 @@ def print_database_with_pyvis():
         makeRelationships = s.read_transaction(findAllMakeTestRelationships)
         infectRelationships = s.read_transaction(findAllInfectedRelationships)
 
-    # print(personNodes)
-    # print(houseNodes)
-    # print(locationNodes)
-    # print(vaccineNodes)
-    # print(testNodes)
-    # print(liveRelationships)
-    # print(visitRelationships)
-    # print(appContactRelationships)
-    # print(getRelationships)
-    # print(makeRelationships)
-    network = Network('500px' , '500px' , directed = True)
-    # Add Person nodes
-    for personNode in personNodes:
-        network.add_node(personNode["ID(p)"] ,
-                         label = personNode["ID(p)"] ,
-                         title = personNode['p']['name'] + " " +
-                                    personNode['p']['surname'] + "",
-                         color = 'orange')
-    # Add House nodes
-    for houseNode in houseNodes:
-        network.add_node(houseNode['ID(h)'] ,
-                         label = houseNode['ID(h)'] ,
-                         title = houseNode['h']['name'] ,
-                         color = 'blue')
-    # Add Location nodes
-    for locationNode in locationNodes:
-        network.add_node(locationNode['ID(l)'] ,
-                         label = locationNode['ID(l)'] ,
-                         title = str(locationNode['l']['name']) + "," + str(locationNode['l']['address']) + ","
-                                 + str(locationNode['l']['civic_number']) + "," + str(locationNode['l']['CAP']) + ","
-                                 + str(locationNode['l']['city']) + "," + str(locationNode['l']['province']) + ","
-                                 + str(locationNode['l']['type']) ,
-                         color = 'red')
-    # Add Vaccine nodes
-    for vaccineNode in vaccineNodes:
-        network.add_node(vaccineNode['ID(v)'] ,
-                         label = vaccineNode['ID(v)'] ,
-                         title = str(vaccineNode['v']['name']) + "," + str(vaccineNode['v']['producer']) ,
-                         color = 'gray')
-    # Add Test nodes
-    for testNode in testNodes:
-        network.add_node(testNode['ID(t)'] ,
-                         label = testNode['ID(t)'] ,
-                         title = str(testNode['t']['name']) ,
-                         color = 'green')
-    # Add Live relationships
-    relationships = []
-    for relationship in liveRelationships:
-        relationships.append(relationship)
-    for relationship in appContactRelationships:
-        relationships.append(relationship)
-    for relationship in visitRelationships:
-        relationships.append(relationship)
-    for relationship in getRelationships:
-        relationships.append(relationship)
-    for relationship in makeRelationships:
-        relationships.append(relationship)
-    for relationship in infectRelationships:
-        relationships.append(relationship)
+        # Initialize the network attribute
+        ps.PlotDBStructure.__init__()
 
-    for relationship in relationships:
-        id1 = relationship['ID(n1)']
-        id2 = relationship['ID(n2)']
-        rType = relationship['r'][1]
-        if rType == 'LIVE':
-            network.add_edge(id1 , id2 , title = rType , color = 'black')
-        elif rType == 'APP_CONTACT':
-            network.add_edge(id1, id2, title = rType + ",date: " + str(relationship['r.date']) + ",hour: "
-                                             + str(relationship['r.hour']) , color = 'black')
-        elif rType == 'VISIT':
-            network.add_edge(id1 , id2 , title = rType + ",date: " + str(relationship['r.date'])
-                                             + ",start_hour: " + str(relationship['r.start_hour'])
-                                             + ",end_hour: " + str(relationship['r.end_hour']) ,
-                             color = 'black')
-        elif rType == 'GET':
-            network.add_edge(id1 , id2 , title = rType + ",date: " + str(relationship['r.date'])
-                                             + ",expiration_date: " + str(relationship['r.expirationDate'])
-                                             + ",country: " + str(relationship['r.country']) ,
-                             color = 'black')
-        elif rType == 'MAKE':
-            network.add_edge(id1 , id2 , title = rType + ",date: " + str(relationship['r.date'])
-                                             + ",hour: " + str(relationship['r.hour']) + ",result: "
-                                             + str(relationship['r.result']) ,
-                             color = 'black')
-        elif rType == 'INFECTED':
-            print("Relation infected: " , str(relationship))
-            if relationship['r.date'] is None:
-                color = 'red'
-            else:
-                color = 'green'
-            print("Color is: " + color)
+        # Add nodes
+        ps.PlotDBStructure.addStructure(personNodes)
+        ps.PlotDBStructure.addStructure(houseNodes)
+        ps.PlotDBStructure.addStructure(liveRelationships)
+        ps.PlotDBStructure.addStructure(locationNodes)
+        ps.PlotDBStructure.addStructure(vaccineNodes)
+        ps.PlotDBStructure.addStructure(testNodes)
 
-            title = rType + ",date: " + str(relationship['r.date']) + ",place: " + str(relationship['r.name'])
-            print("Title is: " + title)
+        # Add relationships
+        ps.PlotDBStructure.addStructure(liveRelationships)
+        ps.PlotDBStructure.addStructure(visitRelationships)
+        ps.PlotDBStructure.addStructure(appContactRelationships)
+        ps.PlotDBStructure.addStructure(makeRelationships)
+        ps.PlotDBStructure.addStructure(getRelationships)
+        ps.PlotDBStructure.addStructure(infectRelationships)
 
-            network.add_edge(id1 , id2 , title = title , color = color)
+        # Show the graph structure
+        ps.PlotDBStructure.showGraph()
+        return
 
     # window = tk.Tk()
     # window.title = 'Example of plot'
@@ -1425,11 +1351,16 @@ def print_database_with_pyvis():
     # frame.pack(fill = "both" , expand = True)
 
     # window.mainloop()
-    network.set_edge_smooth('dynamic')
-    network.show('graph.html')
 
 
 if __name__ == '__main__':
+
+    # Open the connection
+    driver = openConnection()
+
+    # Only read from the graph
+    print_database_with_pyvis()
+    exit()
 
     # Read names from the file
     names = readNames()
@@ -1489,12 +1420,6 @@ if __name__ == '__main__':
 
     print("The final query is: ")
     print(generalQuery)
-
-    # Open the connection
-    driver = openConnection()
-
-    print_database_with_pyvis()
-    exit()
 
     """
     # Find all the positive Person
