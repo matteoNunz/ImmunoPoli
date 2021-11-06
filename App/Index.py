@@ -59,6 +59,8 @@ checked id login :
 cheked mail:
 - contains @
 - contains .
+- no spaces
+- no comma
 
 checked phone number:
 - it's an integer
@@ -351,7 +353,7 @@ def ct_value_check(date_initial, ID_personal, hour_initial, testId_initial, resu
         return
 
     """ check if a person or a test exist 
-    PERCHè NON FUNZIONA
+   
     query = (
             "MATCH (p: Person), (t:Test) "
             "WHERE id(p) = $ID AND testId=$testId"
@@ -509,6 +511,16 @@ def save_pi_changes(phone, email):
                 322,
                 anchor="nw",
                 text="ERROR: \nwrong email format \n'.' is missing ",
+                fill="#CA0000",
+                font=("Comfortaa Regular", 10 * -1)
+            )
+            return
+        elif (" " in email) or ("," in email) :
+            error = canvas.create_text(
+                338,
+                322,
+                anchor="nw",
+                text="ERROR: \nwrong email format \navoid using spaces and commas  ",
                 fill="#CA0000",
                 font=("Comfortaa Regular", 10 * -1)
             )
