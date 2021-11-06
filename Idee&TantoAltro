@@ -11,17 +11,17 @@ IPOTESI:
 POSSIBLE QUERIES:
 * mostrare tutti i contagi avvenuti direttamente
 * mostrare tutti i contagi avvenuti indirettamente
-* mostrare la probabilità di contagio in un luogo / ora -> mostra i primi 5 luoghi con probabilità di contagio più alta
-* mostrare la positività in base al vaccino effettuato
-* in base al cap individuare quanta gente si è vaccinata
+* mostrare la probabilità di contagio in un luogo / ora -> mostra i primi 5 luoghi con probabilità di contagio più alta OK
+* mostrare la positività in base al vaccino effettuato OK
+* in base al cap individuare quanta gente si è vaccinata OK
 * numero di contatti tramite app di una persona in un range temporale
-* famiglie(case) con almeno un membro positivo (10g)
-* controllare che tutti quelli che hanno avuto un contatto con un positivo abbiano fatto il tampone
+* famiglie(case) con almeno un membro positivo (10g) OK
+* controllare che tutti quelli che hanno avuto un contatto con un positivo abbiano fatto il tampone WIP
     -> mostra chi non lo ha ancora fatto e SEGNALARLO
-* controlla quanti tamponi sono stati fatti in un mese
-* controlla quanti vaccini sono stati in un mese
-* controlla quanti positivi in un mese
-* cercare età media dei positivi
+* controlla quanti tamponi sono stati fatti in un mese OK
+* controlla quanti vaccini sono stati in un mese OK
+* controlla quanti positivi in un mese OK
+* cercare età media dei positivi OK
 
 
 POSSIBLE COMMANDS:

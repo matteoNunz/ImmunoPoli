@@ -29,6 +29,16 @@ Queries:
   WHERE m.date.month = $numero_mese (1...12)
   RETURN COUNT(m)
 
+- positivi in un certo mese:
+  MATCH (p:Person)-[m:MAKE {result:"Positive"}]->(t:Test)
+  WHERE m.date.month = $numero_mese (1...12)
+  RETURN COUNT(m)
+
+- dosi di vaccino effettuati in un certo mese:
+  MATCH (p:Person)-[g:GET]->(v:Vaccine)
+  WHERE g.date.month = $numero_mese (1...12)
+  RETURN COUNT(g)
+
 - vaccinati con almeno una dose in un un certo CAP:
     MATCH (h:House {CAP: $cap})<-[l:LIVE]-(p:Person)-[g:GET]->(v:Vaccine)
     RETURN COUNT(DISTINCT(p))
@@ -38,11 +48,11 @@ Queries:
     WITH h AS house, p AS person
     RETURN COUNT(DISTINCT(person)) AS vaccinated, house.CAP ORDER BY vaccinated DESC
 
-- primi 5 luoghi per rate di persone positive su persone totali che hanno visitato tale luogo:
-    MATCH (p:Person)-[:VISIT]->(l:Location), (p)-[m:MAKE {result: "Positive"}]->(t:Test)
-    OPTIONAL MATCH(p1:Person)-[:VISIT]->(l)
-    WHERE m.date >= date() - duration({Days: 10})
-    RETURN (COUNT(DISTINCT(p)))*1.0 / (COUNT(DISTINCT(p1))) AS rate, l.name ORDER BY rate LIMIT 5
+- primi 5 luoghi per rate di persone positive su persone totali che hanno visitato tale luogo negli ultimi 30gg:
+    MATCH (p:Person)-[v:VISIT]->(l:Location), (p)-[m:MAKE {result: "Positive"}]->(t:Test)
+    MATCH (p1:Person)-[v1:VISIT]->(l)
+    WHERE v.date <= m.date <= v.date + duration({Days: 10}) AND v.date >= date() - duration({Days: 30}) AND v1.date >= date() - duration({Days: 30})
+    RETURN (COUNT(DISTINCT(p)))*1.0 / (COUNT(DISTINCT(p1))) AS rate, l.name ORDER BY rate DESC LIMIT 5
 
     ---> Come mai non ci sono controlli sulla data in cui è stata effettuata la visita ?
     un posto è a rischio se:
@@ -54,6 +64,8 @@ Queries:
 
         - considero visite_totale tutte le visite fatte nell'ultimo mese a un locale, considero visite_positive le visite di
         persone diventate positive massimo n giorni dopo essere andate al locale --> rischio = visite_positive/visite_totali
+
+    EDIT: ora dovrebbe andare
 
 - persone a rischio infezione che non hanno ancora fatto un tampone (forse da controllare)
     MATCH(p:Person)-[inf:INFECTED]->(i:person), where not (i)-[:MAKE]->(:Test) return i
@@ -69,3 +81,11 @@ Queries:
       WHERE m.date > inf.date AND id(i) = id(p3)
    }
    RETURN i
+
+- percentuale di positivi (con almeno una vaccinazione) con test effettuato una dosa di vaccino, raggruppati per vaccino:
+  -> potenzialmente da rifinire
+    MATCH (v:Vaccine)<-[g:GET]-(p:Person)-[m:MAKE {result: "Positive"}]->(t:Test)
+    MATCH (v)<-[g1:GET]-(p1: Person)
+    WHERE m.date > g.date
+    RETURN (COUNT(DISTINCT(p)))*1.0/COUNT(DISTINCT(p1)) AS rate, v.name
+    MATCH(t:Test)<-[m:MAKE{result: "Positive"}]-(p:Person)-[a:APP_CONTACT]->(p1:Person)
