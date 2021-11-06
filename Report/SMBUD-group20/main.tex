@@ -1,0 +1,77 @@
+\documentclass[table, 12pt]{article}
+\usepackage{graphicx}
+\usepackage[T1]{fontenc}
+\usepackage{caption}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{longtable}
+\usepackage{enumitem}
+\usepackage{tasks}
+\usepackage{tabularx}
+\usepackage{titlesec}
+
+
+\titleformat{\paragraph}
+{\normalfont\normalsize\bfseries}{\theparagraph}{1em}{}
+\titlespacing*{\paragraph}
+{0pt}{3.25ex plus 1ex minus .2ex}{1.5ex plus .2ex}
+\setlength {\marginparwidth }{2cm}
+\begin{document}
+\begin{titlepage}
+    \centering
+    {\scshape\large AY 2021/2022 \par}
+    \vfill
+    \includegraphics[width=100pt]{images/logo-polimi-new.pdf}\par\vspace{1cm}
+    {\scshape\LARGE Politecnico di Milano \par}
+    \vspace{1.5cm}
+    {\huge\bfseries SMBUD 2021 - Project work\@ \\ delivery 1  \par}
+    
+    \vspace{1.5cm}
+    {\large \textbf{Group 20} \par
+    
+    \begin{center}
+        
+         
+        {\begin{tabular}{l l }
+        Margherita & Musumeci \\
+        Matteo & Nunziante \\
+        Piero & Rendina \\
+        Andrea & Sanchini \\
+        Enrico & Zuccolotto \\
+        \end{tabular}}
+        
+    \end{center}
+    }
+    \vfill
+    \begin{center}
+        {\large \textbf{Professor}\par
+            Marco Brambilla}
+          \vspace{1cm}
+        {\large \\ \today \par}
+    \end{center}
+\end{titlepage}
+\hypersetup{%
+    pdfborder = {0 0 0}
+}
+\thispagestyle{plain}
+\pagenumbering{gobble}
+\mbox{}
+
+\pagenumbering{roman}
+\tableofcontents
+
+\pagenumbering{arabic}
+
+\newpage
+
+\include{files/introduction}
+
+\newpage
+
+\include{files/assumptions}
+
+\end{document}
+
+
