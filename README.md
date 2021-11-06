@@ -29,13 +29,14 @@ pyhton3 DataBaseGenerator.py
 
 ## GUI 
 
-The Graphical User Interface is made with Tkinter library 
+The Graphical User Interface is made with Tkinter library.
+
+To start the application type the following command in the terminal:
 
 ```sh
 pyhton3 Index.py
 ```
 ![front page](App/Images/index.png?raw=true)
-A customer can log in as a "User" or an "App Manager" with his personal and secrete ID.
 
 The User can:
 - visualize his personal information 
