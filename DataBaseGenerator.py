@@ -23,7 +23,7 @@ from matplotlib.backend_bases import key_press_handler
 from matplotlib.figure import Figure
 
 MAX_NUMBER_OF_FAMILY_MEMBER = 5
-NUMBER_OF_FAMILY = 100
+NUMBER_OF_FAMILY = 20
 
 MAX_NUMBER_OF_CONTACT_PER_DAY = 50  # For new contact relationships
 
@@ -41,9 +41,11 @@ MAX_NUMBER_OF_VACCINE_PER_DAY = 50  # For new get vaccinated relationships
 
 MAX_NUMBER_OF_TEST_PER_DAY = 50  # For new make test relationships
 
-BOLT = "bolt://52.87.206.215:7687"
+#BOLT = "bolt://52.87.206.215:7687"
 USER = "neo4j"
-PASSWORD = "controls-inches-halyard"
+BOLT = "bolt://localhost:7687"
+PASSWORD = "991437"
+#PASSWORD = "controls-inches-halyard"
 
 
 class PersonAttribute(IntEnum):
@@ -864,6 +866,7 @@ def createRelationshipsMakeTest(d, pIds, tIds):
     numberOfTest = randint(1, MAX_NUMBER_OF_TEST_PER_DAY)
     print(tIds)
     for _ in range(0, numberOfTest):
+        probability = random()
         tIndex = randint(0, len(tIds) - 1)
         testId = tIds[tIndex]
         pIndex = randint(0, len(pIds) - 1)
@@ -873,10 +876,10 @@ def createRelationshipsMakeTest(d, pIds, tIds):
         minutes = randint(0 , 59)
         if minutes < 10:
             minutes = "0"+str(minutes)
-        date = date.strftime("%Y-%m-%d")
+        string_date = date.strftime("%Y-%m-%d")
         hour = str(h) + ":" + str(minutes)
 
-        if random() < PROBABILITY_TO_BE_POSITIVE:
+        if probability < PROBABILITY_TO_BE_POSITIVE:
             result = "Positive"
         else:
             result = "Negative"
@@ -887,10 +890,36 @@ def createRelationshipsMakeTest(d, pIds, tIds):
             "MERGE (p)-[:MAKE{date:date($date) , hour: time($hour) ,result:$result}]->(t); "
         )
 
+
+        #If negative, all infections have to be neglected
+        if probability >= PROBABILITY_TO_BE_POSITIVE:
+            # Check whether or not I have been infected by someone
+            delete_possible_infection_command = (
+                "MATCH ()-[i:INFECTED]->(p:Person)"
+                "WHERE ID(p) = $personId AND (i.date < date($date) OR "
+                "i.date = date($date) AND i.hour < time($hour))"
+                "DELETE i"
+            )
+            with d.session() as s:
+                s.write_transaction(delete_possible_infection, delete_possible_infection_command, personId, string_date, hour)
+        #Positive, create possible infections
+        else:
+            """I'm now passing the date of the test and we have to check up to 7 days"""
+            #--- maybe we should change 7
+            createRelationshipsInfect(personId,date, 7)
         # Execute the query
         with d.session() as s:
-            s.write_transaction(createMakingTest, query, personId, testId, date,hour, result)
+            s.write_transaction(createMakingTest, query, personId, testId, string_date,hour, result)
 
+def delete_possible_infection(tx, command, personId, date, hour):
+    """
+    Method
+    :param command: delete infection command to be performed
+    :param personId: person whose infection is deleted
+    :param date: date of the test
+    :param hour: hour of the test
+    """
+    tx.run(command, personId = personId, date = date, hour = hour)
 
 def createVisit(tx , query , personId , locationId , date , startHour , endHour):
     """
@@ -964,9 +993,9 @@ def findAllPositivePerson():
     return positiveIdsFounds
 
 
-def createRelationshipsInfect(id , daysBack):
+def createRelationshipsInfect(id, test_date, daysBack):
     """
-    Method that find all the contact of a positive person
+    Method that finds all the contacts of a positive person
     :param daysBack: is the number of days to look in the past
     :param id: is the id of the positive person
     :return: a list of people who got in contact with the positive person
@@ -991,10 +1020,14 @@ def createRelationshipsInfect(id , daysBack):
         "RETURN DISTINCT ID(ip) , r1.date , l.name;"
     )
 
-    date = datetime.date.today() - datetime.timedelta(daysBack)
+    #date = datetime.date.today() - datetime.timedelta(daysBack)
+    """
+    date is referred to date test - daysback 
+    """
+    date = test_date - datetime.timedelta(daysBack)
     infectedIds = []
     with driver.session() as s:
-        familyInfected = s.read_transaction(findInfectInFamily , familyQuery , id)
+        familyInfected = s.read_transaction(findInfectInFamily, familyQuery, id)
         appInfected = s.read_transaction(findInfect , appContactQuery , id , date)
         locationInfected = s.read_transaction(findInfect , locationContactQuery , id , date)
         print(familyInfected)
@@ -1020,9 +1053,9 @@ def createRelationshipsInfect(id , daysBack):
             query = (
                 "MATCH (pp:Person) , (ip:Person) "
                 "WHERE ID(pp) = $id AND ID(ip) = $ipid "
-                "CREATE (pp)-[:INFECTED]->(ip);"
+                "CREATE (pp)-[:INFECTED{date:date($date)}]->(ip);"
             )
-            s.write_transaction(createInfectFamily , query , id , infectedId)
+            s.write_transaction(createInfectFamily , query , id , infectedId, date.strftime("%Y-%m-%d"))
 
         infectedIds = []
         for el in appInfected:
@@ -1061,11 +1094,11 @@ def createRelationshipsInfect(id , daysBack):
             s.write_transaction(createInfectLocation , query , id , infectedId , infectedDate , infectedPlace)
 
 
-def createInfectFamily(tx , query , id , ipid):
+def createInfectFamily(tx , query , id , ipid, date):
     """
     Method that create the relationship Infect
     """
-    tx.run(query , id = id , ipid = ipid)
+    tx.run(query , id = id , ipid = ipid, date = date)
 
 
 def createInfectApp(tx , query , id , ipid , date):
@@ -1358,8 +1391,8 @@ if __name__ == '__main__':
     driver = openConnection()
 
     # Only read from the graph
-    print_database_with_pyvis()
-    exit()
+    """print_database_with_pyvis()
+    exit()"""
 
     # Read names from the file
     names = readNames()
@@ -1447,14 +1480,14 @@ if __name__ == '__main__':
     # Take Person ids of people with app attribute equal to True)
     personIds = getPersonIds(True)
     # Generate the relationships
-    createRelationshipsAppContact(driver , personIds)
+    createRelationshipsAppContact(driver, personIds)
 
     # Generate random visits
     # Take Location ids
     locationIds = getLocationsIds()
     personId = getPersonIds()
     # Generate the relationship
-    createRelationshipsVisit(driver , personIds , locationIds)
+    createRelationshipsVisit(driver , personIds, locationIds)
 
     # Generate random vaccines
     # Take vaccines ids
@@ -1479,11 +1512,13 @@ if __name__ == '__main__':
     print(positiveIds)
     # Search all the infected Person tracked
     trackedPersonIds = []
-    for positiveId in positiveIds:
-        print(positiveId['ID(p)'])
-        createRelationshipsInfect(positiveId['ID(p)'] , 7)
-        if random() < PROBABILITY_TO_BE_TESTED_AFTER_INFECTED:
-            createRelationshipsMakeTest(driver , positiveIds , testsIds)
 
+    """Commented because we create infection after a positive test"""
+    """for positiveId in positiveIds:
+        print(positiveId['ID(p)'])
+        createRelationshipsInfect(positiveId['ID(p)'], 7)
+        if random() < PROBABILITY_TO_BE_TESTED_AFTER_INFECTED:
+            createRelationshipsMakeTest(driver, positiveIds, testsIds)
+    """
     # Print the whole structure
     print_database_with_pyvis()
