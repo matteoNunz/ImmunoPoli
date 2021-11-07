@@ -31,7 +31,7 @@ Buttons:
 - button_1 : covid exposure
 - button_2 : places visited
 - button_3 : green pass
-- button_4 : pesonal information
+- button_4 : personal information
 - button_5 : covid tests
 
 - button_6 : change personal information
@@ -75,7 +75,6 @@ checked new ct:
 
 from pathlib import Path
 import neo4j as nj
-import numpy
 
 # from tkinter import *
 # Explicit imports to satisfy Flake8
@@ -84,9 +83,11 @@ from tkinter import Tk, Canvas, Entry, Text, Button, PhotoImage
 OUTPUT_PATH = Path(__file__).parent
 ASSETS_PATH = OUTPUT_PATH / Path("./Images")
 
-BOLT = "bolt://52.87.206.215:7687"
+#BOLT = "bolt://52.87.206.215:7687"
+BOLT = "bolt://localhost:7687"
 USER = "neo4j"
-PASSWORD = "controls-inches-halyard"
+PASSWORD = "991437"
+#PASSWORD = "controls-inches-halyard"
 
 """
 list of buttons that don't belong to canvas that have to be delete before building a page 
@@ -263,10 +264,11 @@ def find_place_visited(tx, ID):
     query = (
         "MATCH (p:Person)-[r:VISIT]->(l:Location) "
         "WHERE id(p) = $ID  "
-        "RETURN r.date, l.name, r.start_hour, r.end_hour"
+        "RETURN r.date, l.name, r.start_hour, r.end_hour, id(l)"
     )
 
     result = tx.run(query, ID=ID)
+
 
     for relation in result:
         place = []
@@ -285,8 +287,19 @@ def find_place_visited(tx, ID):
         y = str(y)
         y = y[0:8]
         place.append(y)
+        location_id = relation.data()['id(l)']
+        risk_query = (
+            "MATCH (t)<-[m:MAKE{result:\"Positive\"}]-(p:Person)-[v:VISIT]->(l)"
+            "MATCH (p1:Person)-[v1:VISIT]->(l)"
+            "WHERE id(l) = $ID AND v.date <= m.date <= v.date + duration({Days: 10}) "
+            " AND v.date >= date() - duration({Days: 30}) "
+            "AND v1.date >= date() - duration({Days: 30})"
+            "RETURN (COUNT(DISTINCT(p)))*1.0 / (COUNT(DISTINCT(p1))) AS rate"
+        )
+        risk_rate = tx.run(risk_query, ID=location_id)
+        place.append(risk_rate.data()[0]['rate'])
+        #print(location_id, risk_rate.data()[0])
         places.append(place)
-
 
 def add_new_test(tx, ID, testId, date, hour, result):
     """
@@ -2238,7 +2251,7 @@ def create_p():
         )
 
         # to be calculate
-        risk = 0
+        risk = places[i][4] * 100
         color = "#000000"
         if risk < 30:
             color = "#039300"
@@ -2251,7 +2264,7 @@ def create_p():
             420.0,
             214.0 + delta,
             anchor="nw",
-            text="Risk",
+            text=str(risk)+"%",
             fill=color,
             font=("Comfortaa Bold", 16 * -1)
         )
