@@ -15,8 +15,9 @@ POSSIBLE QUERIES:
 * mostrare la positività in base al vaccino effettuato OK
 * in base al cap individuare quanta gente si è vaccinata OK
 * numero di contatti tramite app di una persona in un range temporale
+    -->> inutile se cancelliamo i dati relativi ai contatti più vecchi di 10 giorni
 * famiglie(case) con almeno un membro positivo (10g) OK
-* controllare che tutti quelli che hanno avuto un contatto con un positivo abbiano fatto il tampone WIP
+* controllare che tutti quelli che hanno avuto un contatto con un positivo abbiano fatto il tampone OK
     -> mostra chi non lo ha ancora fatto e SEGNALARLO
 * controlla quanti tamponi sono stati fatti in un mese OK
 * controlla quanti vaccini sono stati in un mese OK
@@ -54,3 +55,5 @@ Per quanto riguarda la questione luogo facendo le query per generare il tutto mi
 - Da aggiornare campi dei nodi vaccino
 - Sistemare diagramma E-R (relazione reside diventa live, collegate con private house)
 
+Da sistemare: in createrelationshipsinfect dovrebbe guardare indietro
+di sette giorni

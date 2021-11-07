@@ -3,6 +3,16 @@ Queries:
 -contatti indiretti tramite app
     MATCH (p1:Person)-[:APP_CONTACT*]->(p2:Person) RETURN p1 , p2
 
+-contagi avvenuti direttamente (positivi successivi a una relazione infected)
+    MATCH (p:Person)-[inf:INFECTED]-(i:Person)->(m:MAKE{result: "Positive"})->(Test)
+    WHERE m.date > inf.date + $giorni_da_definire
+    RETURN i
+
+-contagi avvenuti direttamente (positivi successivi a una relazione infected) WIP, al momento non funziona
+    MATCH (p:Person)-[inf:INFECTED*]-(i:Person)->(m:MAKE{result: "Positive"})->(Test)
+    WHERE m.date > inf.date + $giorni_da_definire
+    RETURN i
+
 -cercare età media dei positivi
     MATCH (pp:Person)-[r:MAKE]->(t:Test)
     WHERE r.result = "Positive" AND r.date >= date() - duration({days: 10})
@@ -67,14 +77,7 @@ Queries:
 
     EDIT: ora dovrebbe andare
 
-- persone a rischio infezione che non hanno ancora fatto un tampone (forse da controllare)
-    MATCH(p:Person)-[inf:INFECTED]->(i:person), where not (i)-[:MAKE]->(:Test) return i
-    union
-    match(p:Person)-[inf:INFECTED]->(i:Person)-[r:MAKE]->(:Test) where r.date<inf.date AND r.result = "Negative"
-    RETURN i
-
-    --> controlla questa:
-
+- persone a rischio infezione che non hanno ancora fatto un tampone (dovrebbe andare se c'è la data dell'infezione per ogni infezione)
    MATCH (p:Person)-[inf:INFECTED]->(i:Person)
    WHERE NOT EXISTS {
       MATCH (p)-[inf:INFECTED]->(i), (p3:Person)-[m:MAKE]->(:Test)
@@ -82,10 +85,31 @@ Queries:
    }
    RETURN i
 
+- numero contatti tramite app per ogni persona in un range temporale: -->> inutile se cancelliamo i dati relativi ai contatti più vecchi di 10 giorni
+    MATCH(p:Person)-[a:APP_CONTACT]->(:Person)
+    WHERE $ <= a.date <= $
+    RETURN COUNT(a), p.name
+
 - percentuale di positivi (con almeno una vaccinazione) con test effettuato una dosa di vaccino, raggruppati per vaccino:
   -> potenzialmente da rifinire
     MATCH (v:Vaccine)<-[g:GET]-(p:Person)-[m:MAKE {result: "Positive"}]->(t:Test)
     MATCH (v)<-[g1:GET]-(p1: Person)
     WHERE m.date > g.date
     RETURN (COUNT(DISTINCT(p)))*1.0/COUNT(DISTINCT(p1)) AS rate, v.name
-    MATCH(t:Test)<-[m:MAKE{result: "Positive"}]-(p:Person)-[a:APP_CONTACT]->(p1:Person)
+
+
+Commands:
+
+- cancellare le relazioni app_contact più vecchie di 10 giorni:
+    MATCH(p1:Person)-[a:APP_CONTACT]->(p2:Person)
+    WHERE a.date < date() - duration({Days: 10}) OR (a.date = date() - duration({Days: 10}) AND a.hour < time())
+    DELETE a
+
+- cancellazione relazione infected se viene fatto un test negativo successivo all'infected
+    MATCH(p:Person)-[inf:INFECTED]->(i:Person)-[m:MAKE{result:"Negative"}]->(:Test)
+    WHERE m.date > inf.date + $giorni_da_definire
+    DELETE inf
+
+- aggiornamento nuovo test positivo
+
+
