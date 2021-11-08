@@ -316,6 +316,48 @@ def find_place_visited(tx, ID):
         places.append(place)
 
 
+def check_if_person_exist(tx, ID):
+    """
+    Method that queries the database for understand if a person node exist
+    :param tx: is the transaction
+    :param ID: is the ID of the person
+     :return TRUE OR FALSE
+    """
+    query = (
+        "MATCH (p:Person) "
+        "WHERE id(p) = $ID "
+        "RETURN p"
+    )
+
+    result = tx.run(query, ID=ID)
+    count = 0
+    for node in result:
+        count = count + 1
+
+    return count
+
+
+def check_if_test_exist(tx, ID):
+    """
+       Method that queries the database for understand if a test node exist
+       :param tx: is the transaction
+       :param ID: is the ID of the test
+       :return TRUE OR FALSE
+    """
+    query = (
+        "MATCH (t:Test) "
+        "WHERE id(t) = $ID "
+        "RETURN t"
+    )
+
+    result = tx.run(query, ID=ID)
+    count = 0
+    for node in result:
+        count = count + 1
+
+    return count
+
+
 def add_new_test(tx, ID, testId, date, hour, result):
     """
     Method that adds a new covid test
@@ -335,7 +377,7 @@ def add_new_test(tx, ID, testId, date, hour, result):
     tx.run(query, ID=ID, testId=testId, date=date, hour=hour, result=result)
 
 
-"""PAGE BUILDER"""
+"""VALUES MANAGING"""
 
 
 def ct_value_check(date_initial, ID_personal, hour_initial, testId_initial, result):
@@ -367,6 +409,18 @@ def ct_value_check(date_initial, ID_personal, hour_initial, testId_initial, resu
         )
         return
 
+    n_person = check_if_person_exist(session, ID)
+    if n_person == 0:
+        error = canvas.create_text(
+            175.0,
+            455.0,
+            anchor="nw",
+            text="ERROR: person doesn't exist ",
+            fill="#CA0000",
+            font=("Comfortaa Bold", 16 * -1)
+        )
+        return
+
     try:
         testId = int(testId_initial)
     except ValueError:
@@ -380,32 +434,19 @@ def ct_value_check(date_initial, ID_personal, hour_initial, testId_initial, resu
         )
         return
 
-    """ check if a person or a test exist 
-   
-    query = (
-            "MATCH (p: Person), (t:Test) "
-            "WHERE id(p) = $ID AND testId=$testId"
-            "RETURN count(*) "
-    )
-    print(query)
-    result = session.run(query, ID=ID_personal,testId=testId_initial)
-    print(ID_personal, testId_initial)
-    for x in result:
-        count = x.data()["count(*)"]
-        print(x)
-        print(count)
 
-    if count == 0:
+    n_test = check_if_test_exist(session,testId)
+
+    if n_test == 0:
         error = canvas.create_text(
             175.0,
             455.0,
             anchor="nw",
-            text="ERROR: person or test doesn't exist ",
+            text="ERROR: test type doesn't exist ",
             fill="#CA0000",
             font=("Comfortaa Bold", 16 * -1)
         )
         return
-    """
 
     date_split = date_initial.split("-")
     if len(date_split) != 3 :
@@ -645,6 +686,8 @@ def collect_user_information(ID_person, subtitle):
 
     create_pi()
 
+
+"""PAGE BUILDER"""
 
 def user_login(title, subtitle, button__1, button_0):
     """
