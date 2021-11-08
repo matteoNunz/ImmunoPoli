@@ -56,7 +56,7 @@ checked id login :
 - out of range id
 - not a number
 
-cheked mail:
+checked mail:
 - contains @
 - contains .
 - no spaces
@@ -234,7 +234,8 @@ def find_covid_tests_by_ID(tx, ID):
     result = tx.run(query, ID=ID)
 
     for relation in result:
-        test = [relation.data()['n.name'], relation.data()['r.date']]
+        name = relation.data()['n.name'].split(" ")
+        test = [name[0], relation.data()['r.date']]
         x = relation.data()['r.hour']
         x = str(x)
         x = x[0:8]
@@ -433,7 +434,7 @@ def ct_value_check(date_initial, ID_personal, hour_initial, testId_initial, resu
         return
 
     hour_split = hour_initial.split(":")
-    if len(hour_split) != 2 :
+    if len(hour_split) != 2:
         error = canvas.create_text(
             175.0,
             455.0,
@@ -482,7 +483,9 @@ def save_pi_changes(phone, email):
     :param email: new email
     :param address: new address
     """
-    global error
+    global error, new_fields_pi
+    new_fields_pi = []
+
     if error is not None:
         canvas.delete(error)
 
@@ -528,7 +531,7 @@ def save_pi_changes(phone, email):
                 font=("Comfortaa Regular", 10 * -1)
             )
             return
-        elif (" " in email) or ("," in email) :
+        elif (" " in email) or ("," in email):
             error = canvas.create_text(
                 338,
                 322,
@@ -539,9 +542,9 @@ def save_pi_changes(phone, email):
             )
             return
 
-    global new_fields_pi
     new_fields_pi.append(phone)
     new_fields_pi.append(email)
+
     global session
     update_information_by_ID(session, personal_information[0])
     create_pi()
@@ -959,7 +962,6 @@ def create_add_ct():
     )
 
     button_list = [positive, negative, button_1, button_2, button_3]
-
 
     entry_list = [entry_1, entry_2, entry_3, entry_4]
     window.mainloop()
@@ -1640,7 +1642,7 @@ def create_gp():
             31.0,
             201.0,
             anchor="nw",
-            text="Zero doses of covid vaccine were found",
+            text="No doses of covid vaccine were found",
             fill="#CA0000",
             font=("Comfortaa Bold", 16 * -1)
         )
@@ -1770,6 +1772,98 @@ def create_ct():
         font=("Comfortaa Bold", 20 * -1)
     )
 
+    button_image_1 = PhotoImage(
+        file=relative_to_assets("button_1.png"))
+    button_1 = Button(
+        image=button_image_1,
+        borderwidth=1000,
+        highlightthickness=0,
+        command=lambda: create_ce(),
+        relief="flat"
+    )
+    button_1.place(
+        x=493.0,
+        y=348.0,
+        width=150.0,
+        height=50.0
+    )
+
+    button_image_2 = PhotoImage(
+        file=relative_to_assets("button_2.png"))
+    button_2 = Button(
+        image=button_image_2,
+        borderwidth=1000,
+        highlightthickness=0,
+        command=lambda: create_p(),
+        relief="flat"
+    )
+    button_2.place(
+        x=493.0,
+        y=416.0,
+        width=150.0,
+        height=50.0
+    )
+
+    button_image_3 = PhotoImage(
+        file=relative_to_assets("button_3.png"))
+    button_3 = Button(
+        image=button_image_3,
+        borderwidth=1000,
+        highlightthickness=0,
+        command=lambda: create_gp(),
+        relief="flat"
+    )
+    button_3.place(
+        x=494.0,
+        y=212.0,
+        width=150.0,
+        height=50.0
+    )
+
+    button_image_4 = PhotoImage(
+        file=relative_to_assets("button_4.png"))
+    button_4 = Button(
+        image=button_image_4,
+        borderwidth=1000,
+        highlightthickness=0,
+        command=lambda: create_pi(),
+        relief="flat"
+    )
+    button_4.place(
+        x=494.0,
+        y=144.0,
+        width=150.0,
+        height=50.0
+    )
+
+    button_image_5 = PhotoImage(
+        file=relative_to_assets("button_5_dark.png"))
+    button_5 = Button(
+        image=button_image_5,
+        borderwidth=1000,
+        highlightthickness=0,
+        relief="flat"
+    )
+    button_5.place(
+        x=493.0,
+        y=280.0,
+        width=150.0,
+        height=50.0
+    )
+
+    if len(tests) == 0:
+        canvas.create_text(
+            31.0,
+            201.0,
+            anchor="nw",
+            text="No covid tests were found",
+            fill="#CA0000",
+            font=("Comfortaa Bold", 16 * -1)
+        )
+        button_list = [button_1, button_2, button_3, button_4, button_5]
+        window.mainloop()
+        return
+
     canvas.create_text(
         31.0,
         186.0,
@@ -1851,84 +1945,6 @@ def create_ct():
             font=("Comfortaa Regular", 16 * -1)
         )
 
-    button_image_1 = PhotoImage(
-        file=relative_to_assets("button_1.png"))
-    button_1 = Button(
-        image=button_image_1,
-        borderwidth=1000,
-        highlightthickness=0,
-        command=lambda: create_ce(),
-        relief="flat"
-    )
-    button_1.place(
-        x=493.0,
-        y=348.0,
-        width=150.0,
-        height=50.0
-    )
-
-    button_image_2 = PhotoImage(
-        file=relative_to_assets("button_2.png"))
-    button_2 = Button(
-        image=button_image_2,
-        borderwidth=1000,
-        highlightthickness=0,
-        command=lambda: create_p(),
-        relief="flat"
-    )
-    button_2.place(
-        x=493.0,
-        y=416.0,
-        width=150.0,
-        height=50.0
-    )
-
-    button_image_3 = PhotoImage(
-        file=relative_to_assets("button_3.png"))
-    button_3 = Button(
-        image=button_image_3,
-        borderwidth=1000,
-        highlightthickness=0,
-        command=lambda: create_gp(),
-        relief="flat"
-    )
-    button_3.place(
-        x=494.0,
-        y=212.0,
-        width=150.0,
-        height=50.0
-    )
-
-    button_image_4 = PhotoImage(
-        file=relative_to_assets("button_4.png"))
-    button_4 = Button(
-        image=button_image_4,
-        borderwidth=1000,
-        highlightthickness=0,
-        command=lambda: create_pi(),
-        relief="flat"
-    )
-    button_4.place(
-        x=494.0,
-        y=144.0,
-        width=150.0,
-        height=50.0
-    )
-
-    button_image_5 = PhotoImage(
-        file=relative_to_assets("button_5_dark.png"))
-    button_5 = Button(
-        image=button_image_5,
-        borderwidth=1000,
-        highlightthickness=0,
-        relief="flat"
-    )
-    button_5.place(
-        x=493.0,
-        y=280.0,
-        width=150.0,
-        height=50.0
-    )
     button_list = [button_1, button_2, button_3, button_4, button_5]
     window.mainloop()
 
@@ -1971,73 +1987,7 @@ def create_ce():
         text="Covid Exposure",
         fill="#6370FF",
         font=("Comfortaa Bold", 20 * -1)
-    )
 
-    canvas.create_text(
-        31.0,
-        186.0,
-        anchor="nw",
-        text="Date",
-        fill="#000000",
-        font=("Comfortaa Bold", 16 * -1)
-    )
-
-    canvas.create_text(
-        143.0,
-        187.0,
-        anchor="nw",
-        text="Place",
-        fill="#000000",
-        font=("Comfortaa Bold", 16 * -1)
-    )
-
-    canvas.create_text(
-        317.0,
-        188.0,
-        anchor="nw",
-        text="Risk Level",
-        fill="#000000",
-        font=("Comfortaa Bold", 16 * -1)
-    )
-
-    # date
-    canvas.create_text(
-        31.0,
-        216.0,
-        anchor="nw",
-        text="...",
-        fill="#000000",
-        font=("Comfortaa Regular", 16 * -1)
-    )
-
-    # place
-    canvas.create_text(
-        143.0,
-        217.0,
-        anchor="nw",
-        text="...",
-        fill="#000000",
-        font=("Comfortaa Regular", 16 * -1)
-    )
-
-    # risk
-    canvas.create_text(
-        317.0,
-        218.0,
-        anchor="nw",
-        text="...",
-        fill="#2CAB00",
-        font=("Comfortaa Regular", 16 * -1)
-    )
-
-    # date_2
-    canvas.create_text(
-        31.0,
-        248.0,
-        anchor="nw",
-        text="...",
-        fill="#000000",
-        font=("Comfortaa Regular", 16 * -1)
     )
 
     button_image_1 = PhotoImage(
@@ -2120,6 +2070,88 @@ def create_ce():
         height=50.0
     )
 
+    """
+    if len() != 4:
+        canvas.create_text(
+            31.0,
+            201.0,
+            anchor="nw",
+            text="No cases of covid exposure were found",
+            fill="#CA0000",
+            font=("Comfortaa Bold", 16 * -1)
+        )
+        button_list = [button_1, button_2, button_3, button_4, button_5]
+        window.mainloop()
+        return
+    """
+
+    canvas.create_text(
+        31.0,
+        186.0,
+        anchor="nw",
+        text="Date",
+        fill="#000000",
+        font=("Comfortaa Bold", 16 * -1)
+    )
+
+    canvas.create_text(
+        143.0,
+        187.0,
+        anchor="nw",
+        text="Place",
+        fill="#000000",
+        font=("Comfortaa Bold", 16 * -1)
+    )
+
+    canvas.create_text(
+        317.0,
+        188.0,
+        anchor="nw",
+        text="Risk Level",
+        fill="#000000",
+        font=("Comfortaa Bold", 16 * -1)
+    )
+
+    # date
+    canvas.create_text(
+        31.0,
+        216.0,
+        anchor="nw",
+        text="...",
+        fill="#000000",
+        font=("Comfortaa Regular", 16 * -1)
+    )
+
+    # place
+    canvas.create_text(
+        143.0,
+        217.0,
+        anchor="nw",
+        text="...",
+        fill="#000000",
+        font=("Comfortaa Regular", 16 * -1)
+    )
+
+    # risk
+    canvas.create_text(
+        317.0,
+        218.0,
+        anchor="nw",
+        text="...",
+        fill="#2CAB00",
+        font=("Comfortaa Regular", 16 * -1)
+    )
+
+    # date_2
+    canvas.create_text(
+        31.0,
+        248.0,
+        anchor="nw",
+        text="...",
+        fill="#000000",
+        font=("Comfortaa Regular", 16 * -1)
+    )
+
     button_list = [button_1, button_2, button_3, button_4, button_5]
     window.mainloop()
 
@@ -2152,7 +2184,6 @@ def create_p():
         anchor="nw",
         text="ImmunoPoli",
         fill="#000000",
-
         font=("Comfortaa Regular", 20 * -1)
     )
 
@@ -2164,6 +2195,98 @@ def create_p():
         fill="#6370FF",
         font=("Comfortaa Bold", 20 * -1)
     )
+
+    button_image_1 = PhotoImage(
+        file=relative_to_assets("button_1.png"))
+    button_1 = Button(
+        image=button_image_1,
+        borderwidth=1000,
+        highlightthickness=0,
+        command=lambda: create_ce(),
+        relief="flat"
+    )
+    button_1.place(
+        x=493.0,
+        y=348.0,
+        width=150.0,
+        height=50.0
+    )
+
+    button_image_2 = PhotoImage(
+        file=relative_to_assets("button_2_dark.png"))
+    button_2 = Button(
+        image=button_image_2,
+        borderwidth=1000,
+        highlightthickness=0,
+        relief="flat"
+    )
+    button_2.place(
+        x=493.0,
+        y=416.0,
+        width=150.0,
+        height=50.0
+    )
+
+    button_image_3 = PhotoImage(
+        file=relative_to_assets("button_3.png"))
+    button_3 = Button(
+        image=button_image_3,
+        borderwidth=1000,
+        highlightthickness=0,
+        command=lambda: create_gp(),
+        relief="flat"
+    )
+    button_3.place(
+        x=494.0,
+        y=212.0,
+        width=150.0,
+        height=50.0
+    )
+
+    button_image_4 = PhotoImage(
+        file=relative_to_assets("button_4.png"))
+    button_4 = Button(
+        image=button_image_4,
+        borderwidth=1000,
+        highlightthickness=0,
+        command=lambda: create_pi(),
+        relief="flat"
+    )
+    button_4.place(
+        x=494.0,
+        y=144.0,
+        width=150.0,
+        height=50.0
+    )
+
+    button_image_5 = PhotoImage(
+        file=relative_to_assets("button_5.png"))
+    button_5 = Button(
+        image=button_image_5,
+        borderwidth=1000,
+        highlightthickness=0,
+        command=lambda: create_ct(),
+        relief="flat"
+    )
+    button_5.place(
+        x=493.0,
+        y=280.0,
+        width=150.0,
+        height=50.0
+    )
+
+    if len(places) == 0:
+        canvas.create_text(
+            31.0,
+            201.0,
+            anchor="nw",
+            text="No places recently visited were found",
+            fill="#CA0000",
+            font=("Comfortaa Bold", 16 * -1)
+        )
+        button_list = [button_1, button_2, button_3, button_4, button_5]
+        window.mainloop()
+        return
 
     canvas.create_text(
         31.0,
@@ -2264,89 +2387,10 @@ def create_p():
             420.0,
             214.0 + delta,
             anchor="nw",
-            text=str(risk)+"%",
+            text=str(risk) + "%",
             fill=color,
             font=("Comfortaa Bold", 16 * -1)
         )
-
-    button_image_1 = PhotoImage(
-        file=relative_to_assets("button_1.png"))
-    button_1 = Button(
-        image=button_image_1,
-        borderwidth=1000,
-        highlightthickness=0,
-        command=lambda: create_ce(),
-        relief="flat"
-    )
-    button_1.place(
-        x=493.0,
-        y=348.0,
-        width=150.0,
-        height=50.0
-    )
-
-    button_image_2 = PhotoImage(
-        file=relative_to_assets("button_2_dark.png"))
-    button_2 = Button(
-        image=button_image_2,
-        borderwidth=1000,
-        highlightthickness=0,
-        relief="flat"
-    )
-    button_2.place(
-        x=493.0,
-        y=416.0,
-        width=150.0,
-        height=50.0
-    )
-
-    button_image_3 = PhotoImage(
-        file=relative_to_assets("button_3.png"))
-    button_3 = Button(
-        image=button_image_3,
-        borderwidth=1000,
-        highlightthickness=0,
-        command=lambda: create_gp(),
-        relief="flat"
-    )
-    button_3.place(
-        x=494.0,
-        y=212.0,
-        width=150.0,
-        height=50.0
-    )
-
-    button_image_4 = PhotoImage(
-        file=relative_to_assets("button_4.png"))
-    button_4 = Button(
-        image=button_image_4,
-        borderwidth=1000,
-        highlightthickness=0,
-        command=lambda: create_pi(),
-        relief="flat"
-    )
-    button_4.place(
-        x=494.0,
-        y=144.0,
-        width=150.0,
-        height=50.0
-    )
-
-    button_image_5 = PhotoImage(
-        file=relative_to_assets("button_5.png"))
-    button_5 = Button(
-        image=button_image_5,
-        borderwidth=1000,
-        highlightthickness=0,
-        command=lambda: create_ct(),
-        relief="flat"
-    )
-    button_5.place(
-        x=493.0,
-        y=280.0,
-        width=150.0,
-        height=50.0
-    )
 
     button_list = [button_1, button_2, button_3, button_4, button_5]
     window.mainloop()
