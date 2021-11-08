@@ -1,26 +1,14 @@
 """
 Date: 28/10/2021
-First sketch for a generator of data base structure for Neo4J
-
-Problem: if in the file there are empty lines at the end ---> error
+Neo4J generator for ImmunoPoli project
 """
 
 import neo4j as nj
 import PlotDBStructure as ps
-import tkinter as tk
-import tkinterweb
 
-from matplotlib import pyplot as plt
-from tkinterhtml import HtmlFrame
 from random import randint , random
 from enum import IntEnum
 import datetime
-
-from matplotlib.backends.backend_tkagg import (
-    FigureCanvasTkAgg, NavigationToolbar2Tk)
-# Implement the default Matplotlib key bindings.
-from matplotlib.backend_bases import key_press_handler
-from matplotlib.figure import Figure
 
 MAX_NUMBER_OF_FAMILY_MEMBER = 5
 NUMBER_OF_FAMILY = 50
@@ -143,35 +131,109 @@ def closeConnection(connection):
     connection.close()
 
 
-def createPerson(tx, name, age):
+def readNames():
     """
-    Method that create a new Person node
-    :param tx: is the transaction
-    :param name: it the name of the new node
-    :param age: is the age of the new node
-    :return: nothing
+    Method that reads the possible names from a file
+    :return: a list containing the names
     """
-    query = (
-        "CREATE (p:Person {name: $name , age: $age})"
-    )
+    namesRead = []
+    with open("Files/Names.txt", 'r', encoding='utf8') as f:
+        for line in f:
+            if line == "\n":
+                continue
+            namesRead.append(line.rstrip('\n').rstrip().lstrip())
+    f.close()
+    return namesRead
 
-    tx.run(query, name=name, age=age)
 
-
-def createFriendOf(tx, name, friend):
+def readSurnames():
     """
-    Method that create a friend
-    :param tx: it the transaction
-    :param name: it the Person that knows a new other Person
-    :param friend: is the new Friend of name
-    :return: nothing
+    Method that reads the possible surnames from a file
+    :return: a list containing the surnames
     """
-    query = (
-        "MATCH (a:Person) WHERE a.name = $name "
-        "CREATE (a)-[:KNOWS]->(:Person {name: $friend})"
-    )
+    surnamesRead = []
+    with open("Files/Surnames.txt", 'r', encoding='utf8') as f:
+        for line in f:
+            if line=="\n":
+                continue
+            surnamesRead.append(line.rstrip('\n').rstrip().lstrip())
+    f.close()
+    return surnamesRead
 
-    tx.run(query, name=name, friend=friend)
+
+def readLocations():
+    """
+    Method that reads the possible locations from a file
+    :return: a list containing the locations
+    """
+    locationsRead = []
+
+    # Parallel reading from address_file and locations_file
+    with open("Files/PublicPlaces.txt", 'r', encoding='utf8') as f:
+        for line in f:
+            if line == "\n":
+                continue
+            details = line.split(",")
+            address = []
+            for detail in details:
+                address.append(detail.rstrip('\n').rstrip().lstrip())
+            locationsRead.append(address)
+        f.close()
+    return locationsRead
+
+
+def readHouseAddresses():
+    """
+    Method that reads different addresses from a file
+    :return: a list of addresses
+    """
+    addressesRead = []
+    with open("Files/HouseAddresses.txt" , 'r', encoding = 'utf8') as f:
+        for line in f:
+            if line == "\n":
+                continue
+            details = line.split(",")
+            address = []
+            for detail in details:
+                address.append(detail.rstrip('\n').rstrip().lstrip())
+            addressesRead.append(address)
+    f.close()
+    return addressesRead
+
+
+def readVaccines():
+    """
+    Method that reads the possible vaccines from a file
+    :return: a list containing the vaccines
+    """
+    vaccinesRead = []
+
+    with open("Files/Vaccines.txt", 'r', encoding='utf8') as vaccine_file:
+        for vaccine_lines in vaccine_file:
+            vaccineDetails = vaccine_lines.split(",")
+            details = []
+            for vaccineDetail in vaccineDetails:
+                details.append(vaccineDetail.lstrip().rstrip().rstrip('\n'))
+            vaccinesRead.append(details)
+
+    vaccine_file.close()
+    return vaccinesRead
+
+
+def readTests():
+    """
+    Method that reads the possible locations from a file
+    :return: a list containing the locations
+    """
+    testsList = []
+
+    with open("Files/Tests.txt", 'r', encoding='utf8') as f:
+        for line in f:
+            if line=="\n":
+                continue
+            testsList.append(line.rstrip('\n').rstrip().lstrip())
+    f.close()
+    return testsList
 
 
 def deleteAll(tx):
@@ -186,44 +248,6 @@ def deleteAll(tx):
     )
 
     tx.run(query)
-
-
-def deletePerson(tx, name):
-    """
-    Method that deleted a specific person
-    :param tx: is the transaction
-    :param name: is the specific node to delete
-    :return: nothing
-    """
-    query = (
-        "MATCH (n:Person {name: $name})"
-        "DETACH DELETE n"
-    )
-
-    tx.run(query, name=name)
-
-
-def deleteRelationship(tx, relationship, name=None):
-    """
-    Method that deletes relationships
-    :param tx: is the transaction
-    :param relationship: is the relationship to delete
-    :param name: is None delete all the relationship, delete just the relationship
-                    from nodes with name equal to name
-    :return: nothing
-    """
-    if name is None:
-        query = (
-            "MATCH ()-[r:$relationship]->() "
-            "DELETE r"
-        )
-        tx.run(query, relationship=relationship)
-    else:
-        query = (
-            "MATCH (n:Person {name: $name})-[r:$relationship]->()"
-            "DELETE r"
-        )
-        tx.run(query, name=name, relationship=relationship)
 
 
 def countAll(tx):
@@ -409,158 +433,6 @@ def findAllInfectedRelationships(tx):
     )
     results = tx.run(query).data()
     return results
-
-
-def getFriendsOf(tx, name):
-    """
-    Method that retrieves the friends of a specified Person
-    :param tx: is the transaction
-    :param name: is the Person we want the friends
-    :return: a list of friends
-    """
-    friends = []
-
-    result = tx.run(
-        "MATCH (a:Person)-[:KNOWS]->(f) "
-        "WHERE a.name = $name "
-        "RETURN f.name AS friend",
-        name=name
-    )
-
-    for record in result:
-        friends.append(record["friend"])
-    return friends
-
-
-def findPerson(tx, name, age=None):
-    """
-    Method that finds a Person given it's name and ,optionally, his age
-    :param tx: is the transaction
-    :param name: is the name to find
-    :param age: is the age
-    :return: all the nodes that have attribute equal to name (and age)
-    """
-    if age is None:
-        query = (
-            "MATCH (p:Person) "
-            "WHERE p.name = $name "
-            "RETURN p.name AS name"
-        )
-        result = tx.run(query, name=name)
-        return [record["name"] for record in result]
-    else:
-        query = (
-            "MATCH (p:Person) "
-            "WHERE p.name = $name ANS p.age = $age"
-            "RETURN p.name AS name , p.age AS age"
-        )
-        result = tx.run(query, name=name, age=age)
-        return [(record["name"], record["age"]) for record in result]
-
-
-def readNames():
-    """
-    Method that reads the possible names from a file
-    :return: a list containing the names
-    """
-    namesRead = []
-    with open("Files/Names.txt", 'r', encoding='utf8') as f:
-        for line in f:
-            if line == "\n":
-                continue
-            namesRead.append(line.rstrip('\n').rstrip().lstrip())
-    f.close()
-    return namesRead
-
-
-def readSurnames():
-    """
-    Method that reads the possible surnames from a file
-    :return: a list containing the surnames
-    """
-    surnamesRead = []
-    with open("Files/Surnames.txt", 'r', encoding='utf8') as f:
-        for line in f:
-            if line=="\n":
-                continue
-            surnamesRead.append(line.rstrip('\n').rstrip().lstrip())
-    f.close()
-    return surnamesRead
-
-
-def readLocations():
-    """
-    Method that reads the possible locations from a file
-    :return: a list containing the locations
-    """
-    locationsRead = []
-
-    # Parallel reading from address_file and locations_file
-    with open("Files/PublicPlaces.txt", 'r', encoding='utf8') as f:
-        for line in f:
-            if line == "\n":
-                continue
-            details = line.split(",")
-            address = []
-            for detail in details:
-                address.append(detail.rstrip('\n').rstrip().lstrip())
-            locationsRead.append(address)
-        f.close()
-    return locationsRead
-
-
-def readHouseAddresses():
-    """
-    Method that reads different addresses from a file
-    :return: a list of addresses
-    """
-    addressesRead = []
-    with open("Files/HouseAddresses.txt" , 'r', encoding = 'utf8') as f:
-        for line in f:
-            if line == "\n":
-                continue
-            details = line.split(",")
-            address = []
-            for detail in details:
-                address.append(detail.rstrip('\n').rstrip().lstrip())
-            addressesRead.append(address)
-    f.close()
-    return addressesRead
-
-
-def readVaccines():
-    """
-    Method that reads the possible vaccines from a file
-    :return: a list containing the vaccines
-    """
-    vaccinesRead = []
-
-    with open("Files/Vaccines.txt", 'r', encoding='utf8') as vaccine_file:
-        for vaccine_lines in vaccine_file:
-            vaccineDetails = vaccine_lines.split(",")
-            details = []
-            for vaccineDetail in vaccineDetails:
-                details.append(vaccineDetail.lstrip().rstrip().rstrip('\n'))
-            vaccinesRead.append(details)
-
-    vaccine_file.close()
-    return vaccinesRead
-
-
-def readTests():
-    """
-    Method that reads the possible locations from a file
-    :return: a list containing the locations
-    """
-    testsList = []
-
-    with open("Files/Tests.txt", 'r', encoding='utf8') as f:
-        for line in f:
-            if line=="\n":
-                continue
-            testsList.append(line.rstrip('\n').rstrip().lstrip())
-    f.close()
-    return testsList
 
 
 def createFamilies(namesList, surnamesList):
@@ -1331,7 +1203,7 @@ def runQueryRead(d , query):
     return results
 
 
-def print_database_with_pyvis():
+def printDatabase():
     """
     Method use to print the database structure using PlotDBStructure module
     :return: nothing
@@ -1371,22 +1243,6 @@ def print_database_with_pyvis():
         ps.PlotDBStructure.showGraph()
         return
 
-    # window = tk.Tk()
-    # window.title = 'Example of plot'
-    # window.geometry("400x400")
-    # canvas = tk.Canvas(window)
-    # f = plt.Figure(figsize = (5 , 5) , dpi = 100)
-    # canvas = FigureCanvasTkAgg(network , window)
-    # canvas.draw()
-
-    # frame = HtmlFrame(window , horizontal_scrollbar="auto")
-    # frame.set_content('graph.html')
-    # frame = tkinterweb.HtmlFrame(window)
-    # frame.load_website('file:///graph.html')
-    # frame.pack(fill = "both" , expand = True)
-
-    # window.mainloop()
-
 
 if __name__ == '__main__':
 
@@ -1394,7 +1250,10 @@ if __name__ == '__main__':
     driver = openConnection()
 
     # Only read from the graph
-    print_database_with_pyvis()
+    printDatabase()
+
+    # Close the connection
+    closeConnection(driver)
     exit()
 
     # Read names from the file
@@ -1524,4 +1383,7 @@ if __name__ == '__main__':
             createRelationshipsMakeTest(driver, positiveIds, testsIds)
     """
     # Print the whole structure
-    print_database_with_pyvis()
+    printDatabase()
+
+    # Close the connection
+    closeConnection(driver)
