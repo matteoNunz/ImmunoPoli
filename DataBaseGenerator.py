@@ -1394,8 +1394,8 @@ if __name__ == '__main__':
     driver = openConnection()
 
     # Only read from the graph
-    """print_database_with_pyvis()
-    exit()"""
+    print_database_with_pyvis()
+    exit()
 
     # Read names from the file
     names = readNames()

@@ -25,9 +25,8 @@ class PlotDBStructure:
         PlotDBStructure.appContactColor = 'orange'
         PlotDBStructure.getVaccineColor = 'black'
         PlotDBStructure.makeTestColor = 'black'
-        PlotDBStructure.infectedFamilyColor = 'red'
-        PlotDBStructure.infectedAppColor = 'green'
-        PlotDBStructure.infectedLocationColor = 'blue'
+        PlotDBStructure.infectedFamilyAndAppColor = 'red'
+        PlotDBStructure.infectedLocationColor = 'green'
 
     @staticmethod
     def addStructure(listOfNodesAndArcs = None):
@@ -127,10 +126,8 @@ class PlotDBStructure:
                     PlotDBStructure.network.add_edge(id1 , id2 , title = title , color = color)
                 elif rType == 'INFECTED':
                     title = rType + ",date: " + str(relationship['r.date']) + ",place: " + str(relationship['r.name'])
-                    if relationship['r.date'] is None:
-                        color = PlotDBStructure.infectedFamilyColor
-                    elif relationship['r.name'] is None:
-                        color = PlotDBStructure.infectedAppColor
+                    if relationship['r.name'] is None:
+                        color = PlotDBStructure.infectedFamilyAndAppColor
                     else:
                         color = PlotDBStructure.infectedLocationColor
                     PlotDBStructure.network.add_edge(id1 , id2 , title = title , color = color)
@@ -208,18 +205,11 @@ class PlotDBStructure:
         PlotDBStructure.makeTestColor = color
 
     @staticmethod
-    def setInfectedFamilyColor(color):
+    def setInfectedFamilyAndAppColor(color):
         """
         Method to set the color of the relationships in the graph
         """
-        PlotDBStructure.infectedFamilyColor = color
-
-    @staticmethod
-    def setInfectedAppColor(color):
-        """
-        Method to set the color of the relationships in the graph
-        """
-        PlotDBStructure.infectedAppColor = color
+        PlotDBStructure.infectedFamilyAndAppColor = color
 
     @staticmethod
     def setInfectedLocationColor(color):
