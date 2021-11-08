@@ -23,7 +23,7 @@ from matplotlib.backend_bases import key_press_handler
 from matplotlib.figure import Figure
 
 MAX_NUMBER_OF_FAMILY_MEMBER = 5
-NUMBER_OF_FAMILY = 20
+NUMBER_OF_FAMILY = 50
 
 MAX_NUMBER_OF_CONTACT_PER_DAY = 50  # For new contact relationships
 
@@ -41,11 +41,13 @@ MAX_NUMBER_OF_VACCINE_PER_DAY = 50  # For new get vaccinated relationships
 
 MAX_NUMBER_OF_TEST_PER_DAY = 50  # For new make test relationships
 
-#BOLT = "bolt://52.87.206.215:7687"
+
+# BOLT = "bolt://localhost:7687"
+# PASSWORD = "991437"
+
+BOLT = "bolt://3.91.213.132:7687"
 USER = "neo4j"
-BOLT = "bolt://localhost:7687"
-PASSWORD = "991437"
-#PASSWORD = "controls-inches-halyard"
+PASSWORD = "blocks-company-calendar"
 
 
 class PersonAttribute(IntEnum):
@@ -890,8 +892,7 @@ def createRelationshipsMakeTest(d, pIds, tIds):
             "MERGE (p)-[:MAKE{date:date($date) , hour: time($hour) ,result:$result}]->(t); "
         )
 
-
-        #If negative, all infections have to be neglected
+        # If negative, all infections have to be neglected
         if probability >= PROBABILITY_TO_BE_POSITIVE:
             # Check whether or not I have been infected by someone
             delete_possible_infection_command = (
@@ -902,14 +903,15 @@ def createRelationshipsMakeTest(d, pIds, tIds):
             )
             with d.session() as s:
                 s.write_transaction(delete_possible_infection, delete_possible_infection_command, personId, string_date, hour)
-        #Positive, create possible infections
+        # Positive, create possible infections
         else:
             """I'm now passing the date of the test and we have to check up to 7 days"""
-            #--- maybe we should change 7
-            createRelationshipsInfect(personId,date, 7)
+            # --- maybe we should change 7
+            createRelationshipsInfect(personId , date , 7)
         # Execute the query
         with d.session() as s:
             s.write_transaction(createMakingTest, query, personId, testId, string_date,hour, result)
+
 
 def delete_possible_infection(tx, command, personId, date, hour):
     """
@@ -920,6 +922,7 @@ def delete_possible_infection(tx, command, personId, date, hour):
     :param hour: hour of the test
     """
     tx.run(command, personId = personId, date = date, hour = hour)
+
 
 def createVisit(tx , query , personId , locationId , date , startHour , endHour):
     """
