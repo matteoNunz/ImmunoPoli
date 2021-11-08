@@ -998,8 +998,8 @@ def create_add_ct():
     negative.place(
         x=400.0,
         y=382.0,
-        width=60.0,
-        height=59.090911865234375
+        width=68.0,
+        height=68.0
     )
 
     positive_image = PhotoImage(
@@ -1014,8 +1014,8 @@ def create_add_ct():
     positive.place(
         x=322.0,
         y=382.0,
-        width=60.0,
-        height=60.0
+        width=68.0,
+        height=68.0
     )
 
     button_list = [positive, negative, button_1, button_2, button_3]
