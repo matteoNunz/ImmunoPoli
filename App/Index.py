@@ -21,8 +21,6 @@ Abbreviations:
 - p = place
 - db = database
 
-
-
 Buttons:
 
 - button__1 : user front page
@@ -49,6 +47,7 @@ new_field_pi = [ new phone , new email ]
 green_pass = [ type, date , country  , expiration day ]
 tests = [ [test], [test], ... ]
 places = [ [place, date, start h, end h , risk], [place, date, start h, end h , risk], ...  ]
+exposure = [ [date, place], [date, place], ... ]
 
 checked id login :
 - empty id field
@@ -86,7 +85,7 @@ ASSETS_PATH = OUTPUT_PATH / Path("./Images")
 #BOLT = "bolt://52.87.206.215:7687"
 BOLT = "bolt://localhost:7687"
 USER = "neo4j"
-PASSWORD = "991437"
+PASSWORD = "1234"
 #PASSWORD = "controls-inches-halyard"
 
 """
@@ -106,6 +105,7 @@ new_fields_pi = []
 green_pass = []
 tests = []
 places = []
+exposures = []
 
 """error message"""
 error = None
@@ -250,7 +250,20 @@ def find_covid_exposures_by_ID(tx, ID):
     :param tx: is the transaction
     :param ID: is the ID of the person
     """
-    print("to be make")
+    query = (
+        "MATCH (p: Person)-[i:INFECTED]->(p1:Person) "
+        "WHERE id(p1) = $ID "
+        "RETURN i.date, i.name "
+    )
+
+    global exposures
+    exposures = []
+
+    result = tx.run(query, ID=ID)
+    for data in result:
+        exposure = [data.data()['i.date'], data.data()['i.name']]
+        print(data.data()['i.name'])
+        exposures.append(exposure)
 
 
 def find_place_visited(tx, ID):
@@ -301,6 +314,7 @@ def find_place_visited(tx, ID):
         place.append(risk_rate.data()[0]['rate'])
         #print(location_id, risk_rate.data()[0])
         places.append(place)
+
 
 def add_new_test(tx, ID, testId, date, hour, result):
     """
@@ -2070,8 +2084,7 @@ def create_ce():
         height=50.0
     )
 
-    """
-    if len() != 4:
+    if len(exposures) == 0 :
         canvas.create_text(
             31.0,
             201.0,
@@ -2083,7 +2096,6 @@ def create_ce():
         button_list = [button_1, button_2, button_3, button_4, button_5]
         window.mainloop()
         return
-    """
 
     canvas.create_text(
         31.0,
@@ -2103,54 +2115,38 @@ def create_ce():
         font=("Comfortaa Bold", 16 * -1)
     )
 
-    canvas.create_text(
-        317.0,
-        188.0,
-        anchor="nw",
-        text="Risk Level",
-        fill="#000000",
-        font=("Comfortaa Bold", 16 * -1)
-    )
+    for i in range(len(exposures)):
 
-    # date
-    canvas.create_text(
-        31.0,
-        216.0,
-        anchor="nw",
-        text="...",
-        fill="#000000",
-        font=("Comfortaa Regular", 16 * -1)
-    )
+        delta = 32 * i
 
-    # place
-    canvas.create_text(
-        143.0,
-        217.0,
-        anchor="nw",
-        text="...",
-        fill="#000000",
-        font=("Comfortaa Regular", 16 * -1)
-    )
+        canvas.create_text(
+            31.0,
+            216.0 + delta,
+            anchor="nw",
+            text= exposures[i][0],
+            fill="#000000",
+            font=("Comfortaa Regular", 16 * -1)
+        )
 
-    # risk
-    canvas.create_text(
-        317.0,
-        218.0,
-        anchor="nw",
-        text="...",
-        fill="#2CAB00",
-        font=("Comfortaa Regular", 16 * -1)
-    )
+        if exposures[i][1] is None:
 
-    # date_2
-    canvas.create_text(
-        31.0,
-        248.0,
-        anchor="nw",
-        text="...",
-        fill="#000000",
-        font=("Comfortaa Regular", 16 * -1)
-    )
+            canvas.create_text(
+                143.0,
+                216.0 + delta,
+                anchor="nw",
+                text=" - ",
+                fill="#000000",
+                font=("Comfortaa Regular", 16 * -1)
+            )
+        else:
+            canvas.create_text(
+                143.0,
+                216.0 + delta,
+                anchor="nw",
+                text=exposures[i][1],
+                fill="#000000",
+                font=("Comfortaa Regular", 16 * -1)
+            )
 
     button_list = [button_1, button_2, button_3, button_4, button_5]
     window.mainloop()
