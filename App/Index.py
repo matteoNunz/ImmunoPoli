@@ -75,18 +75,40 @@ checked new ct:
 from pathlib import Path
 import neo4j as nj
 
-# from tkinter import *
-# Explicit imports to satisfy Flake8
-from tkinter import Tk, Canvas, Entry, Text, Button, PhotoImage
+from tkinter import Tk, Canvas, Entry, Text, Button, PhotoImage, StringVar, OptionMenu
+import tkinter
+import numpy as np
+from pandas import DataFrame
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
+from vtk.tk.vtkTkRenderWindowInteractor import vtkTkRenderWindowInteractor
 
 OUTPUT_PATH = Path(__file__).parent
 ASSETS_PATH = OUTPUT_PATH / Path("./Images")
 
-#BOLT = "bolt://52.87.206.215:7687"
-BOLT = "bolt://localhost:7687"
+QUERY_OPTIONS = [
+    "1 - All direct and indirect contacts registered via the app",
+    "2 - All people who result positive after direct contact with a positive",
+    "3 - All people that live in a house with at least a positive now",
+    "4 - All homes with at least a positive now",
+    "5 - The first five places visited with a higher risk rate",
+    "6 - All people had contact with a positive and haven't done the test yet"
+]
+
+QUERY_OPTIONS_TRENDS = [
+    "1 - The average age of actual positives",
+    "2 - The number of tests done for each month",
+    "3 - The number of positives for each month",
+    "4 - The number of vaccines done for each month",
+    "5 - The number of people that received a vaccine for each CAP",
+    "6 - The number of contacts registered via app for a person",
+    "7 - The rate of vaccinated people who result positive"
+]
+
+BOLT = "bolt://3.91.213.132:7687"
 USER = "neo4j"
-PASSWORD = "1234"
-#PASSWORD = "controls-inches-halyard"
+PASSWORD = "blocks-company-calendar"
 
 """
 list of buttons that don't belong to canvas that have to be delete before building a page 
@@ -107,8 +129,13 @@ tests = []
 places = []
 exposures = []
 
+
 """error message"""
 error = None
+
+label = None
+
+plot = None
 
 
 def relative_to_assets(path: str) -> Path:
@@ -142,6 +169,148 @@ def close_connection(connection):
 
 
 """DATABASE QUERIES"""
+
+
+def positive_with_vaccine(tx):
+    """
+      Method that queries the database to calculate how many people who are vaccinated results positive to a covid test
+      :param tx: session
+      """
+    query = (
+        " MATCH (v:Vaccine)<-[g:GET]-(p:Person)-[m:MAKE {result: \"Positive\"}]->(t:Test) "
+        "MATCH (v)<-[g1:GET]-(p1: Person) "
+        "WHERE m.date > g.date "
+        "RETURN (COUNT(DISTINCT(p)))*100/COUNT(DISTINCT(p1)) AS rate, v.name"
+    )
+
+    rate = []
+    vaccine = []
+
+    result = tx.run(query)
+
+    for x in result:
+        rate.append(x.data()["rate"])
+        vaccine.append(x.data()["v.name"])
+
+    return [vaccine, rate]
+
+
+def find_vaccinated_for_CAP(tx):
+    """
+    Method that queries the database to calculate how many people are vaccinated in each CAP
+    :param tx: session
+    """
+    query = (
+        "MATCH(p:Person)-[g:GET]->(v:Vaccine), (p)-[l:LIVE]->(h:House) "
+        "WITH h AS house, p AS person "
+        "RETURN COUNT(DISTINCT(person)) AS vaccinated, house.CAP ORDER BY vaccinated DESC"
+    )
+
+    cap = []
+    vaccinated = []
+
+    result = tx.run(query)
+
+    for x in result:
+        cap.append(x.data()["house.CAP"])
+        vaccinated.append(x.data()["vaccinated"])
+
+    return [cap, vaccinated]
+
+
+def find_contacts_for_person(tx):
+    """
+    Method that queries the database to calculate how many contacts had a person
+    :param tx: session
+    """
+    query = (
+          "MATCH(p:Person)-[a:APP_CONTACT]->(:Person) "
+          "RETURN COUNT(a), p.name"
+    )
+
+    count = []
+    person = []
+
+    result = tx.run(query)
+
+    for x in result:
+        count.append(x.data()["COUNT(a)"])
+        person.append(x.data()["p.name"])
+
+    return [count, person]
+
+
+def find_test_for_month(tx):
+    """
+    Method that queries the database to calculate how many tests were done each month
+    :param tx: session
+    """
+    query = (
+        "MATCH(p: Person)-[m: MAKE]->(t:Test) "
+        "RETURN COUNT(m), m.date.month"
+    )
+
+    result = tx.run(query)
+    months = np.zeros(12)
+    for x in result:
+        months[x.data()["m.date.month"]-1] = x.data()["COUNT(m)"]
+
+    return months
+
+
+def find_positive_for_month(tx):
+    """
+    Method that queries the database to calculate how many positives there were each month
+    :param tx: session
+    """
+    query = (
+        "MATCH (p:Person)-[m:MAKE {result:\"Positive\"}]->(t:Test) "
+        "RETURN COUNT(m), m.date.month"
+    )
+
+    result = tx.run(query)
+    months = np.zeros(12)
+    for x in result:
+        months[x.data()["m.date.month"]-1] = x.data()["COUNT(m)"]
+
+
+    return months
+
+
+def find_vaccine_for_month(tx):
+    """
+    Method that queries the database to calculate how many vaccines were made each month
+    :param tx: session
+    """
+    query = (
+        "MATCH (p:Person)-[g:GET]->(v:Vaccine) "
+        "RETURN COUNT(g), g.date.month "
+    )
+
+    result = tx.run(query)
+    months = np.zeros(12)
+    for x in result:
+        months[x.data()["g.date.month"]-1] = x.data()["COUNT(g)"]
+
+
+    return months
+
+
+def positive_age_average(tx):
+    """
+    Method that queries the database to understand the average age of actual positive
+    :param tx: session
+    """
+    query = (
+        "MATCH (pp:Person)-[r:MAKE]->(t:Test) "
+        "WHERE r.result = \"Positive\" AND r.date >= date() - duration({days: 10}) "
+        "RETURN (SUM(DISTINCT(toFloat(pp.age))) / COUNT(DISTINCT(pp))) as average"
+    )
+
+    result = tx.run(query)
+    average = result.data()[0]['average']
+    average = round(average, 2)
+    return average
 
 
 def find_person_by_ID(tx, ID):
@@ -262,7 +431,6 @@ def find_covid_exposures_by_ID(tx, ID):
     result = tx.run(query, ID=ID)
     for data in result:
         exposure = [data.data()['i.date'], data.data()['i.name']]
-        print(data.data()['i.name'])
         exposures.append(exposure)
 
 
@@ -282,7 +450,6 @@ def find_place_visited(tx, ID):
     )
 
     result = tx.run(query, ID=ID)
-
 
     for relation in result:
         place = []
@@ -311,8 +478,9 @@ def find_place_visited(tx, ID):
             "RETURN (COUNT(DISTINCT(p)))*1.0 / (COUNT(DISTINCT(p1))) AS rate"
         )
         risk_rate = tx.run(risk_query, ID=location_id)
-        place.append(risk_rate.data()[0]['rate'])
-        #print(location_id, risk_rate.data()[0])
+        risk = risk_rate.data()[0]['rate'] * 100
+        risk_formatted = round(risk, 2)
+        place.append(risk_formatted)
         places.append(place)
 
 
@@ -380,6 +548,171 @@ def add_new_test(tx, ID, testId, date, hour, result):
 """VALUES MANAGING"""
 
 
+def perform_trend(choice):
+    global label
+
+    if label is not None:
+        canvas.delete(label)
+    global plot
+    if plot is not None:
+        plot.destroy()
+
+    choice = variable.get()
+    choice_number = choice.split(" ")
+
+    if choice_number[0] == "1":
+        average = positive_age_average(session)
+
+        label = canvas.create_text(
+            325.0,
+            240.0,
+            anchor="nw",
+            text=average,
+            fill="#000000",
+            font=("Comfortaa Bold", 20 * -1)
+        )
+
+    elif choice_number[0] == "2":
+        test_month = find_test_for_month(session)
+
+        data = {'Month': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+                'Test': test_month
+                }
+
+        df = DataFrame(data, columns=['Month', 'Test'])
+
+        figure = plt.Figure(figsize=(5, 4), dpi=60)
+        ax = figure.add_subplot(111)
+        line = FigureCanvasTkAgg(figure, window)
+        line.get_tk_widget().pack()
+        line.get_tk_widget().place(x = 200, y=240)
+        df = df[['Month', 'Test']].groupby('Month').sum()
+        df.plot(kind='line', legend=True, ax=ax, color='r', marker='o', fontsize=10)
+
+        plot = line.get_tk_widget()
+
+    elif choice_number[0] == "3":
+        positives = find_positive_for_month(session)
+
+        data = {'Month': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+                'Positives': positives
+                }
+
+        df = DataFrame(data, columns=['Month', 'Positives'])
+
+        figure = plt.Figure(figsize=(5, 4), dpi=60)
+        ax = figure.add_subplot(111)
+        line = FigureCanvasTkAgg(figure, window)
+        line.get_tk_widget().pack()
+        line.get_tk_widget().place(x=200, y=240)
+        df = df[['Month', 'Positives']].groupby('Month').sum()
+        df.plot(kind='line', legend=True, ax=ax, color='g', marker='o', fontsize=10)
+
+        plot = line.get_tk_widget()
+
+    elif choice_number[0] == "4":
+        vaccines = find_vaccine_for_month(session)
+
+        data = {'Month': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+                'Vaccine': vaccines
+                }
+
+        df = DataFrame(data, columns=['Month', 'Vaccine'])
+
+        figure = plt.Figure(figsize=(5, 4), dpi=60)
+        ax = figure.add_subplot(111)
+        line = FigureCanvasTkAgg(figure, window)
+        line.get_tk_widget().pack()
+        line.get_tk_widget().place(x=200, y=240)
+        df = df[['Month', 'Vaccine']].groupby('Month').sum()
+        df.plot(kind='line', legend=True, ax=ax, color='y', marker='o', fontsize=10)
+
+        plot = line.get_tk_widget()
+
+    elif choice_number[0] == "5":
+        result = find_vaccinated_for_CAP(session)
+        cap = result[0]
+        vaccinated = result[1]
+
+        data = {'CAP': cap,
+                'Vaccinated': vaccinated
+                }
+
+        df = DataFrame(data, columns=['CAP', 'Vaccinated'])
+
+        figure = plt.Figure(figsize=(5, 4), dpi=60)
+        ax = figure.add_subplot(111)
+        bar = FigureCanvasTkAgg(figure, window)
+        bar.get_tk_widget().pack()
+        bar.get_tk_widget().place(x=200, y=240)
+        df = df[['CAP', 'Vaccinated']].groupby('CAP').sum()
+        df.plot(kind='barh', legend=True, ax=ax,  color='m')
+
+        plot = bar.get_tk_widget()
+
+    elif choice_number[0] == "6":
+
+        result = find_contacts_for_person(session)
+        count = result[0]
+        person = result[1]
+
+        data = {'Person': person,
+                'Count': count
+                }
+
+        df = DataFrame(data, columns=['Person', 'Count'])
+
+        figure = plt.Figure(figsize=(7, 4), dpi=60)
+        ax = figure.add_subplot(111)
+        bar = FigureCanvasTkAgg(figure, window)
+        bar.get_tk_widget().pack()
+        bar.get_tk_widget().place(x=180, y=240)
+        df = df[['Person', 'Count']].groupby('Person').sum()
+        df.plot(kind='barh', legend=True, ax=ax)
+
+        plot = bar.get_tk_widget()
+
+    elif choice_number[0] == "7":
+
+        result = positive_with_vaccine(session)
+        vaccine = result[0]
+        rate = result[1]
+
+        data = {'Vaccine': vaccine,
+                'Rate': rate
+                }
+
+        df = DataFrame(data, columns=['Vaccine', 'Rate'])
+
+        figure = plt.Figure(figsize=(7, 4), dpi=60)
+        ax = figure.add_subplot(111)
+        bar = FigureCanvasTkAgg(figure, window)
+        bar.get_tk_widget().pack()
+        bar.get_tk_widget().place(x=180, y=240)
+        df = df[['Vaccine', 'Rate']].groupby('Vaccine').sum()
+        df.plot(kind='barh', legend=True, ax=ax,color='c')
+
+        plot = bar.get_tk_widget()
+
+
+def perform_query(choice):
+    choice = variable.get()
+    choice_number = choice.split(" ")
+
+    if choice_number[0] == "1":
+        print("query 1")
+    elif choice_number[0] == "2":
+        print("query 2")
+    elif choice_number[0] == "3":
+        print("query 3")
+    elif choice_number[0] == "4":
+        print("query 4")
+    elif choice_number[0] == "5":
+        print("query 5")
+    elif choice_number[0] == "6":
+        print("query 6")
+
+
 def ct_value_check(date_initial, ID_personal, hour_initial, testId_initial, result):
     """
     Method that checks valitidy of values inserted
@@ -434,8 +767,7 @@ def ct_value_check(date_initial, ID_personal, hour_initial, testId_initial, resu
         )
         return
 
-
-    n_test = check_if_test_exist(session,testId)
+    n_test = check_if_test_exist(session, testId)
 
     if n_test == 0:
         error = canvas.create_text(
@@ -449,7 +781,7 @@ def ct_value_check(date_initial, ID_personal, hour_initial, testId_initial, resu
         return
 
     date_split = date_initial.split("-")
-    if len(date_split) != 3 :
+    if len(date_split) != 3:
         error = canvas.create_text(
             175.0,
             455.0,
@@ -514,7 +846,7 @@ def ct_value_check(date_initial, ID_personal, hour_initial, testId_initial, resu
         )
         return
 
-    if (0 > hour_split[0] or hour_split[0] > 23) or (0 > hour_split[1] or hour_split[1]> 59):
+    if (0 > hour_split[0] or hour_split[0] > 23) or (0 > hour_split[1] or hour_split[1] > 59):
         print(len(hour_split), hour_split[0], hour_split[1])
         error = canvas.create_text(
             175.0,
@@ -689,6 +1021,7 @@ def collect_user_information(ID_person, subtitle):
 
 """PAGE BUILDER"""
 
+
 def user_login(title, subtitle, button__1, button_0):
     """
     Method that builds user login page
@@ -846,6 +1179,14 @@ def create_add_ct():
         fill="#000000",
         font=("Comfortaa Bold", 16 * -1)
     )
+    canvas.create_text(
+        470.0,
+        250.0,
+        anchor="nw",
+        text="AAAA-MM-DD",
+        fill="#000000",
+        font=("Comfortaa Bold", 12 * -1)
+    )
 
     canvas.create_text(
         253.0,
@@ -863,6 +1204,15 @@ def create_add_ct():
         text="Hour",
         fill="#000000",
         font=("Comfortaa Bold", 16 * -1)
+    )
+
+    canvas.create_text(
+        470.0,
+        286.0,
+        anchor="nw",
+        text="HH:MM",
+        fill="#000000",
+        font=("Comfortaa Bold", 12 * -1)
     )
 
     canvas.create_text(
@@ -1043,6 +1393,12 @@ def create_covid_trends():
     entry_list = []
     button_list = []
 
+    variable.set("Show...")
+
+    opt = OptionMenu(window, variable, *QUERY_OPTIONS_TRENDS, command=perform_trend)
+    opt.pack()
+    opt.place(x=229, y=210)
+
     canvas.create_text(
         22.0,
         113.0,
@@ -1132,7 +1488,7 @@ def create_covid_trends():
         176.0,
         image=image_image_3
     )
-    button_list = [button_1, button_2, button_3]
+    button_list = [button_1, button_2, button_3, opt]
     window.mainloop()
 
 
@@ -1144,6 +1500,10 @@ def create_db():
     canvas.delete("all")
     global button_list
 
+    global plot
+    if plot is not None:
+        plot.destroy()
+
     for x in button_list:
         x.destroy()
 
@@ -1152,7 +1512,14 @@ def create_db():
     for x in entry_list:
         x.destroy()
 
+    button_list = []
     entry_list = []
+
+    variable.set("Show...")
+
+    opt = OptionMenu(window, variable, *QUERY_OPTIONS, command=perform_query)
+    opt.pack()
+    opt.place(x=229, y=210)
 
     canvas.create_text(
         22.0,
@@ -1235,7 +1602,7 @@ def create_db():
         image=image_image_2
     )
 
-    button_list = [button_1, button_2, button_3]
+    button_list = [button_1, button_2, button_3, opt]
     window.mainloop()
 
 
@@ -1799,6 +2166,10 @@ def create_ct():
     find_covid_tests_by_ID(session, personal_information[0])
 
     canvas.delete("all")
+    global plot
+    if plot is not None:
+        plot.destroy()
+
     global button_list
     for x in button_list:
         x.destroy()
@@ -2127,7 +2498,7 @@ def create_ce():
         height=50.0
     )
 
-    if len(exposures) == 0 :
+    if len(exposures) == 0:
         canvas.create_text(
             31.0,
             201.0,
@@ -2166,7 +2537,7 @@ def create_ce():
             31.0,
             216.0 + delta,
             anchor="nw",
-            text= exposures[i][0],
+            text=exposures[i][0],
             fill="#000000",
             font=("Comfortaa Regular", 16 * -1)
         )
@@ -2413,7 +2784,7 @@ def create_p():
         )
 
         # to be calculate
-        risk = places[i][4] * 100
+        risk = places[i][4]
         color = "#000000"
         if risk < 30:
             color = "#039300"
@@ -2526,5 +2897,7 @@ window.resizable(False, False)
 # Open the connection
 driver = open_connection()
 session = driver.session()
+
+variable = StringVar(window)
 
 window.mainloop()
