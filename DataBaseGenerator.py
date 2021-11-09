@@ -156,7 +156,7 @@ def readSurnames():
     surnamesRead = []
     with open("Files/Surnames.txt", 'r', encoding='utf8') as f:
         for line in f:
-            if line=="\n":
+            if line == "\n":
                 continue
             surnamesRead.append(line.rstrip('\n').rstrip().lstrip())
     f.close()
@@ -231,7 +231,7 @@ def readTests():
 
     with open("Files/Tests.txt", 'r', encoding='utf8') as f:
         for line in f:
-            if line=="\n":
+            if line == "\n":
                 continue
             testsList.append(line.rstrip('\n').rstrip().lstrip())
     f.close()
@@ -615,17 +615,31 @@ def createRelationshipsAppContact(d , pIds):
         randomIndex = randint(0 , len(pIds) - 1)
         pId2 = pIds[randomIndex]
         # Choose the hour/date
+        # Verify if it's the same node
+        if pId1 == pId2:
+            return
         date = datetime.date.today() - datetime.timedelta(days=randint(0, 9))
         date = date.strftime("%Y-%m-%d")
         h = randint(0, 23)
         minutes = randint(0, 59)
         if minutes < 10:
-            minutes = "0"+str(minutes)
+            minutes = "0" + str(minutes)
         hour = str(h) + ":" + str(minutes) + ":00"
+        n = 0
+        while validateDate(d, date, pId1, hour) == False or validateDate(d, date, pId2, hour)==False and n < 5:
 
-        # Verify if it's the same node
-        if pId1 == pId2:
-            continue
+            date = datetime.date.today() - datetime.timedelta(days=randint(0, 9))
+            date = date.strftime("%Y-%m-%d")
+            h = randint(0, 23)
+            minutes = randint(0, 59)
+            if minutes < 10:
+                minutes = "0" + str(minutes)
+            hour = str(h) + ":" + str(minutes) + ":00"
+            n = n + 1
+        if n == 5:
+            return
+
+
         query = (
             "MATCH (p1:Person) , (p2:Person) "
             "WHERE ID(p1) = $pId1 AND ID(p2) = $pId2 "
@@ -654,17 +668,36 @@ def createRelationshipsVisit(d , pIds , lIds):
         pIndex = randint(0 , len(pIds) - 1)
         personId = pIds[pIndex]
         # Choose the hour/date
+
         date = datetime.date.today() - datetime.timedelta(days=randint(0, 7))
         date = date.strftime("%Y-%m-%d")
         h = randint(0, 22)
         minutes = randint(0, 59)
         if minutes < 10:
-            minutes = "0"+str(minutes)
+            minutes = "0" + str(minutes)
         startHour = str(h) + ":" + str(minutes)
-        h = randint(h , 23)
+        h = randint(h, 23)
         minutes = randint(0, 59)
+        if minutes < 10:
+            minutes = "0" + str(minutes)
         endHour = str(h) + ":" + str(minutes)
-
+        n = 0
+        while validateDate(d, date, personId, endHour) == False and n < 5:
+            date = datetime.date.today() - datetime.timedelta(days=randint(0, 7))
+            date = date.strftime("%Y-%m-%d")
+            h = randint(0, 22)
+            minutes = randint(0, 59)
+            if minutes < 10:
+                minutes = "0" + str(minutes)
+            startHour = str(h) + ":" + str(minutes)
+            h = randint(h, 23)
+            minutes = randint(0, 59)
+            if minutes < 10:
+                minutes = "0" + str(minutes)
+            endHour = str(h) + ":" + str(minutes)
+            n = n + 1
+        if n == 5:
+            return
         # For the future: here check if in case of more than 1 relationship already present it has a different hour/date
         # Maybe this can be avoided with MERGE instead of CREATE
         query = (
@@ -673,8 +706,35 @@ def createRelationshipsVisit(d , pIds , lIds):
             "MERGE (p)-[:VISIT {date: date($date) , start_hour: time($startHour) , end_hour: time($endHour)}]->(l); "
         )
         # Execute the query
+
         with d.session() as s:
             s.write_transaction(createVisit , query , personId , locationId , date , startHour , endHour)
+
+
+def validateDate(d, date, personId, hour):
+    """
+       Method that validate the date,if the last test before the date is positive return false
+       :param d: driver
+       :param date: date to check
+       :param personId: person to check
+       :param hour: hour to check
+       :return: true if it's valid
+       """
+    query = (
+        "MATCH (p:Person)-[r:MAKE]->(:Test) "
+        "WHERE ID(p) = $personId AND (date($date)>r.date OR(date($date)=r.date AND time($hour)>r.hour)) "
+        "RETURN r.date as date,r.result as result,r.hour as hour "
+        "ORDER BY date DESC "
+        "LIMIT 1 ")
+    # Execute the query
+
+    with d.session() as s:
+        precDates = s.read_transaction(checkDate, query, personId, date, hour)
+
+    if precDates is None or len(precDates) == 0 or precDates[0]["result"] == "Negative":
+        return True
+    else:
+        return False
 
 
 def createRelationshipsGetVaccine(d, pIds, vIds):
@@ -686,8 +746,8 @@ def createRelationshipsGetVaccine(d, pIds, vIds):
     :return: nothing
     """
     # Choose how many new visit relationships
-    numberOfVaccines = randint(1, MAX_NUMBER_OF_VACCINE_PER_DAY)
-    print(vIds)
+    numberOfVaccines = randint(0,MAX_NUMBER_OF_VACCINE_PER_DAY)
+
     for _ in range(0, numberOfVaccines):
         vIndex = randint(0, len(vIds) - 1)
         vaccineId = vIds[vIndex]
@@ -699,7 +759,7 @@ def createRelationshipsGetVaccine(d, pIds, vIds):
         # Ask to  neo4j server how many vaccines the user did
         query = (
             "MATCH (p:Person)-[r]->(v:Vaccine) "
-            "WHERE ID(p) = $personId AND type(r)='GET'"
+            "WHERE ID(p) = $personId AND type(r)='GET_VACCINE'"
             "RETURN count(p) as count,ID(v) as vaccineID,r.expirationDate as date"
         )
         with d.session() as s:
@@ -739,19 +799,19 @@ def createRelationshipsMakeTest(d, pIds, tIds):
     :return: nothing
     """
     # Choose how many new visit relationships
-    numberOfTest = randint(1, MAX_NUMBER_OF_TEST_PER_DAY)
-    print(tIds)
+    numberOfTest = randint(0,MAX_NUMBER_OF_TEST_PER_DAY)
+
     for _ in range(0, numberOfTest):
         probability = random()
         tIndex = randint(0, len(tIds) - 1)
         testId = tIds[tIndex]
         pIndex = randint(0, len(pIds) - 1)
         personId = pIds[pIndex]
-        date = datetime.date.today() + datetime.timedelta(days=randint(0, 9))
-        h = randint(0 , 23)
-        minutes = randint(0 , 59)
+        date = datetime.date.today() - datetime.timedelta(days=randint(0, 9))
+        h = randint(0, 23)
+        minutes = randint(0, 59)
         if minutes < 10:
-            minutes = "0"+str(minutes)
+            minutes = "0" + str(minutes)
         string_date = date.strftime("%Y-%m-%d")
         hour = str(h) + ":" + str(minutes)
 
@@ -763,7 +823,7 @@ def createRelationshipsMakeTest(d, pIds, tIds):
         query = (
             "MATCH (p:Person) , (t:Test) "
             "WHERE ID(p) = $personId AND ID(t) = $testId "
-            "MERGE (p)-[:MAKE{date:date($date) , hour: time($hour) ,result:$result}]->(t); "
+            "MERGE (p)-[:MAKE_TEST{date:date($date) , hour: time($hour) ,result:$result}]->(t); "
         )
 
         # If negative, all infections have to be neglected
@@ -776,12 +836,13 @@ def createRelationshipsMakeTest(d, pIds, tIds):
                 "DELETE i"
             )
             with d.session() as s:
-                s.write_transaction(delete_possible_infection, delete_possible_infection_command, personId, string_date, hour)
+                s.write_transaction(delete_possible_infection, delete_possible_infection_command, personId, string_date,
+                                    hour)
         # Positive, create possible infections
         else:
             """I'm now passing the date of the test and we have to check up to 7 days"""
             # --- maybe we should change 7
-            createRelationshipsInfect(personId , date , 7)
+            createRelationshipsInfect(personId, date, 7)
         # Execute the query
         with d.session() as s:
             s.write_transaction(createMakingTest, query, personId, testId, string_date,hour, result)
@@ -866,8 +927,19 @@ def findAllPositivePerson():
         "RETURN DISTINCT ID(p);"
     )
 
-    positiveIdsFounds = runQueryRead(driver , query)
+    positiveIdsFounds = runQueryRead(driver, query)
     return positiveIdsFounds
+
+
+def checkDate(tx, query, personId, date, hour):
+    """
+    Method that executes the query to return the last test before the date
+    :param date: hypothetical date of the visit
+    :param tx: is the transaction
+    :param query: is the query to get the test
+    :return: date of the precedent test
+    """
+    return tx.run(query, personId=personId, date=date, hour=hour).data()
 
 
 def createRelationshipsInfect(id, test_date, daysBack):
@@ -879,13 +951,13 @@ def createRelationshipsInfect(id, test_date, daysBack):
     """
     familyQuery = (
         "MATCH (pp:Person)-[:LIVE]->(h:House)<-[:LIVE]-(ip:Person) "
-        "WHERE ID(pp) = $id AND ip <> pp AND NOT (ip)<-[:INFECTED]-(pp)"
+        "WHERE ID(pp) = $id AND ip <> pp AND NOT (ip)<-[:COVID_EXPOSURE]-(pp)"
         "RETURN DISTINCT ID(ip);"
     )
     appContactQuery = (
         "MATCH (pp:Person)-[r1:APP_CONTACT]->(ip:Person) "
         "WHERE ID(pp) = $id AND r1.date > date($date) AND NOT "
-        "(pp)-[:INFECTED{date: r1.date}]->(ip)"
+        "(pp)-[:COVID_EXPOSURE{date: r1.date}]->(ip)"
         "RETURN DISTINCT ID(ip) , r1.date;"
     )
     locationContactQuery = (
@@ -893,11 +965,11 @@ def createRelationshipsInfect(id, test_date, daysBack):
         "WHERE ID(pp) = $id AND ip <> pp AND r1.date > date($date) AND r2.date = r1.date AND "
         "((r1.star_hour < r2.start_hour AND r1.end_hour > r2.start_hour) OR "
         "(r2.start_hour < r1.start_hour AND r2.end_hour > r1.start_hour)) AND NOT "
-        "(pp)-[:INFECTED{name: l.name , date: r1.date}]->(ip)"
+        "(pp)-[:COVID_EXPOSURE{name: l.name , date: r1.date}]->(ip)"
         "RETURN DISTINCT ID(ip) , r1.date , l.name;"
     )
 
-    #date = datetime.date.today() - datetime.timedelta(daysBack)
+    # date = datetime.date.today() - datetime.timedelta(daysBack)
     """
     date is referred to date test - daysback 
     """
@@ -905,10 +977,10 @@ def createRelationshipsInfect(id, test_date, daysBack):
     infectedIds = []
     with driver.session() as s:
         familyInfected = s.read_transaction(findInfectInFamily, familyQuery, id)
-        appInfected = s.read_transaction(findInfect , appContactQuery , id , date)
-        locationInfected = s.read_transaction(findInfect , locationContactQuery , id , date)
+        appInfected = s.read_transaction(findInfect, appContactQuery, id, date)
+        locationInfected = s.read_transaction(findInfect, locationContactQuery, id, date)
         print(familyInfected)
-        for el in familyInfected , appInfected , locationInfected:
+        for el in familyInfected, appInfected, locationInfected:
             if len(el) > 0:
                 # Take just the id
                 infectedIds.append(el[0]['ID(ip)'])
@@ -921,9 +993,9 @@ def createRelationshipsInfect(id, test_date, daysBack):
 
         infectedIds = []
         for el in familyInfected:
-            print("Person is: " , el['ID(ip)'])
+            print("Person is: ", el['ID(ip)'])
             infectedIds.append(el['ID(ip)'])
-        print("Family infected by " , str(id))
+        print("Family infected by ", str(id))
         print(infectedIds)
 
         for infectedId in infectedIds:
@@ -1293,7 +1365,7 @@ if __name__ == '__main__':
     generalQuery = []
 
     # Generate all the Person Nodes and the family relationships
-    cQuery , rQuery = createNodesFamily(families , houseAddresses)
+    cQuery, rQuery = createNodesFamily(families, houseAddresses)
     # Generate the locations node
     lQuery = createNodeLocations(locations)
     # Generate the vaccines nodes
@@ -1340,6 +1412,13 @@ if __name__ == '__main__':
     # Generate the structure performing the node and relationship creation
     runQueryWrite(driver, generalQuery)
 
+    # Generate random tests
+    # Take tests ids
+    testsIds = getTestsIds()
+    personIds = getPersonIds()
+    # Generate the relationship
+    createRelationshipsMakeTest(driver, personIds, testsIds)
+
     # Generate random contacts with app tracing
     # Take Person ids of people with app attribute equal to True)
     personIds = getPersonIds(True)
@@ -1358,12 +1437,6 @@ if __name__ == '__main__':
     vaccineIds = getVaccinesIds()
     # Generate the relationship
     createRelationshipsGetVaccine(driver, personIds, vaccineIds)
-
-    # Generate random tests
-    # Take tests ids
-    testsIds = getTestsIds()
-    # Generate the relationship
-    createRelationshipsMakeTest(driver, personIds, testsIds)
 
     # Verify the nodes are been created
     with driver.session() as session:
