@@ -82,7 +82,7 @@ from pandas import DataFrame
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-from vtk.tk.vtkTkRenderWindowInteractor import vtkTkRenderWindowInteractor
+# from vtk.tk.vtkTkRenderWindowInteractor import vtkTkRenderWindowInteractor
 
 OUTPUT_PATH = Path(__file__).parent
 ASSETS_PATH = OUTPUT_PATH / Path("./Images")
@@ -305,12 +305,14 @@ def positive_age_average(tx):
     query = (
         "MATCH (pp:Person)-[r:MAKE]->(t:Test) "
         "WHERE r.result = \"Positive\" AND r.date >= date() - duration({days: 10}) "
-        "RETURN (SUM(DISTINCT(toFloat(pp.age))) / COUNT(DISTINCT(pp))) as average"
+        # "RETURN (SUM(DISTINCT(toFloat(pp.age))) / COUNT(DISTINCT(pp))) as average"
+        "RETURN AVG(pp.age) AS average"
     )
 
-    result = tx.run(query)
-    average = result.data()[0]['average']
-    average = round(average, 2)
+    result = tx.run(query).data()
+    average = result[0]['average']
+    if average is not None:
+        average = round(average, 2)
     return average
 
 
@@ -563,7 +565,9 @@ def perform_trend(choice):
 
     if choice_number[0] == "1":
         average = positive_age_average(session)
-
+        print("Average is: " , average)
+        if average is None:
+            average = "No positive"
         label = canvas.create_text(
             325.0,
             240.0,
