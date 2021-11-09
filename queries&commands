@@ -13,7 +13,7 @@ Queries:
     WHERE m.date > inf.date + $giorni_da_definire
     RETURN i
 
--cercare età media dei positivi
+-cercare età media dei positivi negli ultimi 10 giorni
     MATCH (pp:Person)-[r:MAKE]->(t:Test)
     WHERE r.result = "Positive" AND r.date >= date() - duration({days: 10})
     RETURN (SUM(DISTINCT(toFloat(pp.age))) / COUNT(DISTINCT(pp)))

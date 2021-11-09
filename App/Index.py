@@ -156,7 +156,7 @@ def open_connection():
     :return: the driver for the connection
     """
     connection = nj.GraphDatabase.driver(
-        BOLT, auth=nj.basic_auth(USER, PASSWORD))
+        uri = URI, auth=nj.basic_auth(USER, PASSWORD))
     return connection
 
 
@@ -1954,7 +1954,7 @@ def create_gp():
     for x in button_list:
         x.destroy()
 
-    find_gp_by_ID(session, personal_information[0]);
+    find_gp_by_ID(session, personal_information[0])
 
     canvas.create_text(
         289.0,
