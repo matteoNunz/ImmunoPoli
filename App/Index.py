@@ -106,9 +106,10 @@ QUERY_OPTIONS_TRENDS = [
     "7 - The rate of vaccinated people who result positive"
 ]
 
-BOLT = "bolt://3.91.213.132:7687"
+
 USER = "neo4j"
-PASSWORD = "blocks-company-calendar"
+PASSWORD = "cJhfqi7RhIHR4I8ocQtc5pFPSEhIHDVJBCps3ULNzbA"
+URI = "neo4j+s://057f4a80.databases.neo4j.io"
 
 """
 list of buttons that don't belong to canvas that have to be delete before building a page 
@@ -1142,6 +1143,10 @@ def create_add_ct():
     """
     canvas.delete("all")
     global button_list
+
+    global plot
+    if plot is not None:
+        plot.destroy()
 
     for x in button_list:
         x.destroy()
