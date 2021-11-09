@@ -2,4 +2,6 @@ pathlib
 neo4j
 numpy
 tkinter
-
+matplotlib
+pandas
+numpy
