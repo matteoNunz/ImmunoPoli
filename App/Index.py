@@ -82,11 +82,10 @@ from tkinter import Tk, Canvas, Entry, Text, Button, PhotoImage
 OUTPUT_PATH = Path(__file__).parent
 ASSETS_PATH = OUTPUT_PATH / Path("./Images")
 
-#BOLT = "bolt://52.87.206.215:7687"
-BOLT = "bolt://localhost:7687"
+
 USER = "neo4j"
-PASSWORD = "1234"
-#PASSWORD = "controls-inches-halyard"
+PASSWORD = "cJhfqi7RhIHR4I8ocQtc5pFPSEhIHDVJBCps3ULNzbA"
+URI = "neo4j+s://057f4a80.databases.neo4j.io"
 
 """
 list of buttons that don't belong to canvas that have to be delete before building a page 
@@ -129,7 +128,7 @@ def open_connection():
     :return: the driver for the connection
     """
     connection = nj.GraphDatabase.driver(
-        BOLT, auth=nj.basic_auth(USER, PASSWORD))
+        uri = URI, auth=nj.basic_auth(USER, PASSWORD))
     return connection
 
 
@@ -1587,7 +1586,7 @@ def create_gp():
     for x in button_list:
         x.destroy()
 
-    find_gp_by_ID(session, personal_information[0]);
+    find_gp_by_ID(session, personal_information[0])
 
     canvas.create_text(
         289.0,

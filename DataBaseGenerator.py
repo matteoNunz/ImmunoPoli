@@ -6,7 +6,7 @@ Neo4J generator for ImmunoPoli project
 import neo4j as nj
 import PlotDBStructure as ps
 
-from random import randint , random
+from random import randint, random
 from enum import IntEnum
 import datetime
 
@@ -33,9 +33,11 @@ MAX_NUMBER_OF_TEST_PER_DAY = 50  # For new make test relationships
 # BOLT = "bolt://localhost:7687"
 # PASSWORD = "991437"
 
-BOLT = "bolt://3.91.213.132:7687"
+"""BOLT = "bolt://3.91.213.132:7687"
+PASSWORD = "blocks-company-calendar"""
 USER = "neo4j"
-PASSWORD = "blocks-company-calendar"
+PASSWORD = "cJhfqi7RhIHR4I8ocQtc5pFPSEhIHDVJBCps3ULNzbA"
+URI = "neo4j+s://057f4a80.databases.neo4j.io"
 
 
 class PersonAttribute(IntEnum):
@@ -119,7 +121,7 @@ def openConnection():
     :return: the driver for the connection
     """
     connection = nj.GraphDatabase.driver(
-        BOLT , auth=nj.basic_auth(USER, PASSWORD))
+        uri=URI, auth=nj.basic_auth(USER, PASSWORD))
     return connection
 
 
@@ -1250,11 +1252,11 @@ if __name__ == '__main__':
     driver = openConnection()
 
     # Only read from the graph
-    printDatabase()
+    """printDatabase()
 
     # Close the connection
     closeConnection(driver)
-    exit()
+    exit()"""
 
     # Read names from the file
     names = readNames()
