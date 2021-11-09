@@ -1,0 +1,6 @@
+The dataset is drawn from a random generator. It allows enforcing parameters such as the number of visits, tests, covid vaccinations, families and the probability of being positive.
+The generator sequentially builds the graph starting from people, places, families and groups of flatmates. \\
+Families are groups of people with at most two different surnames that, whereas flatmates are combined randomly. \\
+It adds all the vaccinations ensuring that the first dose of vaccine grants a one-month validity certification. Further vaccinations for each person provide one-year validity certification employing the same vaccine as the first one. \\
+After the creation of all the principal entities, it builds instances of "visit"  relationships. \\
+The last step consists in making the swabs. For all the swabs, the date is postponed to the dates of all the visits.

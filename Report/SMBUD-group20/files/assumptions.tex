@@ -1,9 +1,14 @@
-\section{Assumptions}
+\label{section 2}
 The project relies on the hypotheses described below:
 
 \begin{enumerate}
     \item All information provided by people is truthful.
-    \item The property \textit{app} in Person entity is a boolean attribute used to identify whether or not the person itself has a contact tracing application.
+    \item Noone visits a place knowing that they have been tested positive.
+    \item There is no limit for the number of vaccine doses injectable.
+    \item The property \textit{app} in Person entity is a boolean attribute used to identify whether or not the person has any type of contact tracing application.
     \item The period ranging from virus incubation to test outcome acknowledgment is \textbf{seven days}.
-    \item Every address is associated with just one family or group of flatmates.
+    \item Every address is associated with just one house or public place.
+    \item Deletion of information about contacts occurred more than ten days before the current date. They are useless because once a person is tested positive, we check their potential connections up to seven days before the test date. 
+    \item The database includes only entries related to indoor places. Those are assumed to be accessible through a specific ticket/badge and a covid certificate vaccination scan. It is reasonable that once a certificate is scanned, all details are shared with our application to create an instance of \textit{visit} relationship.
+    \item Since the \textit{infect} relationship represents a \textbf{covid exposure}, the actual contagion refers to a positive swab without a negative one after a fixed amount of time. 
 \end{enumerate}

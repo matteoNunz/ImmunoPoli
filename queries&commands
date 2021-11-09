@@ -3,6 +3,11 @@ Queries:
 -contatti indiretti tramite app
     MATCH (p1:Person)-[:APP_CONTACT*]->(p2:Person) RETURN p1 , p2
 
+-numero di persone che sono risultate positive al tampone dopo una sola dose di vaccino
+    match (t:Test)<-[m:MAKE{result:"Positive"}]-(p:Person)-[g:GET]->(v:Vaccine)
+    where not(()<-[:GET]-(p)-[:GET]->()) and m.date > g.date
+    return p
+
 -contagi avvenuti direttamente (positivi successivi a una relazione infected)
     MATCH (p:Person)-[inf:INFECTED]-(i:Person)->(m:MAKE{result: "Positive"})->(Test)
     WHERE m.date > inf.date + $giorni_da_definire

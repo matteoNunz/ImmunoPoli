@@ -1,13 +1,14 @@
-\documentclass[table, 12pt]{article}
+\documentclass[a4paper, 12p]{article}
 \usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{csquotes}
 \usepackage[T1]{fontenc}
 \usepackage{caption}
-\usepackage{hyperref}
 \usepackage{booktabs}
 \usepackage{xcolor}
 \usepackage{float}
 \usepackage{longtable}
-\usepackage{enumitem}
 \usepackage{tasks}
 \usepackage{tabularx}
 \usepackage{titlesec}
@@ -56,22 +57,42 @@
     pdfborder = {0 0 0}
 }
 \thispagestyle{plain}
-\pagenumbering{gobble}
+
 \mbox{}
 
-\pagenumbering{roman}
+
 \tableofcontents
+\pagenumbering{gobble}
 
+\newpage
+
+\setcounter{page}{1}
 \pagenumbering{arabic}
+\section{Introduction}
+At the beginning of 2020, the COVID-19 pandemic arose. It entailed many restrictions, lockdowns, and freedom limitations all around the world.
+Keeping track of all possible contacts among people is a crucial step to help governments and countries address the worldwide viral spreading.
+Furthermore, collecting and understanding data is the key to have a clear snapshot of all the people currently dealing with the virus, including also vaccines efficacy and contagion rate.
+The project aims to provide an efficient database for storing all information about people and an application to query it and perform additional analysis.
+The database is based on a graph data structure and makes usage of the NoSQL paradigm.
+It stores data coming from various sources, such as data collected either through inspecting public building access or data provided by contact tracing applications in addition to basic personal information about people.
+
+\section{Assumptions}
+\input{files/assumptions}
 
 \newpage
+\section{Conceptual model of the database}
+\input{files/conceptual_model}
+\newpage
+\section{Dataset description}
+\input{files/dataset_description}
 
-\include{files/introduction}
+\section{Queries}
+\input{files/queries}
 
 \newpage
+\section{Commands}
 
-\include{files/assumptions}
+\section{Application}
+\input{files/application}
 
 \end{document}
-
-
