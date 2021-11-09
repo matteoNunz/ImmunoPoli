@@ -1,6 +1,10 @@
 """
 Date: 28/10/2021
 Neo4J generator for ImmunoPoli project
+
+toDo: now it's wrong create the COVID_EXPOSURE relation when a test is "Positive", because we create
+        the MAKE_TEST relationships before and then the VISIT relationships
+
 """
 
 import neo4j as nj
@@ -416,7 +420,7 @@ def findAllMakeTestRelationships(tx):
     :return: a list of relationships
     """
     query = (
-        "MATCH (n1:Person)-[r:MAKE]->(n2:Test) "
+        "MATCH (n1:Person)-[r:MAKE_TEST]->(n2:Test) "
         "RETURN ID(n1) , r , r.date , r.hour , r.result , ID(n2);"
     )
     results = tx.run(query).data()
@@ -430,7 +434,7 @@ def findAllInfectedRelationships(tx):
     :return: a list of relationships
     """
     query = (
-        "MATCH (n1:Person)-[r:INFECTED]->(n2:Person) "
+        "MATCH (n1:Person)-[r:COVID_EXPOSURE]->(n2:Person) "
         "RETURN ID(n1) , r , r.date , r.name , ID(n2);"
     )
     results = tx.run(query).data()
@@ -830,7 +834,7 @@ def createRelationshipsMakeTest(d, pIds, tIds):
         if probability >= PROBABILITY_TO_BE_POSITIVE:
             # Check whether or not I have been infected by someone
             delete_possible_infection_command = (
-                "MATCH ()-[i:INFECTED]->(p:Person)"
+                "MATCH ()-[i:COVID_EXPOSURE]->(p:Person)"
                 "WHERE ID(p) = $personId AND (i.date < date($date) OR "
                 "i.date = date($date) AND i.hour < time($hour))"
                 "DELETE i"
@@ -922,7 +926,7 @@ def findAllPositivePerson():
     :return: a list of positive ids
     """
     query = (
-        "MATCH (p:Person)-[r:MAKE]->(t:Test) "
+        "MATCH (p:Person)-[r:MAKE_TEST]->(t:Test) "
         "WHERE r.result = \"Positive\" "
         "RETURN DISTINCT ID(p);"
     )
@@ -1002,7 +1006,7 @@ def createRelationshipsInfect(id, test_date, daysBack):
             query = (
                 "MATCH (pp:Person) , (ip:Person) "
                 "WHERE ID(pp) = $id AND ID(ip) = $ipid "
-                "CREATE (pp)-[:INFECTED{date:date($date)}]->(ip);"
+                "CREATE (pp)-[:COVID_EXPOSURE{date:date($date)}]->(ip);"
             )
             s.write_transaction(createInfectFamily , query , id , infectedId, date.strftime("%Y-%m-%d"))
 
@@ -1019,7 +1023,7 @@ def createRelationshipsInfect(id, test_date, daysBack):
             query = (
                 "MATCH (pp:Person) , (ip:Person) "
                 "WHERE ID(pp) = $id AND ID(ip) = $ipid "
-                "CREATE (pp)-[:INFECTED{date: date($date)}]->(ip);"
+                "CREATE (pp)-[:COVID_EXPOSURE{date: date($date)}]->(ip);"
             )
             s.write_transaction(createInfectApp , query , id , infectedId , infectedDate)
 
@@ -1038,7 +1042,7 @@ def createRelationshipsInfect(id, test_date, daysBack):
             query = (
                 "MATCH (pp:Person) , (ip:Person) "
                 "WHERE ID(pp) = $id AND ID(ip) = $ipid "
-                "CREATE (pp)-[:INFECTED{date: date($date) , name: $name}]->(ip);"
+                "CREATE (pp)-[:COVID_EXPOSURE{date: date($date) , name: $name}]->(ip);"
             )
             s.write_transaction(createInfectLocation , query , id , infectedId , infectedDate , infectedPlace)
 
@@ -1324,11 +1328,11 @@ if __name__ == '__main__':
     driver = openConnection()
 
     # Only read from the graph
-    """printDatabase()
+    printDatabase()
 
     # Close the connection
     closeConnection(driver)
-    exit()"""
+    exit()
 
     # Read names from the file
     names = readNames()

@@ -74,6 +74,7 @@ checked new ct:
 
 from pathlib import Path
 import neo4j as nj
+import datetime
 
 from tkinter import Tk, Canvas, Entry, Text, Button, PhotoImage, StringVar, OptionMenu
 import tkinter
@@ -548,6 +549,24 @@ def add_new_test(tx, ID, testId, date, hour, result):
     tx.run(query, ID=ID, testId=testId, date=date, hour=hour, result=result)
 
 
+def find_family_with_positive(tx , date):
+    """
+    Methods that find the Person who lives with at least a positive member
+    :param tx: is the transaction
+    :param date: is the date of today
+    :return the ids of the positive member and the ids of the other family members
+    """
+
+    query = (
+        "MATCH (t:Test)<-[mt:MAKE_TEST]-(pp:Person)-[:LIVE]->(h:House)<-[:LIVE]-(p:Person) "
+        "WHERE pp <> p AND (date($date) > mt.date OR date($date) = mt.date) AND mt.result = \"Positive\" "
+        "RETURN pp , ID(pp) , COLLECT(pp), COLLECT(ID(p)) , h , ID(h)"
+    )
+
+    result = tx.run(query , date = date).data()
+    return result
+
+
 """VALUES MANAGING"""
 
 
@@ -704,12 +723,36 @@ def perform_query(choice):
     choice = variable.get()
     choice_number = choice.split(" ")
 
+    """
+    "1 - All direct and indirect contacts registered via the app",
+    "2 - All people who result positive after direct contact with a positive",
+    "3 - All people that live in a house with at least a positive now",
+    "4 - All homes with at least a positive now",
+    "5 - The first five places visited with a higher risk rate",
+    "6 - All people had contact with a positive and haven't done the test yet"
+    """
+
     if choice_number[0] == "1":
         print("query 1")
     elif choice_number[0] == "2":
         print("query 2")
     elif choice_number[0] == "3":
+        # All people that live in a house with at least a positive now
         print("query 3")
+
+        # Take the date of today
+        date = datetime.date.today()
+
+        with driver.session() as s:
+            result = s.read_transaction(find_family_with_positive , date)
+            for element in result:
+                print("Element is: " , element)
+                for field in element:
+                    print("Field is: " , field)
+                    print("Value is: " , element[field])
+
+                    # toDo: now I should create some dictionaries in order to use the method in PlotDBStructure
+
     elif choice_number[0] == "4":
         print("query 4")
     elif choice_number[0] == "5":

@@ -118,13 +118,13 @@ class PlotDBStructure:
                             + str(relationship['r.expirationDate']) + ",country: " + relationship['r.country']
                     color = PlotDBStructure.getVaccineColor
                     PlotDBStructure.network.add_edge(id1 , id2 , title = title , color = color)
-                elif rType == 'MAKE':
+                elif rType == 'MAKE_TEST':
                     hour = str(relationship['r.hour']).split('.')[0]
                     title = rType + ",date: " + str(relationship['r.date']) + ",hour: " + hour \
                             + ",result: " + relationship['r.result']
                     color = PlotDBStructure.makeTestColor
                     PlotDBStructure.network.add_edge(id1 , id2 , title = title , color = color)
-                elif rType == 'INFECTED':
+                elif rType == 'COVID_EXPOSURE':
                     title = rType + ",date: " + str(relationship['r.date']) + ",place: " + str(relationship['r.name'])
                     if relationship['r.name'] is None:
                         color = PlotDBStructure.infectedFamilyAndAppColor
