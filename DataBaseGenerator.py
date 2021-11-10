@@ -15,7 +15,7 @@ from enum import IntEnum
 import datetime
 
 MAX_NUMBER_OF_FAMILY_MEMBER = 5
-NUMBER_OF_FAMILY = 50
+NUMBER_OF_FAMILY = 20
 
 MAX_NUMBER_OF_CONTACT_PER_DAY = 50  # For new contact relationships
 
@@ -34,14 +34,13 @@ MAX_NUMBER_OF_VACCINE_PER_DAY = 50  # For new get vaccinated relationships
 MAX_NUMBER_OF_TEST_PER_DAY = 50  # For new make test relationships
 
 
-# BOLT = "bolt://localhost:7687"
-# PASSWORD = "991437"
-
-"""BOLT = "bolt://3.91.213.132:7687"
-PASSWORD = "blocks-company-calendar"""
 USER = "neo4j"
-PASSWORD = "cJhfqi7RhIHR4I8ocQtc5pFPSEhIHDVJBCps3ULNzbA"
-URI = "neo4j+s://057f4a80.databases.neo4j.io"
+PASSWORD = "1234"
+URI = "bolt://localhost:7687"
+
+# USER = "neo4j"
+# PASSWORD = "cJhfqi7RhIHR4I8ocQtc5pFPSEhIHDVJBCps3ULNzbA"
+# URI = "neo4j+s://057f4a80.databases.neo4j.io"
 
 
 class PersonAttribute(IntEnum):

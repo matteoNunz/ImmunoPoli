@@ -79,6 +79,7 @@ from pandas import DataFrame
 
 import neo4j as nj
 import datetime
+
 import tkinter
 import numpy as np
 import matplotlib.pyplot as plt
@@ -109,6 +110,10 @@ QUERY_OPTIONS_TRENDS = [
 USER = "neo4j"
 PASSWORD = "1234"
 URI = "bolt://localhost:7687"
+
+# USER = "neo4j"
+# PASSWORD = "cJhfqi7RhIHR4I8ocQtc5pFPSEhIHDVJBCps3ULNzbA"
+# URI = "neo4j+s://057f4a80.databases.neo4j.io"
 
 """
 list of buttons that don't belong to canvas that have to be delete before building a page 
@@ -178,24 +183,26 @@ def app_contacts(tx):
     :return nodes of person
     """
     query = (
-        "MATCH(p1:Person) - [:APP_CONTACT *]->(p2:Person) "
-        "RETURN p1, p2 "
+        "MATCH (p1:Person)-[r:APP_CONTACT *]->(p2:Person) "
+        "RETURN p1 , ID(p1) , p2 , ID(p2) , r "
     )
-    result = tx.run(query)
+    result = tx.run(query).data()
+    return result
 
 
 def positive_after_contact(tx):
     """
-        Method that queries the database for collecting all people that result positive after a contact with a positive
+        Method that queries the database for collecting all people that result positive after a contact
         :param tx: session
-        :return nodes of person
+        :return: nodes of person
     """
     query = (
-        "MATCH (p:Person)<-[inf:COVID_EXPOSURE]-(i:Person)-[m:MAKE_TEST{result: \"Positive\"}]->(Test) "
-        "WHERE m.date > inf.date +duration({days: 1}) "
-        "RETURN i "
+        "MATCH (p:Person)-[inf:COVID_EXPOSURE]->(i:Person)-[m:MAKE_TEST{result: \"Positive\"}]->(Test) "
+        "WHERE m.date > inf.date + duration({days: 1}) "
+        "RETURN i , ID(i)"
     )
-    result = tx.run(query)
+    result = tx.run(query).data()
+    return result
 
 
 def positive_after_one_dose(tx):
@@ -204,12 +211,14 @@ def positive_after_one_dose(tx):
          :param tx: session
          :return nodes of person
      """
+    # toDo: verify if the NOT condition works considering the 2 GET different
     query = (
-        "match(t:Test) < -[m:MAKE_TEST{result: \"Positive\"}]-(p:Person) - [g: GET]->(v:Vaccine) "
-        "WHERE NOT (() < -[:GET]-(p) - [: GET]->()) and m.date > g.date "
-        "return p "
+        "MATCH(t:Test)<-[m:MAKE_TEST{result: \"Positive\"}]-(p:Person)-[g: GET]->(v:Vaccine) "
+        "WHERE NOT (()<-[:GET]-(p)-[:GET]->()) AND m.date > g.date "
+        "RETURN p , ID(p)"
     )
-    result = tx.run(query)
+    result = tx.run(query).data()
+    return result
 
 
 def people_live_in_positive_house(tx):
@@ -219,26 +228,27 @@ def people_live_in_positive_house(tx):
          :return nodes of person
      """
     query = (
-        "MATCH(p:Person) - [:LIVE]->(h:House) < -[: LIVE]-(p1:Person) - [r: MAKE_TEST{result: \"Positive\"}]->() "
-        "WHERE r.result = \"Positive\" "
-        "AND r.date >= date() - duration({days: 10}) "
-        "RETURN p"
+        "MATCH (p:Person)-[:LIVE]->(h:House)<-[:LIVE]-(pp:Person)-[r:MAKE_TEST{result: \"Positive\"}]->() "
+        "WHERE r.date >= date() - duration({days: 10}) "
+        "RETURN pp , ID(pp) , COLLECT(p), COLLECT(ID(p)) , h , ID(h)"
     )
-    result = tx.run(query)
+    result = tx.run(query).data()
+    return result
 
 
 def house_with_positive(tx):
     """
-         Method that queries the database for collecting all house with a positive
+         Method that queries the database for collecting the House with at least a positive member
          :param tx: session
-         :return nodes of person
-     """
+         :return nodes of House
+    """
     query = (
-        "MATCH(h:House) < -[:LIVE]-(p:Person) - [r: MAKE_TEST{result: \"Positive\"}]->() "
-        "WHERE r.result = \"Positive\" AND r.date >= date() - duration({days: 10}) "
-        "RETURN h "
+        "MATCH ()<-[r:MAKE_TEST{result: \"Positive\"}]-(pp:Person)-[:LIVE]->(h:House)"
+        "WHERE r.date >= date() - duration({days: 10})"
+        "RETURN DISTINCT h , ID(h)"
     )
-    result = tx.run(query)
+    result = tx.run(query).data()
+    return result
 
 
 def five_risk_location(tx):
@@ -252,9 +262,10 @@ def five_risk_location(tx):
         "MATCH (p1:Person)-[v1:VISIT]->(l) "
         "WHERE v.date <= m.date <= v.date + duration({Days: 10}) AND v.date >= date() - duration({Days: 30}) AND "
         "v1.date >= date() - duration({Days: 30}) "
-        "RETURN (COUNT(DISTINCT(p)))*1.0 / (COUNT(DISTINCT(p1))) AS rate, l.name ORDER BY rate DESC LIMIT 5 "
+        "RETURN (COUNT(DISTINCT(p)))*1.0 / (COUNT(DISTINCT(p1))) AS rate, l , ID(l) ORDER BY rate DESC LIMIT 5 "
     )
-    result = tx.run(query)
+    result = tx.run(query).data()
+    return result
 
 
 def people_at_risk_without_test(tx):
@@ -266,13 +277,13 @@ def people_at_risk_without_test(tx):
      """
 
     query = (
-        "MATCH(p:Person) - [inf:COVID_EXPOSURE]->(i:Person) "
-        "WHERE NOT EXISTS { MATCH(p) - [inf: COVID_EXPOSURE]->(i), (p3:Person) - [m: MAKE_TEST]->(:Test) WHERE m.date "
-        "inf.date "
-        "AND id(i) = id(p3) } "
-        "RETURN i"
+        "MATCH(p:Person)-[inf: COVID_EXPOSURE]->(i:Person) "
+        "WHERE NOT EXISTS { MATCH (p)-[inf: COVID_EXPOSURE]->(i), (p3:Person)-[m: MAKE_TEST]->(:Test) "
+        "WHERE m.date >= inf.date AND id(i) = id(p3) } "
+        "RETURN i , ID(i)"
     )
-    result = tx.run(query)
+    result = tx.run(query).data()
+    return result
 
 
 def positive_with_vaccine(tx):
@@ -648,24 +659,6 @@ def add_new_test(tx, ID, testId, date, hour, result):
     tx.run(query, ID=ID, testId=testId, date=date, hour=hour, result=result)
 
 
-def find_family_with_positive(tx, date):
-    """
-    Methods that find the Person who lives with at least a positive member
-    :param tx: is the transaction
-    :param date: is the date of today
-    :return the ids of the positive member and the ids of the other family members
-    """
-
-    query = (
-        "MATCH (t:Test)<-[mt:MAKE_TEST]-(pp:Person)-[:LIVE]->(h:House)<-[:LIVE]-(p:Person) "
-        "WHERE pp <> p AND (date($date) > mt.date OR date($date) = mt.date) AND mt.result = \"Positive\" "
-        "RETURN pp , ID(pp) , COLLECT(pp), COLLECT(ID(p)) , h , ID(h)"
-    )
-
-    result = tx.run(query, date=date).data()
-    return result
-
-
 def delete_contact_exposure(tx, ID):
     """
     Method that update database after a negative test insert --> delete the entry
@@ -765,6 +758,29 @@ def createRelationshipsInfect(id, test_date, daysBack):
                 "CREATE (pp)-[:COVID_EXPOSURE{date: date($date) , name: $name}]->(ip);"
             )
             s.write_transaction(createInfectLocation, query, id, infectedId, infectedDate, infectedPlace)
+
+
+def findInfectInFamily(tx , query , id):
+    """
+    Method that executes the query to find the infected member of a family
+    :param tx: is the transaction
+    :param query: is the query to execute
+    :param id: is the id of the positive Person
+    """
+    result = tx.run(query , id = id).data()
+    return result
+
+
+def findInfect(tx , query , id , date):
+    """
+    Method that executes the query to find the Person infected by other Persons
+    :param tx: is the transaction
+    :param query: is the query to execute
+    :param id: is the id of the positive Person
+    :param date: is the date from wich start the tracking
+    """
+    result = tx.run(query , id = id , date = date).data()
+    return result
 
 
 def createInfectFamily(tx, query, id, ipid, date):
@@ -988,41 +1004,93 @@ def perform_query(choice):
 
     """
     "1 - All direct and indirect contacts registered via the app",
-    "2 - All people who result positive after direct contact with a positive",
+    "2 - All people who result positive after direct contact with a Person",
     "3 - All people who result positive after a vaccine dose",
     "4 - All people that live in a house with at least a positive now",
     "5 - All homes with at least a positive now",
     "6 - The first five places visited with a higher risk rate",
     "7 - All people had contact with a positive and haven't done the test yet"
     """
+    # Initialize the network for the graph
+    # PlotDBStructure.PlotDBStructure.__init__()
 
     if choice_number[0] == "1":
-        positive_after_contact(session)
+        print("query 1")
+        with driver.session() as s:
+            result = s.read_transaction(app_contacts)
+
+            for element in result:
+                # Create Person nodes
+                personDict = {'p': element['p1'], 'ID(p)': element['ID(p1)']}
+                # PlotDBStructure.PlotDBStructure.addStructure(personDict)
+                personDict = {'p': element['p2'], 'ID(p)': element['ID(p2)']}
+                # PlotDBStructure.PlotDBStructure.addStructure(personDict)
+
     elif choice_number[0] == "2":
         print("query 2")
-    elif choice_number[0] == "3":
-        # All people that live in a house with at least a positive now
-        print("query 3")
-
-        # Take the date of today
-        date = datetime.date.today()
-
         with driver.session() as s:
-            result = s.read_transaction(find_family_with_positive, date)
-            for element in result:
-                print("Element is: ", element)
-                for field in element:
-                    print("Field is: ", field)
-                    print("Value is: ", element[field])
+            result = s.read_transaction(positive_after_contact)
+            # PlotDBStructure.PlotDBStructure.addStructure(result)
 
-                    # toDo: now I should create some dictionaries in order to use the method in PlotDBStructure
+    elif choice_number[0] == "3":
+        print("query 3")
+        with driver.session() as s:
+            result = s.read_transaction(positive_after_one_dose)
+            # PlotDBStructure.PlotDBStructure.addStructure(result)
 
     elif choice_number[0] == "4":
+        # All people that live in a house with at least a positive now
         print("query 4")
+        with driver.session() as s:
+            result = s.read_transaction(people_live_in_positive_house)
+
+            for element in result:
+                # Add the House in the network
+                elementDict = {'h': element['h'], 'ID(h)': element['ID(h)']}
+                # PlotDBStructure.PlotDBStructure.addStructure(elementDict)
+
+                # Add the positive Person in the network
+                elementDict = {'p': element['pp'], 'ID(p)': element['ID(pp)']}
+                # Set color = 'red' to better identify the positive member
+                # PlotDBStructure.PlotDBStructure.setPersonColor('red')
+                # PlotDBStructure.PlotDBStructure.addStructure(elementDict)
+
+                # Add the LIVE relationships
+                # PlotDBStructure.PlotDBStructure.addLiveRelationships(element['ID(pp)'] , element['ID(h)'])
+
+                # Add the other member in the family
+                personToPrint = []
+                for i in range(len(element['COLLECT(p)'])):
+                    elementDict = {'p': element['COLLECT(p)'][i], 'ID(p)': element['COLLECT(ID(p))'][i]}
+                    personToPrint.append(elementDict)
+                    # PlotDBStructure.PlotDBStructure.addLiveRelationships(element['COLLECT(ID(p))'][i] , element['ID(h)'])
+                # Set color to its default value
+                # PlotDBStructure.PlotDBStructure.setPersonColor()
+                # PlotDBStructure.PlotDBStructure.addStructure(personToPrint)
+
     elif choice_number[0] == "5":
         print("query 5")
+        with driver.session() as s:
+            result = s.read_transaction(house_with_positive)
+            # PlotDBStructure.PlotDBStructure.addStructure(result)
+
     elif choice_number[0] == "6":
         print("query 6")
+        with driver.session() as s:
+            result = s.read_transaction(five_risk_location)
+            # PlotDBStructure.PlotDBStructure.addStructure(result)
+
+    elif choice_number[0] == "7":
+        print("query 7")
+        with driver.session() as s:
+            result = s.read_transaction(people_at_risk_without_test)
+            # PlotDBStructure.PlotDBStructure.addStructure(result)
+
+    else:
+        pass
+
+    # Show the graph built
+    # PlotDBStructure.PlotDBStructure.showGraph()
 
 
 def ct_value_check(date_initial, ID_personal, hour_initial, testId_initial, result):
