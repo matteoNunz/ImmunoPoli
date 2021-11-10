@@ -18,7 +18,7 @@
 | Musumeci | Margherita| margherita.musumeci@mail.polimi.it| 907435| 10600069
 | Nunziante |  Matteo| matteo.nunziante@mail.polimi.it | 992518 | 10670132
 | Rendina |Piero | piero.rendina@mail.polimi.it  || 
-| Sanchini |  Andrea | andrea.sanchini@mail.polimi.it |  | 
+| Sanchini |  Andrea | andrea.sanchini@mail.polimi.it | 992072 | 10675541 | 
 | Zuccolotto |Enrico | enrico.zuccolotto@mail.polimi.it  | 993209 | 10666354
 
 ## Environment Setup

@@ -74,6 +74,7 @@ checked new ct:
 
 from pathlib import Path
 import neo4j as nj
+import datetime
 
 from tkinter import Tk, Canvas, Entry, Text, Button, PhotoImage, StringVar, OptionMenu
 import tkinter
@@ -82,7 +83,7 @@ from pandas import DataFrame
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-from vtk.tk.vtkTkRenderWindowInteractor import vtkTkRenderWindowInteractor
+# from vtk.tk.vtkTkRenderWindowInteractor import vtkTkRenderWindowInteractor
 
 OUTPUT_PATH = Path(__file__).parent
 ASSETS_PATH = OUTPUT_PATH / Path("./Images")
@@ -293,7 +294,6 @@ def find_vaccine_for_month(tx):
     for x in result:
         months[x.data()["g.date.month"]-1] = x.data()["COUNT(g)"]
 
-
     return months
 
 
@@ -305,12 +305,13 @@ def positive_age_average(tx):
     query = (
         "MATCH (pp:Person)-[r:MAKE]->(t:Test) "
         "WHERE r.result = \"Positive\" AND r.date >= date() - duration({days: 10}) "
-        "RETURN (SUM(DISTINCT(toFloat(pp.age))) / COUNT(DISTINCT(pp))) as average"
+        "RETURN AVG(pp.age) AS average"
     )
 
-    result = tx.run(query)
-    average = result.data()[0]['average']
-    average = round(average, 2)
+    result = tx.run(query).data()
+    average = result[0]['average']
+    if average is not None:
+        average = round(average, 2)
     return average
 
 
@@ -546,6 +547,24 @@ def add_new_test(tx, ID, testId, date, hour, result):
     tx.run(query, ID=ID, testId=testId, date=date, hour=hour, result=result)
 
 
+def find_family_with_positive(tx , date):
+    """
+    Methods that find the Person who lives with at least a positive member
+    :param tx: is the transaction
+    :param date: is the date of today
+    :return the ids of the positive member and the ids of the other family members
+    """
+
+    query = (
+        "MATCH (t:Test)<-[mt:MAKE_TEST]-(pp:Person)-[:LIVE]->(h:House)<-[:LIVE]-(p:Person) "
+        "WHERE pp <> p AND (date($date) > mt.date OR date($date) = mt.date) AND mt.result = \"Positive\" "
+        "RETURN pp , ID(pp) , COLLECT(pp), COLLECT(ID(p)) , h , ID(h)"
+    )
+
+    result = tx.run(query , date = date).data()
+    return result
+
+
 """VALUES MANAGING"""
 
 
@@ -554,19 +573,26 @@ def perform_trend(choice):
 
     if label is not None:
         canvas.delete(label)
+
     global plot
     if plot is not None:
         plot.destroy()
+
+    plot = None
 
     choice = variable.get()
     choice_number = choice.split(" ")
 
     if choice_number[0] == "1":
         average = positive_age_average(session)
-
+        x = 325.0
+        y = 240.0
+        if average is None:
+            average = "Nobody is positive :)"
+            x = 273.0
         label = canvas.create_text(
-            325.0,
-            240.0,
+            x,
+            y,
             anchor="nw",
             text=average,
             fill="#000000",
@@ -700,12 +726,36 @@ def perform_query(choice):
     choice = variable.get()
     choice_number = choice.split(" ")
 
+    """
+    "1 - All direct and indirect contacts registered via the app",
+    "2 - All people who result positive after direct contact with a positive",
+    "3 - All people that live in a house with at least a positive now",
+    "4 - All homes with at least a positive now",
+    "5 - The first five places visited with a higher risk rate",
+    "6 - All people had contact with a positive and haven't done the test yet"
+    """
+
     if choice_number[0] == "1":
         print("query 1")
     elif choice_number[0] == "2":
         print("query 2")
     elif choice_number[0] == "3":
+        # All people that live in a house with at least a positive now
         print("query 3")
+
+        # Take the date of today
+        date = datetime.date.today()
+
+        with driver.session() as s:
+            result = s.read_transaction(find_family_with_positive , date)
+            for element in result:
+                print("Element is: " , element)
+                for field in element:
+                    print("Field is: " , field)
+                    print("Value is: " , element[field])
+
+                    # toDo: now I should create some dictionaries in order to use the method in PlotDBStructure
+
     elif choice_number[0] == "4":
         print("query 4")
     elif choice_number[0] == "5":
@@ -1037,7 +1087,7 @@ def user_login(title, subtitle, button__1, button_0):
     button_0.destroy()
 
     # modify the innter text
-    canvas.itemconfig(title, text="Please insert you personal ID")
+    canvas.itemconfig(title, text="Please insert your personal ID")
     # modify the position
     canvas.coords(title, 130, 320)
     canvas.itemconfig(subtitle, text="We remind you to keep it secret ")
@@ -1147,6 +1197,7 @@ def create_add_ct():
     global plot
     if plot is not None:
         plot.destroy()
+    plot = None
 
     for x in button_list:
         x.destroy()
@@ -1508,6 +1559,7 @@ def create_db():
     global plot
     if plot is not None:
         plot.destroy()
+    plot = None
 
     for x in button_list:
         x.destroy()
@@ -2174,6 +2226,8 @@ def create_ct():
     global plot
     if plot is not None:
         plot.destroy()
+
+    plot = None
 
     global button_list
     for x in button_list:
