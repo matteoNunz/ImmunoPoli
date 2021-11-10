@@ -16,10 +16,9 @@ import datetime
 
 MAX_NUMBER_OF_FAMILY_MEMBER = 5
 NUMBER_OF_FAMILY = 20
+MAX_NUMBER_OF_CONTACT_PER_DAY = 300 # For new contact relationships
 
-MAX_NUMBER_OF_CONTACT_PER_DAY = 50  # For new contact relationships
-
-MAX_NUMBER_OF_VISIT_PER_DAY = 300  # For new visit relationships
+MAX_NUMBER_OF_VISIT_PER_DAY = 400 # For new visit relationships
 
 MAX_CIVIC_NUMBER = 100
 
@@ -29,18 +28,19 @@ PROBABILITY_TO_HAVE_APP = 0.5
 PROBABILITY_TO_BE_POSITIVE = 0.5
 PROBABILITY_TO_BE_TESTED_AFTER_INFECTED = 0.8
 
-MAX_NUMBER_OF_VACCINE_PER_DAY = 50  # For new get vaccinated relationships
+MAX_NUMBER_OF_VACCINE_PER_DAY = 200 # For new get vaccinated relationships
 
-MAX_NUMBER_OF_TEST_PER_DAY = 50  # For new make test relationships
+MAX_NUMBER_OF_TEST_PER_DAY = 30 # For new make test relationships
 
 
+# BOLT = "bolt://localhost:7687"
+# PASSWORD = "991437"
+
+"""BOLT = "bolt://3.91.213.132:7687"
+PASSWORD = "blocks-company-calendar"""
 USER = "neo4j"
-PASSWORD = "1234"
-URI = "bolt://localhost:7687"
-
-# USER = "neo4j"
-# PASSWORD = "cJhfqi7RhIHR4I8ocQtc5pFPSEhIHDVJBCps3ULNzbA"
-# URI = "neo4j+s://057f4a80.databases.neo4j.io"
+PASSWORD = "cJhfqi7RhIHR4I8ocQtc5pFPSEhIHDVJBCps3ULNzbA"
+URI = "neo4j+s://057f4a80.databases.neo4j.io"
 
 
 class PersonAttribute(IntEnum):
@@ -405,7 +405,7 @@ def findAllGetVaccineRelationships(tx):
     :return: a list of relationships
     """
     query = (
-        "MATCH (n1:Person)-[r:GET]->(n2:Vaccine) "
+        "MATCH (n1:Person)-[r:GET_VACCINE]->(n2:Vaccine) "
         "RETURN ID(n1) , r , r.date , r.country , r.expirationDate , ID(n2);"
     )
     results = tx.run(query).data()
@@ -609,7 +609,7 @@ def createRelationshipsAppContact(d , pIds):
     :return: nothing
     """
     # Create the number of app contact for the day
-    numOfContact = randint(1 , MAX_NUMBER_OF_CONTACT_PER_DAY)
+    numOfContact = MAX_NUMBER_OF_CONTACT_PER_DAY
 
     for _ in range(0 , numOfContact):
         # Choose two random people
@@ -621,7 +621,7 @@ def createRelationshipsAppContact(d , pIds):
         # Verify if it's the same node
         if pId1 == pId2:
             return
-        date = datetime.date.today() - datetime.timedelta(days=randint(0, 9))
+        date = datetime.date.today() - datetime.timedelta(days=randint(0, 10))
         date = date.strftime("%Y-%m-%d")
         h = randint(0, 23)
         minutes = randint(0, 59)
@@ -631,7 +631,7 @@ def createRelationshipsAppContact(d , pIds):
         n = 0
         while (validateDate(d, date, pId1, hour) == False or validateDate(d, date, pId2, hour)==False) and n < 5:
 
-            date = datetime.date.today() - datetime.timedelta(days=randint(0, 9))
+            date = datetime.date.today() - datetime.timedelta(days=randint(0, 20))
             date = date.strftime("%Y-%m-%d")
             h = randint(0, 23)
             minutes = randint(0, 59)
@@ -641,7 +641,6 @@ def createRelationshipsAppContact(d , pIds):
             n = n + 1
         if n == 5:
             return
-
 
         query = (
             "MATCH (p1:Person) , (p2:Person) "
@@ -663,7 +662,7 @@ def createRelationshipsVisit(d , pIds , lIds):
     :return: nothing
     """
     # Choose how many new visit relationships
-    numberOfVisits = randint(1  , MAX_NUMBER_OF_VISIT_PER_DAY)
+    numberOfVisits = MAX_NUMBER_OF_VISIT_PER_DAY
 
     for _ in range(0 , numberOfVisits):
         lIndex = randint(0 , len(lIds) - 1)
@@ -672,7 +671,7 @@ def createRelationshipsVisit(d , pIds , lIds):
         personId = pIds[pIndex]
         # Choose the hour/date
 
-        date = datetime.date.today() - datetime.timedelta(days=randint(0, 7))
+        date = datetime.date.today() - datetime.timedelta(days=randint(0, 10))
         date = date.strftime("%Y-%m-%d")
         h = randint(0, 22)
         minutes = randint(0, 59)
@@ -686,7 +685,7 @@ def createRelationshipsVisit(d , pIds , lIds):
         endHour = str(h) + ":" + str(minutes)
         n = 0
         while validateDate(d, date, personId, endHour) == False and n < 5:
-            date = datetime.date.today() - datetime.timedelta(days=randint(0, 7))
+            date = datetime.date.today() - datetime.timedelta(days=randint(0, 20))
             date = date.strftime("%Y-%m-%d")
             h = randint(0, 22)
             minutes = randint(0, 59)
@@ -716,7 +715,7 @@ def createRelationshipsVisit(d , pIds , lIds):
 
 def validateDate(d, date, personId, hour):
     """
-       Method that validate the date,if the last test before the date is positive return false
+       Method that validate the date, if the last test before the date is positive return false
        :param d: driver
        :param date: date to check
        :param personId: person to check
@@ -785,7 +784,7 @@ def createRelationshipsGetVaccine(d, pIds, vIds):
         query = (
             "MATCH (p:Person) , (v:Vaccine) "
             "WHERE ID(p) = $personId AND ID(v) = $vaccineId "
-            "MERGE (p)-[:GET{date:date($date),country:$country,expirationDate:$expDate}]->(v); "
+            "MERGE (p)-[:GET_VACCINE{date:date($date),country:$country,expirationDate:$expDate}]->(v); "
         )
 
         # Execute the query
@@ -802,7 +801,7 @@ def createRelationshipsMakeTest(d, pIds, tIds):
     :return: nothing
     """
     # Choose how many new visit relationships
-    numberOfTest = randint(0,MAX_NUMBER_OF_TEST_PER_DAY)
+    numberOfTest = MAX_NUMBER_OF_TEST_PER_DAY
 
     for _ in range(0, numberOfTest):
         probability = random()
@@ -810,7 +809,7 @@ def createRelationshipsMakeTest(d, pIds, tIds):
         testId = tIds[tIndex]
         pIndex = randint(0, len(pIds) - 1)
         personId = pIds[pIndex]
-        date = datetime.date.today() - datetime.timedelta(days=randint(0, 9))
+        date = datetime.date.today() - datetime.timedelta(days=randint(0, 10))
         h = randint(0, 23)
         minutes = randint(0, 59)
         if minutes < 10:
@@ -839,16 +838,11 @@ def createRelationshipsMakeTest(d, pIds, tIds):
                 "DELETE i"
             )
             with d.session() as s:
-                s.write_transaction(delete_possible_infection, delete_possible_infection_command, personId, string_date,
-                                    hour)
-        # Positive, create possible infections
-        else:
-            """I'm now passing the date of the test and we have to check up to 7 days"""
-            # --- maybe we should change 7
-            createRelationshipsInfect(personId, date, 7)
+                s.write_transaction(delete_possible_infection, delete_possible_infection_command,
+                                    personId, string_date, hour)
         # Execute the query
         with d.session() as s:
-            s.write_transaction(createMakingTest, query, personId, testId, string_date,hour, result)
+            s.write_transaction(createMakingTest, query, personId, testId, string_date,hour,result)
 
 
 def delete_possible_infection(tx, command, personId, date, hour):
@@ -927,11 +921,11 @@ def findAllPositivePerson():
     query = (
         "MATCH (p:Person)-[r:MAKE_TEST]->(t:Test) "
         "WHERE r.result = \"Positive\" "
-        "RETURN DISTINCT ID(p);"
+        "RETURN DISTINCT ID(p), r.date as infectionDate, r.hour as infectionHour;"
     )
 
-    positiveIdsFounds = runQueryRead(driver, query)
-    return positiveIdsFounds
+    positiveIdsFound = runQueryRead(driver, query)
+    return positiveIdsFound
 
 
 def checkDate(tx, query, personId, date, hour):
@@ -945,7 +939,7 @@ def checkDate(tx, query, personId, date, hour):
     return tx.run(query, personId=personId, date=date, hour=hour).data()
 
 
-def createRelationshipsInfect(id, test_date, daysBack):
+def createRelationshipsInfect(id, test_date, test_hour, daysBack):
     """
     Method that finds all the contacts of a positive person
     :param daysBack: is the number of days to look in the past
@@ -957,16 +951,26 @@ def createRelationshipsInfect(id, test_date, daysBack):
         "WHERE ID(pp) = $id AND ip <> pp AND NOT (ip)<-[:COVID_EXPOSURE]-(pp)"
         "RETURN DISTINCT ID(ip);"
     )
+
+    """
+    IMPORTANT: ($date) represents the date from which we check the contacts. It is the date of positive test - 7 days
+    We check all contacts until the date of positive test
+    """
     appContactQuery = (
         "MATCH (pp:Person)-[r1:APP_CONTACT]->(ip:Person) "
-        "WHERE ID(pp) = $id AND r1.date > date($date) AND NOT "
+        "WHERE ID(pp) = $id AND (r1.date > date($date) OR (r1.date = date($date) AND r1.hour >= time($hour))) "
+        "AND (r1.date < date($date) + duration({days:7}) OR (r1.date = date($date)+duration({days:7}) AND "
+        "r1.hour <= time($hour))) "
+        "AND NOT "
         "(pp)-[:COVID_EXPOSURE{date: r1.date}]->(ip)"
         "RETURN DISTINCT ID(ip) , r1.date;"
     )
     locationContactQuery = (
         "MATCH (pp:Person)-[r1:VISIT]->(l:Location)<-[r2:VISIT]-(ip:Person) "
-        "WHERE ID(pp) = $id AND ip <> pp AND r1.date > date($date) AND r2.date = r1.date AND "
-        "((r1.star_hour < r2.start_hour AND r1.end_hour > r2.start_hour) OR "
+        "WHERE ID(pp) = $id AND ip <> pp AND (r1.date > date($date) OR (r1.date = date($date) AND r1.start_hour >= time($hour))) "
+        "AND (r1.date < date($date) + duration({days:7}) OR (r1.date = date($date)+duration({days:7}) AND "
+        "r1.end_hour <= time($hour))) AND r2.date = r1.date AND "
+        "((r1.start_hour < r2.start_hour AND r1.end_hour > r2.start_hour) OR "
         "(r2.start_hour < r1.start_hour AND r2.end_hour > r1.start_hour)) AND NOT "
         "(pp)-[:COVID_EXPOSURE{name: l.name , date: r1.date}]->(ip)"
         "RETURN DISTINCT ID(ip) , r1.date , l.name;"
@@ -980,8 +984,8 @@ def createRelationshipsInfect(id, test_date, daysBack):
     infectedIds = []
     with driver.session() as s:
         familyInfected = s.read_transaction(findInfectInFamily, familyQuery, id)
-        appInfected = s.read_transaction(findInfect, appContactQuery, id, date)
-        locationInfected = s.read_transaction(findInfect, locationContactQuery, id, date)
+        appInfected = s.read_transaction(findInfect, appContactQuery, id, date, test_hour)
+        locationInfected = s.read_transaction(findInfect, locationContactQuery, id, date, test_hour)
         print(familyInfected)
         for el in familyInfected, appInfected, locationInfected:
             if len(el) > 0:
@@ -1078,7 +1082,7 @@ def findInfectInFamily(tx , query , id):
     return result
 
 
-def findInfect(tx , query , id , date):
+def findInfect(tx , query , id , date, hour):
     """
     Method that executes the query to find the Person infected by other Persons
     :param tx: is the transaction
@@ -1086,7 +1090,7 @@ def findInfect(tx , query , id , date):
     :param id: is the id of the positive Person
     :param date: is the date from wich start the tracking
     """
-    result = tx.run(query , id = id , date = date).data()
+    result = tx.run(query , id = id , date = date, hour = hour).data()
     return result
 
 
@@ -1327,11 +1331,11 @@ if __name__ == '__main__':
     driver = openConnection()
 
     # Only read from the graph
-    printDatabase()
+    """printDatabase()
 
     # Close the connection
     closeConnection(driver)
-    exit()
+    exit()"""
 
     # Read names from the file
     names = readNames()
@@ -1433,7 +1437,7 @@ if __name__ == '__main__':
     locationIds = getLocationsIds()
     personId = getPersonIds()
     # Generate the relationship
-    createRelationshipsVisit(driver , personIds, locationIds)
+    createRelationshipsVisit(driver, personIds, locationIds)
 
     # Generate random vaccines
     # Take vaccines ids
@@ -1447,12 +1451,19 @@ if __name__ == '__main__':
     print("Number of nodes: " + str(numberOfNodes))
 
     # Find all the positive Person
-    positiveIds = findAllPositivePerson()
+    data_for_positive = findAllPositivePerson()
     print("Positive are:")
-    print(positiveIds)
+    print(data_for_positive)
+
+    for positive in data_for_positive:
+        positive_id = positive['ID(p)']
+        contagion_date = str(positive['infectionDate'])
+        #Instruction needed to comply with Python way to manage dates
+        contagion_datetime = datetime.datetime.strptime(contagion_date, "%Y-%m-%d")
+        contagion_hour = str(positive['infectionHour'])
+        createRelationshipsInfect(positive_id, contagion_datetime, contagion_hour, 7)
     # Search all the infected Person tracked
     trackedPersonIds = []
-
     """Commented because we create infection after a positive test"""
     """for positiveId in positiveIds:
         print(positiveId['ID(p)'])
