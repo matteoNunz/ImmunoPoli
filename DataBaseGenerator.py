@@ -630,7 +630,7 @@ def createRelationshipsAppContact(d , pIds):
             minutes = "0" + str(minutes)
         hour = str(h) + ":" + str(minutes) + ":00"
         n = 0
-        while validateDate(d, date, pId1, hour) == False or validateDate(d, date, pId2, hour)==False and n < 5:
+        while (validateDate(d, date, pId1, hour) == False or validateDate(d, date, pId2, hour)==False) and n < 5:
 
             date = datetime.date.today() - datetime.timedelta(days=randint(0, 9))
             date = date.strftime("%Y-%m-%d")
@@ -725,7 +725,7 @@ def validateDate(d, date, personId, hour):
        :return: true if it's valid
        """
     query = (
-        "MATCH (p:Person)-[r:MAKE]->(:Test) "
+        "MATCH (p:Person)-[r:MAKE_TEST]->(:Test) "
         "WHERE ID(p) = $personId AND (date($date)>r.date OR(date($date)=r.date AND time($hour)>r.hour)) "
         "RETURN r.date as date,r.result as result,r.hour as hour "
         "ORDER BY date DESC "
