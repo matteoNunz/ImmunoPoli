@@ -39,6 +39,7 @@ class PlotDBStructure:
 
         # Create nodes and arcs
         for node in listOfNodesAndArcs:
+            print("Node received is: " , node)
             # If Person node
             if 'p' in node.keys():
                 # print("Person node")
@@ -54,7 +55,10 @@ class PlotDBStructure:
             elif 'l' in node.keys():
                 # print("Location node")
                 # Add Location node
-                label = node['ID(l)']
+                if 'rate' in node.keys():
+                    label = node['ID(l)'] + str(node['rate'])
+                else:
+                    label = node['ID(l)']
                 title = node['l']['name'] + "," + node['l']['address'] + "," + node['l']['civic_number'] + "," \
                         + node['l']['CAP'] + "," + node['l']['city'] + "," + node['l']['province'] + "," \
                         + node['l']['type']
@@ -102,7 +106,10 @@ class PlotDBStructure:
                     color = PlotDBStructure.liveColor
                     PlotDBStructure.network.add_edge(id1 , id2 , title = rType , color = color)
                 elif rType == 'APP_CONTACT':
-                    hour = str(relationship['r.hour']).split('.')[0]
+                    if 'r.hour' in relationship.keys():
+                        hour = str(relationship['r.hour']).split('.')[0]
+                    else:
+                        hour = None
                     title = rType + ",date: " + str(relationship['r.date']) + ",hour: " + hour
                     color = PlotDBStructure.appContactColor
                     PlotDBStructure.network.add_edge(id1 , id2 , title = title , color = color)
@@ -135,84 +142,94 @@ class PlotDBStructure:
                     pass
 
     @staticmethod
-    def setPersonColor(color):
+    def addLiveRelationships(pId , hId):
+        """
+        Method that adds the relationships LIVE
+        :param pId: is the id of the Person
+        :param hId: is the id of the House
+        """
+        color = PlotDBStructure.liveColor
+        PlotDBStructure.network.add_edge(pId, hId, title = 'LIVE' , color = color)
+
+    @staticmethod
+    def setPersonColor(color = 'orange'):
         """
         Method to set the color of the nodes in the graph
         """
         PlotDBStructure.personColor = color
 
     @staticmethod
-    def setHouseColor(color):
+    def setHouseColor(color = 'blue'):
         """
         Method to set the color of the nodes in the graph
         """
         PlotDBStructure.houseColor = color
 
     @staticmethod
-    def setLocationColor(color):
+    def setLocationColor(color = 'red'):
         """
         Method to set the color of the nodes in the graph
         """
         PlotDBStructure.locationColor = color
 
     @staticmethod
-    def setVaccineColor(color):
+    def setVaccineColor(color = 'gray'):
         """
         Method to set the color of the nodes in the graph
         """
         PlotDBStructure.vaccineColor = color
 
     @staticmethod
-    def setTestColor(color):
+    def setTestColor(color = 'green'):
         """
         Method to set the color of the nodes in the graph
         """
         PlotDBStructure.testColor = color
 
     @staticmethod
-    def setLiveColor(color):
+    def setLiveColor(color = 'black'):
         """
         Method to set the color of the relationships in the graph
         """
         PlotDBStructure.liveColor = color
 
     @staticmethod
-    def setVisitColor(color):
+    def setVisitColor(color = 'black'):
         """
         Method to set the color of the relationships in the graph
         """
         PlotDBStructure.visitColor = color
 
     @staticmethod
-    def setAppContactColor(color):
+    def setAppContactColor(color = 'orange'):
         """
         Method to set the color of the relationships in the graph
         """
         PlotDBStructure.appContactColor = color
 
     @staticmethod
-    def setGetVaccineColor(color):
+    def setGetVaccineColor(color = 'black'):
         """
         Method to set the color of the relationships in the graph
         """
         PlotDBStructure.getVaccineColor = color
 
     @staticmethod
-    def setMakeTestColor(color):
+    def setMakeTestColor(color = 'black'):
         """
         Method to set the color of the relationships in the graph
         """
         PlotDBStructure.makeTestColor = color
 
     @staticmethod
-    def setInfectedFamilyAndAppColor(color):
+    def setInfectedFamilyAndAppColor(color = 'red'):
         """
         Method to set the color of the relationships in the graph
         """
         PlotDBStructure.infectedFamilyAndAppColor = color
 
     @staticmethod
-    def setInfectedLocationColor(color):
+    def setInfectedLocationColor(color = 'blue'):
         """
         Method to set the color of the relationships in the graph
         """
