@@ -575,9 +575,12 @@ def perform_trend(choice):
 
     if label is not None:
         canvas.delete(label)
+
     global plot
     if plot is not None:
         plot.destroy()
+
+    plot = None
 
     choice = variable.get()
     choice_number = choice.split(" ")
@@ -1194,6 +1197,7 @@ def create_add_ct():
     global plot
     if plot is not None:
         plot.destroy()
+    plot = None
 
     for x in button_list:
         x.destroy()
@@ -1555,6 +1559,7 @@ def create_db():
     global plot
     if plot is not None:
         plot.destroy()
+    plot = None
 
     for x in button_list:
         x.destroy()
@@ -2221,6 +2226,8 @@ def create_ct():
     global plot
     if plot is not None:
         plot.destroy()
+
+    plot = None
 
     global button_list
     for x in button_list:
