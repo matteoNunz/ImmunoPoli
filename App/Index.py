@@ -292,7 +292,7 @@ def positive_with_vaccine(tx):
       :param tx: session
       """
     query = (
-        " MATCH (v:Vaccine)<-[g:GET]-(p:Person)-[m:MAKE_TEST_TEST {result: \"Positive\"}]->(t:Test) "
+        " MATCH (v:Vaccine)<-[g:GET_VACCINE]-(p:Person)-[m:MAKE_TEST{result: \"Positive\"}]->(t:Test) "
         "MATCH (v)<-[g1:GET]-(p1: Person) "
         "WHERE m.date > g.date "
         "RETURN (COUNT(DISTINCT(p)))*100/COUNT(DISTINCT(p1)) AS rate, v.name"
@@ -316,7 +316,7 @@ def find_vaccinated_for_CAP(tx):
     :param tx: session
     """
     query = (
-        "MATCH(p:Person)-[g:GET]->(v:Vaccine), (p)-[l:LIVE]->(h:House) "
+        "MATCH(p:Person)-[g:GET_VACCINE]->(v:Vaccine), (p)-[l:LIVE]->(h:House) "
         "WITH h AS house, p AS person "
         "RETURN COUNT(DISTINCT(person)) AS vaccinated, house.CAP ORDER BY vaccinated DESC"
     )
@@ -379,7 +379,7 @@ def find_positive_for_month(tx):
     :param tx: session
     """
     query = (
-        "MATCH (p:Person)-[m:MAKE_TEST {result:\"Positive\"}]->(t:Test) "
+        "MATCH (p:Person)-[m:MAKE_TEST{result:\"Positive\"}]->(t:Test) "
         "RETURN COUNT(m), m.date.month"
     )
 
@@ -397,7 +397,7 @@ def find_vaccine_for_month(tx):
     :param tx: session
     """
     query = (
-        "MATCH (p:Person)-[g:GET]->(v:Vaccine) "
+        "MATCH (p:Person)-[g:GET_VACCINE]->(v:Vaccine) "
         "RETURN COUNT(g), g.date.month "
     )
 
@@ -483,7 +483,7 @@ def find_gp_by_ID(tx, ID):
     green_pass = []
 
     query = (
-        "MATCH(p: Person)-[r: GET]->(v: Vaccine) "
+        "MATCH(p: Person)-[r:GET_VACCINE]->(v: Vaccine) "
         "WHERE id(p) = $ID "
         "RETURN v.name, r.date, r.country, r.expirationDate "
         "ORDER BY r.date "
@@ -509,7 +509,7 @@ def find_covid_tests_by_ID(tx, ID):
     tests = []
 
     query = (
-        "MATCH(p: Person)-[r: MAKE_TEST]->(n:Test) "
+        "MATCH(p: Person)-[r:MAKE_TEST]->(n:Test) "
         "WHERE id(p) = $ID "
         "RETURN n.name, r.date, r.hour, r.result"
     )
