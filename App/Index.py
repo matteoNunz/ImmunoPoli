@@ -73,17 +73,15 @@ checked new ct:
 """
 
 from pathlib import Path
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from tkinter import Tk, Canvas, Entry, Text, Button, PhotoImage, StringVar, OptionMenu
+from pandas import DataFrame
+
 import neo4j as nj
 import datetime
-
-from tkinter import Tk, Canvas, Entry, Text, Button, PhotoImage, StringVar, OptionMenu
 import tkinter
 import numpy as np
-from pandas import DataFrame
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-
-# from vtk.tk.vtkTkRenderWindowInteractor import vtkTkRenderWindowInteractor
 
 OUTPUT_PATH = Path(__file__).parent
 ASSETS_PATH = OUTPUT_PATH / Path("./Images")
@@ -91,10 +89,11 @@ ASSETS_PATH = OUTPUT_PATH / Path("./Images")
 QUERY_OPTIONS = [
     "1 - All direct and indirect contacts registered via the app",
     "2 - All people who result positive after direct contact with a positive",
-    "3 - All people that live in a house with at least a positive now",
-    "4 - All homes with at least a positive now",
-    "5 - The first five places visited with a higher risk rate",
-    "6 - All people had contact with a positive and haven't done the test yet"
+    "3 - All people who result positive after a vaccine dose",
+    "4 - All people that live in a house with at least a positive now",
+    "5 - All homes with at least a positive now",
+    "6 - The first five places visited with a higher risk rate",
+    "7 - All people had contact with a positive and haven't done the test yet"
 ]
 
 QUERY_OPTIONS_TRENDS = [
@@ -103,14 +102,13 @@ QUERY_OPTIONS_TRENDS = [
     "3 - The number of positives for each month",
     "4 - The number of vaccines done for each month",
     "5 - The number of people that received a vaccine for each CAP",
-    "6 - The number of contacts registered via app for a person",
+    "6 - The number of contacts registered via app for 10 person",
     "7 - The rate of vaccinated people who result positive"
 ]
 
-
 USER = "neo4j"
-PASSWORD = "cJhfqi7RhIHR4I8ocQtc5pFPSEhIHDVJBCps3ULNzbA"
-URI = "neo4j+s://057f4a80.databases.neo4j.io"
+PASSWORD = "1234"
+URI = "bolt://localhost:7687"
 
 """
 list of buttons that don't belong to canvas that have to be delete before building a page 
@@ -130,7 +128,6 @@ green_pass = []
 tests = []
 places = []
 exposures = []
-
 
 """error message"""
 error = None
@@ -158,7 +155,7 @@ def open_connection():
     :return: the driver for the connection
     """
     connection = nj.GraphDatabase.driver(
-        uri = URI, auth=nj.basic_auth(USER, PASSWORD))
+        uri=URI, auth=nj.basic_auth(USER, PASSWORD))
     return connection
 
 
@@ -173,13 +170,118 @@ def close_connection(connection):
 """DATABASE QUERIES"""
 
 
+def app_contacts(tx):
+    """
+    Method that queries the database for collecting all people who directly or indirectly was in
+    contact with a positive
+    :param tx: session
+    :return nodes of person
+    """
+    query = (
+        "MATCH(p1:Person) - [:APP_CONTACT *]->(p2:Person) "
+        "RETURN p1, p2 "
+    )
+    result = tx.run(query)
+
+
+def positive_after_contact(tx):
+    """
+        Method that queries the database for collecting all people that result positive after a contact with a positive
+        :param tx: session
+        :return nodes of person
+    """
+    query = (
+        "MATCH (p:Person)<-[inf:COVID_EXPOSURE]-(i:Person)-[m:MAKE_TEST{result: \"Positive\"}]->(Test) "
+        "WHERE m.date > inf.date +duration({days: 1}) "
+        "RETURN i "
+    )
+    result = tx.run(query)
+
+
+def positive_after_one_dose(tx):
+    """
+         Method that queries the database for collecting all people that result positive after a dose of vaccine
+         :param tx: session
+         :return nodes of person
+     """
+    query = (
+        "match(t:Test) < -[m:MAKE_TEST{result: \"Positive\"}]-(p:Person) - [g: GET]->(v:Vaccine) "
+        "WHERE NOT (() < -[:GET]-(p) - [: GET]->()) and m.date > g.date "
+        "return p "
+    )
+    result = tx.run(query)
+
+
+def people_live_in_positive_house(tx):
+    """
+         Method that queries the database for collecting all people that live in a house with a positive
+         :param tx: session
+         :return nodes of person
+     """
+    query = (
+        "MATCH(p:Person) - [:LIVE]->(h:House) < -[: LIVE]-(p1:Person) - [r: MAKE_TEST{result: \"Positive\"}]->() "
+        "WHERE r.result = \"Positive\" "
+        "AND r.date >= date() - duration({days: 10}) "
+        "RETURN p"
+    )
+    result = tx.run(query)
+
+
+def house_with_positive(tx):
+    """
+         Method that queries the database for collecting all house with a positive
+         :param tx: session
+         :return nodes of person
+     """
+    query = (
+        "MATCH(h:House) < -[:LIVE]-(p:Person) - [r: MAKE_TEST{result: \"Positive\"}]->() "
+        "WHERE r.result = \"Positive\" AND r.date >= date() - duration({days: 10}) "
+        "RETURN h "
+    )
+    result = tx.run(query)
+
+
+def five_risk_location(tx):
+    """
+         Method that queries the database for collecting 5 locations with the highest risk
+         :param tx: session
+         :return nodes of person
+     """
+    query = (
+        "MATCH (p:Person)-[v:VISIT]->(l:Location), (p)-[m:MAKE_TEST {result: \"Positive\"}]->(t:Test) "
+        "MATCH (p1:Person)-[v1:VISIT]->(l) "
+        "WHERE v.date <= m.date <= v.date + duration({Days: 10}) AND v.date >= date() - duration({Days: 30}) AND "
+        "v1.date >= date() - duration({Days: 30}) "
+        "RETURN (COUNT(DISTINCT(p)))*1.0 / (COUNT(DISTINCT(p1))) AS rate, l.name ORDER BY rate DESC LIMIT 5 "
+    )
+    result = tx.run(query)
+
+
+def people_at_risk_without_test(tx):
+    """
+         Method that queries the database for collecting all people that appeared in a covid exposure but haven't done
+         the test yet
+         :param tx: session
+         :return nodes of person
+     """
+
+    query = (
+        "MATCH(p:Person) - [inf:COVID_EXPOSURE]->(i:Person) "
+        "WHERE NOT EXISTS { MATCH(p) - [inf: COVID_EXPOSURE]->(i), (p3:Person) - [m: MAKE_TEST]->(:Test) WHERE m.date "
+        "inf.date "
+        "AND id(i) = id(p3) } "
+        "RETURN i"
+    )
+    result = tx.run(query)
+
+
 def positive_with_vaccine(tx):
     """
       Method that queries the database to calculate how many people who are vaccinated results positive to a covid test
       :param tx: session
       """
     query = (
-        " MATCH (v:Vaccine)<-[g:GET]-(p:Person)-[m:MAKE {result: \"Positive\"}]->(t:Test) "
+        " MATCH (v:Vaccine)<-[g:GET]-(p:Person)-[m:MAKE_TEST_TEST {result: \"Positive\"}]->(t:Test) "
         "MATCH (v)<-[g1:GET]-(p1: Person) "
         "WHERE m.date > g.date "
         "RETURN (COUNT(DISTINCT(p)))*100/COUNT(DISTINCT(p1)) AS rate, v.name"
@@ -226,8 +328,8 @@ def find_contacts_for_person(tx):
     :param tx: session
     """
     query = (
-          "MATCH(p:Person)-[a:APP_CONTACT]->(:Person) "
-          "RETURN COUNT(a), p.name"
+        "MATCH(p:Person)-[a:APP_CONTACT]->(:Person) "
+        "RETURN COUNT(a), p.name LIMIT 10"
     )
 
     count = []
@@ -248,14 +350,14 @@ def find_test_for_month(tx):
     :param tx: session
     """
     query = (
-        "MATCH(p: Person)-[m: MAKE]->(t:Test) "
+        "MATCH(p: Person)-[m: MAKE_TEST]->(t:Test) "
         "RETURN COUNT(m), m.date.month"
     )
 
     result = tx.run(query)
     months = np.zeros(12)
     for x in result:
-        months[x.data()["m.date.month"]-1] = x.data()["COUNT(m)"]
+        months[x.data()["m.date.month"] - 1] = x.data()["COUNT(m)"]
 
     return months
 
@@ -266,15 +368,14 @@ def find_positive_for_month(tx):
     :param tx: session
     """
     query = (
-        "MATCH (p:Person)-[m:MAKE {result:\"Positive\"}]->(t:Test) "
+        "MATCH (p:Person)-[m:MAKE_TEST {result:\"Positive\"}]->(t:Test) "
         "RETURN COUNT(m), m.date.month"
     )
 
     result = tx.run(query)
     months = np.zeros(12)
     for x in result:
-        months[x.data()["m.date.month"]-1] = x.data()["COUNT(m)"]
-
+        months[x.data()["m.date.month"] - 1] = x.data()["COUNT(m)"]
 
     return months
 
@@ -292,7 +393,7 @@ def find_vaccine_for_month(tx):
     result = tx.run(query)
     months = np.zeros(12)
     for x in result:
-        months[x.data()["g.date.month"]-1] = x.data()["COUNT(g)"]
+        months[x.data()["g.date.month"] - 1] = x.data()["COUNT(g)"]
 
     return months
 
@@ -303,9 +404,9 @@ def positive_age_average(tx):
     :param tx: session
     """
     query = (
-        "MATCH (pp:Person)-[r:MAKE]->(t:Test) "
+        "MATCH (pp:Person)-[r:MAKE_TEST]->(t:Test) "
         "WHERE r.result = \"Positive\" AND r.date >= date() - duration({days: 10}) "
-        "RETURN AVG(pp.age) AS average"
+        "RETURN AVG(toFloat(pp.age)) AS average"
     )
 
     result = tx.run(query).data()
@@ -397,7 +498,7 @@ def find_covid_tests_by_ID(tx, ID):
     tests = []
 
     query = (
-        "MATCH(p: Person)-[r: MAKE]->(n:Test) "
+        "MATCH(p: Person)-[r: MAKE_TEST]->(n:Test) "
         "WHERE id(p) = $ID "
         "RETURN n.name, r.date, r.hour, r.result"
     )
@@ -422,7 +523,7 @@ def find_covid_exposures_by_ID(tx, ID):
     :param ID: is the ID of the person
     """
     query = (
-        "MATCH (p: Person)-[i:INFECTED]->(p1:Person) "
+        "MATCH (p: Person)-[i:COVID_EXPOSURE]->(p1:Person) "
         "WHERE id(p1) = $ID "
         "RETURN i.date, i.name "
     )
@@ -472,7 +573,7 @@ def find_place_visited(tx, ID):
         place.append(y)
         location_id = relation.data()['id(l)']
         risk_query = (
-            "MATCH (t)<-[m:MAKE{result:\"Positive\"}]-(p:Person)-[v:VISIT]->(l)"
+            "MATCH (t)<-[m:MAKE_TEST{result:\"Positive\"}]-(p:Person)-[v:VISIT]->(l)"
             "MATCH (p1:Person)-[v1:VISIT]->(l)"
             "WHERE id(l) = $ID AND v.date <= m.date <= v.date + duration({Days: 10}) "
             " AND v.date >= date() - duration({Days: 30}) "
@@ -542,12 +643,12 @@ def add_new_test(tx, ID, testId, date, hour, result):
     query = (
         "MATCH (p:Person) , (t:Test) "
         "WHERE ID(p) = $ID AND ID(t) = $testId "
-        "MERGE (p)-[:MAKE{date:date($date) , hour: time($hour) ,result:$result}]->(t); "
+        "MERGE (p)-[:MAKE_TEST{date:date($date) , hour: time($hour) ,result:$result}]->(t); "
     )
     tx.run(query, ID=ID, testId=testId, date=date, hour=hour, result=result)
 
 
-def find_family_with_positive(tx , date):
+def find_family_with_positive(tx, date):
     """
     Methods that find the Person who lives with at least a positive member
     :param tx: is the transaction
@@ -561,8 +662,130 @@ def find_family_with_positive(tx , date):
         "RETURN pp , ID(pp) , COLLECT(pp), COLLECT(ID(p)) , h , ID(h)"
     )
 
-    result = tx.run(query , date = date).data()
+    result = tx.run(query, date=date).data()
     return result
+
+
+def delete_contact_exposure(tx, ID):
+    """
+    Method that update database after a negative test insert --> delete the entry
+    :param tx: session
+    """
+    query = (
+        "MATCH (p:Person) - [inf:INFECTED]-> (i:Person) - [m: MAKE {result: \"Negative\"}]->(:Test) "
+        "WHERE m.date > inf.date + duration({days: 10}) and id(i) = $id "
+        "DELETE inf "
+    )
+    result = tx.run(query, id=ID)
+
+
+def createRelationshipsInfect(id, test_date, daysBack):
+    """
+    Method that finds all the contacts of a positive person
+    :param daysBack: is the number of days to look in the past
+    :param id: is the id of the positive person
+    :return: a list of people who got in contact with the positive person
+    """
+    familyQuery = (
+        "MATCH (pp:Person)-[:LIVE]->(h:House)<-[:LIVE]-(ip:Person) "
+        "WHERE ID(pp) = $id AND ip <> pp AND NOT (ip)<-[:COVID_EXPOSURE]-(pp)"
+        "RETURN DISTINCT ID(ip);"
+    )
+    appContactQuery = (
+        "MATCH (pp:Person)-[r1:APP_CONTACT]->(ip:Person) "
+        "WHERE ID(pp) = $id AND r1.date > date($date) AND NOT "
+        "(pp)-[:COVID_EXPOSURE{date: r1.date}]->(ip)"
+        "RETURN DISTINCT ID(ip) , r1.date;"
+    )
+    locationContactQuery = (
+        "MATCH (pp:Person)-[r1:VISIT]->(l:Location)<-[r2:VISIT]-(ip:Person) "
+        "WHERE ID(pp) = $id AND ip <> pp AND r1.date > date($date) AND r2.date = r1.date AND "
+        "((r1.star_hour < r2.start_hour AND r1.end_hour > r2.start_hour) OR "
+        "(r2.start_hour < r1.start_hour AND r2.end_hour > r1.start_hour)) AND NOT "
+        "(pp)-[:COVID_EXPOSURE{name: l.name , date: r1.date}]->(ip)"
+        "RETURN DISTINCT ID(ip) , r1.date , l.name;"
+    )
+
+    # date = datetime.date.today() - datetime.timedelta(daysBack)
+    """
+    date is referred to date test - daysback 
+    """
+    date = test_date - datetime.timedelta(daysBack)
+    infectedIds = []
+    with driver.session() as s:
+        familyInfected = s.read_transaction(findInfectInFamily, familyQuery, id)
+        appInfected = s.read_transaction(findInfect, appContactQuery, id, date)
+        locationInfected = s.read_transaction(findInfect, locationContactQuery, id, date)
+
+        for el in familyInfected, appInfected, locationInfected:
+            if len(el) > 0:
+                # Take just the id
+                infectedIds.append(el[0]['ID(ip)'])
+
+        infectedIds = []
+        for el in familyInfected:
+            infectedIds.append(el['ID(ip)'])
+
+        for infectedId in infectedIds:
+            query = (
+                "MATCH (pp:Person) , (ip:Person) "
+                "WHERE ID(pp) = $id AND ID(ip) = $ipid "
+                "CREATE (pp)-[:COVID_EXPOSURE{date:date($date)}]->(ip);"
+            )
+            s.write_transaction(createInfectFamily, query, id, infectedId, date.strftime("%Y-%m-%d"))
+
+        infectedIds = []
+        for el in appInfected:
+            details = []
+            details.append(el['ID(ip)'])
+            details.append(el['r1.date'])
+            infectedIds.append(details)
+
+        for infectedId, infectedDate in infectedIds:
+            query = (
+                "MATCH (pp:Person) , (ip:Person) "
+                "WHERE ID(pp) = $id AND ID(ip) = $ipid "
+                "CREATE (pp)-[:COVID_EXPOSURE{date: date($date)}]->(ip);"
+            )
+            s.write_transaction(createInfectApp, query, id, infectedId, infectedDate)
+
+        infectedIds = []
+
+        for el in locationInfected:
+            details = []
+            details.append(el['ID(ip)'])
+            details.append(el['r1.date'])
+            details.append(el['l.name'])
+            infectedIds.append(details)
+
+        for infectedId, infectedDate, infectedPlace in infectedIds:
+            query = (
+                "MATCH (pp:Person) , (ip:Person) "
+                "WHERE ID(pp) = $id AND ID(ip) = $ipid "
+                "CREATE (pp)-[:COVID_EXPOSURE{date: date($date) , name: $name}]->(ip);"
+            )
+            s.write_transaction(createInfectLocation, query, id, infectedId, infectedDate, infectedPlace)
+
+
+def createInfectFamily(tx, query, id, ipid, date):
+    """
+    Method that create the relationship Infect
+    """
+    tx.run(query, id=id, ipid=ipid, date=date)
+
+
+def createInfectApp(tx, query, id, ipid, date):
+    """
+    Method that create the relationship Infect
+    """
+    tx.run(query, id=id, ipid=ipid, date=date)
+
+
+def createInfectLocation(tx, query, id, ipid, date, name):
+    """
+    Method that create the relationship Infect
+    """
+    tx.run(query, id=id, ipid=ipid, date=date, name=name)
 
 
 """VALUES MANAGING"""
@@ -612,7 +835,7 @@ def perform_trend(choice):
         ax = figure.add_subplot(111)
         line = FigureCanvasTkAgg(figure, window)
         line.get_tk_widget().pack()
-        line.get_tk_widget().place(x = 200, y=240)
+        line.get_tk_widget().place(x=200, y=240)
         df = df[['Month', 'Test']].groupby('Month').sum()
         df.plot(kind='line', legend=True, ax=ax, color='r', marker='o', fontsize=10)
 
@@ -658,24 +881,36 @@ def perform_trend(choice):
 
     elif choice_number[0] == "5":
         result = find_vaccinated_for_CAP(session)
+        print(result)
         cap = result[0]
         vaccinated = result[1]
 
-        data = {'CAP': cap,
-                'Vaccinated': vaccinated
-                }
+        if len(result[0]) != 0:
+            data = {'CAP': cap,
+                    'Vaccinated': vaccinated
+                    }
 
-        df = DataFrame(data, columns=['CAP', 'Vaccinated'])
+            df = DataFrame(data, columns=['CAP', 'Vaccinated'])
 
-        figure = plt.Figure(figsize=(5, 4), dpi=60)
-        ax = figure.add_subplot(111)
-        bar = FigureCanvasTkAgg(figure, window)
-        bar.get_tk_widget().pack()
-        bar.get_tk_widget().place(x=200, y=240)
-        df = df[['CAP', 'Vaccinated']].groupby('CAP').sum()
-        df.plot(kind='barh', legend=True, ax=ax,  color='m')
+            figure = plt.Figure(figsize=(5, 4), dpi=60)
+            ax = figure.add_subplot(111)
+            bar = FigureCanvasTkAgg(figure, window)
+            bar.get_tk_widget().pack()
+            bar.get_tk_widget().place(x=200, y=240)
+            df = df[['CAP', 'Vaccinated']].groupby('CAP').sum()
+            df.plot(kind='barh', legend=True, ax=ax, color='m')
 
-        plot = bar.get_tk_widget()
+            plot = bar.get_tk_widget()
+
+        else:
+            label = canvas.create_text(
+                273.0,
+                240.0,
+                anchor="nw",
+                text="No data to show",
+                fill="#000000",
+                font=("Comfortaa Bold", 20 * -1)
+            )
 
     elif choice_number[0] == "6":
 
@@ -683,21 +918,34 @@ def perform_trend(choice):
         count = result[0]
         person = result[1]
 
-        data = {'Person': person,
-                'Count': count
-                }
+        if len(result[0]) != 0:
 
-        df = DataFrame(data, columns=['Person', 'Count'])
+            data = {'Person': person,
+                    'Count': count
+                    }
 
-        figure = plt.Figure(figsize=(7, 4), dpi=60)
-        ax = figure.add_subplot(111)
-        bar = FigureCanvasTkAgg(figure, window)
-        bar.get_tk_widget().pack()
-        bar.get_tk_widget().place(x=180, y=240)
-        df = df[['Person', 'Count']].groupby('Person').sum()
-        df.plot(kind='barh', legend=True, ax=ax)
+            df = DataFrame(data, columns=['Person', 'Count'])
 
-        plot = bar.get_tk_widget()
+            figure = plt.Figure(figsize=(7, 4), dpi=60)
+            ax = figure.add_subplot(111)
+            bar = FigureCanvasTkAgg(figure, window)
+            bar.get_tk_widget().pack()
+            bar.get_tk_widget().place(x=180, y=240)
+            df = df[['Person', 'Count']].groupby('Person').sum()
+            df.plot(kind='barh', legend=True, ax=ax)
+
+            plot = bar.get_tk_widget()
+
+        else:
+
+            label = canvas.create_text(
+                273.0,
+                240.0,
+                anchor="nw",
+                text="No data to show",
+                fill="#000000",
+                font=("Comfortaa Bold", 20 * -1)
+            )
 
     elif choice_number[0] == "7":
 
@@ -705,21 +953,33 @@ def perform_trend(choice):
         vaccine = result[0]
         rate = result[1]
 
-        data = {'Vaccine': vaccine,
-                'Rate': rate
-                }
+        if len(result[0]) != 0:
 
-        df = DataFrame(data, columns=['Vaccine', 'Rate'])
+            data = {'Vaccine': vaccine,
+                    'Rate': rate
+                    }
 
-        figure = plt.Figure(figsize=(7, 4), dpi=60)
-        ax = figure.add_subplot(111)
-        bar = FigureCanvasTkAgg(figure, window)
-        bar.get_tk_widget().pack()
-        bar.get_tk_widget().place(x=180, y=240)
-        df = df[['Vaccine', 'Rate']].groupby('Vaccine').sum()
-        df.plot(kind='barh', legend=True, ax=ax,color='c')
+            df = DataFrame(data, columns=['Vaccine', 'Rate'])
 
-        plot = bar.get_tk_widget()
+            figure = plt.Figure(figsize=(7, 4), dpi=60)
+            ax = figure.add_subplot(111)
+            bar = FigureCanvasTkAgg(figure, window)
+            bar.get_tk_widget().pack()
+            bar.get_tk_widget().place(x=180, y=240)
+            df = df[['Vaccine', 'Rate']].groupby('Vaccine').sum()
+            df.plot(kind='barh', legend=True, ax=ax, color='c')
+
+            plot = bar.get_tk_widget()
+        else:
+
+            label = canvas.create_text(
+                273.0,
+                240.0,
+                anchor="nw",
+                text="No data to show",
+                fill="#000000",
+                font=("Comfortaa Bold", 20 * -1)
+            )
 
 
 def perform_query(choice):
@@ -729,14 +989,15 @@ def perform_query(choice):
     """
     "1 - All direct and indirect contacts registered via the app",
     "2 - All people who result positive after direct contact with a positive",
-    "3 - All people that live in a house with at least a positive now",
-    "4 - All homes with at least a positive now",
-    "5 - The first five places visited with a higher risk rate",
-    "6 - All people had contact with a positive and haven't done the test yet"
+    "3 - All people who result positive after a vaccine dose",
+    "4 - All people that live in a house with at least a positive now",
+    "5 - All homes with at least a positive now",
+    "6 - The first five places visited with a higher risk rate",
+    "7 - All people had contact with a positive and haven't done the test yet"
     """
 
     if choice_number[0] == "1":
-        print("query 1")
+        positive_after_contact(session)
     elif choice_number[0] == "2":
         print("query 2")
     elif choice_number[0] == "3":
@@ -747,12 +1008,12 @@ def perform_query(choice):
         date = datetime.date.today()
 
         with driver.session() as s:
-            result = s.read_transaction(find_family_with_positive , date)
+            result = s.read_transaction(find_family_with_positive, date)
             for element in result:
-                print("Element is: " , element)
+                print("Element is: ", element)
                 for field in element:
-                    print("Field is: " , field)
-                    print("Value is: " , element[field])
+                    print("Field is: ", field)
+                    print("Value is: ", element[field])
 
                     # toDo: now I should create some dictionaries in order to use the method in PlotDBStructure
 
@@ -910,6 +1171,12 @@ def ct_value_check(date_initial, ID_personal, hour_initial, testId_initial, resu
         return
 
     add_new_test(session, ID, testId, date_initial, hour_initial, result)
+    if result == "Negative":
+        delete_contact_exposure(session, ID)
+        print("negative done")
+    elif result == "Positive":
+        createRelationshipsInfect(ID, date_initial, 10)
+        print("positive done")
     create_add_ct()
 
 
@@ -2960,3 +3227,6 @@ session = driver.session()
 variable = StringVar(window)
 
 window.mainloop()
+
+# Close the connection
+close_connection(driver)
