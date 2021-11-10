@@ -294,7 +294,6 @@ def find_vaccine_for_month(tx):
     for x in result:
         months[x.data()["g.date.month"]-1] = x.data()["COUNT(g)"]
 
-
     return months
 
 
@@ -306,7 +305,6 @@ def positive_age_average(tx):
     query = (
         "MATCH (pp:Person)-[r:MAKE]->(t:Test) "
         "WHERE r.result = \"Positive\" AND r.date >= date() - duration({days: 10}) "
-        # "RETURN (SUM(DISTINCT(toFloat(pp.age))) / COUNT(DISTINCT(pp))) as average"
         "RETURN AVG(pp.age) AS average"
     )
 
@@ -587,12 +585,14 @@ def perform_trend(choice):
 
     if choice_number[0] == "1":
         average = positive_age_average(session)
-        print("Average is: " , average)
+        x = 325.0
+        y = 240.0
         if average is None:
-            average = "No positive"
+            average = "Nobody is positive :)"
+            x = 273.0
         label = canvas.create_text(
-            325.0,
-            240.0,
+            x,
+            y,
             anchor="nw",
             text=average,
             fill="#000000",
@@ -1087,7 +1087,7 @@ def user_login(title, subtitle, button__1, button_0):
     button_0.destroy()
 
     # modify the innter text
-    canvas.itemconfig(title, text="Please insert you personal ID")
+    canvas.itemconfig(title, text="Please insert your personal ID")
     # modify the position
     canvas.coords(title, 130, 320)
     canvas.itemconfig(subtitle, text="We remind you to keep it secret ")
