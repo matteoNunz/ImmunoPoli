@@ -1,10 +1,6 @@
 """
 Date: 28/10/2021
 Neo4J generator for ImmunoPoli project
-
-toDo: now it's wrong create the COVID_EXPOSURE relation when a test is "Positive", because we create
-        the MAKE_TEST relationships before and then the VISIT relationships
-
 """
 
 import neo4j as nj
@@ -239,7 +235,6 @@ def readTests():
             testsList.append(line.rstrip('\n').rstrip().lstrip())
     f.close()
     return testsList
-
 
 def deleteAll(tx):
     """
@@ -1050,6 +1045,18 @@ def createRelationshipsInfect(id, test_date, test_hour, daysBack):
             s.write_transaction(createInfectLocation , query , id , infectedId , infectedDate , infectedPlace)
 
 
+#TODO check how many days are required to delete the exposure
+def delete_negative_after_exposure():
+    """
+    Method that deletes exposure for people who made a negative test after a covid exposure
+    """
+    query = ("match ()-[c:COVID_EXPOSURE]->(p)-[m:MAKE_TEST{result:\"Negative\"}]->(t) "
+             "where m.date > c.date "
+             "delete c")
+    with driver.session() as session:
+        session.run(query)
+
+
 def createInfectFamily(tx , query , id , ipid, date):
     """
     Method that create the relationship Infect
@@ -1272,7 +1279,7 @@ def runQueryWrite(d , queryList):
             s.write_transaction(runQuery , query)
 
 
-def runQueryRead(d , query):
+def runQueryRead(d, query):
     """
     Method that run a generic query
     :param d: is the connection to the database
@@ -1331,11 +1338,12 @@ if __name__ == '__main__':
     driver = openConnection()
 
     # Only read from the graph
-    """printDatabase()
+    printDatabase()
 
     # Close the connection
     closeConnection(driver)
-    exit()"""
+    exit()
+
 
     # Read names from the file
     names = readNames()
@@ -1463,6 +1471,7 @@ if __name__ == '__main__':
         contagion_hour = str(positive['infectionHour'])
         createRelationshipsInfect(positive_id, contagion_datetime, contagion_hour, 7)
     # Search all the infected Person tracked
+    delete_negative_after_exposure()
     trackedPersonIds = []
     """Commented because we create infection after a positive test"""
     """for positiveId in positiveIds:
