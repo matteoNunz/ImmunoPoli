@@ -602,10 +602,10 @@ def find_place_visited(tx, ID):
 
         risk_rate = tx.run(risk_query, ID=location_id)
 
-        if len(risk_rate.data()) == 0:
-            risk = 0
-        else:
-            risk = risk_rate.data()[0]['rate'] * 100
+        risk = 0
+        result = risk_rate.data()
+        if len(result) != 0:
+            risk = result[0]['rate'] * 100
         risk_formatted = round(risk, 2)
         place.append(risk_formatted)
         places.append(place)
