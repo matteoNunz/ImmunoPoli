@@ -4,7 +4,7 @@ Neo4J generator for ImmunoPoli project
 """
 
 import neo4j as nj
-import PlotDBStructure as ps
+import App.PlotDBStructure as ps
 
 from random import randint, random
 from enum import IntEnum
