@@ -56,12 +56,11 @@ class PlotDBStructure:
                 # print("Location node")
                 # Add Location node
                 if 'rate' in node.keys():
-                    label = node['ID(l)'] + str(node['rate'])
+                    label = str(node['ID(l)']) + " "+str(node['rate'])
                 else:
                     label = node['ID(l)']
-                title = node['l']['name'] + "," + node['l']['address'] + "," + node['l']['civic_number'] + "," \
-                        + node['l']['CAP'] + "," + node['l']['city'] + "," + node['l']['province'] + "," \
-                        + node['l']['type']
+                print(node['l'])
+                title = node['l']['name'] + "," + node['l']['address'] + "," + node['l']['civic_number'] + "," +node['l']['CAP'] + "," + node['l']['city'] + "," + node['l']['province'] + "," +node['l']['type']
                 color = PlotDBStructure.locationColor
                 PlotDBStructure.network.add_node(node['ID(l)'] , label = label , title = title , color = color)
 

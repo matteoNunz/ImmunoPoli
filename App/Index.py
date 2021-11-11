@@ -1056,27 +1056,23 @@ def perform_query(choice):
             ps.PlotDBStructure.setPersonColor()
 
             for element in result:
-                listStupid = []
+                personToPrint = []
                 # Add the House in the network
                 elementDict = {'h': element['h'], 'ID(h)': element['ID(h)']}
-                listStupid.append(elementDict)
-                ps.PlotDBStructure.addStructure(listStupid)
-                ps.PlotDBStructure.showGraph()
-                # fino a qua
-                personToPrint = []
-                personToPrint.append(element['ID(pp)'])
+                personToPrint.append(elementDict)
                 ps.PlotDBStructure.addStructure(personToPrint)
-                present=False
+
+                # fino a qua
+
+                present = False
                 for r in ps.PlotDBStructure.network.get_edges():
-                    if element[element['ID(pp)']] == r['from'] and element['ID(h)'] == r['to']:
-                      present=True
-                      break
+                    if element['ID(pp)']== r['from'] and element['ID(h)'] == r['to']:
+                        present = True
+                        break
                 if not present:
-                    ps.PlotDBStructure.addLiveRelationships(element[element['ID(pp)']], element['ID(h)'])
+                    ps.PlotDBStructure.addLiveRelationships(element['ID(pp)'], element['ID(h)'])
 
                 # Add the other member in the family
-
-
 
                 for i in range(len(element['COLLECT(p)'])):
                     elementDict = {'p': element['COLLECT(p)'][i], 'ID(p)': element['COLLECT(ID(p))'][i]}
@@ -1088,8 +1084,8 @@ def perform_query(choice):
 
                     for r in ps.PlotDBStructure.network.get_edges():
                         if element['COLLECT(ID(p))'][i] == r['from'] and element['ID(h)'] == r['to']:
-                           present=True
-                           break
+                            present = True
+                            break
                     if not present:
                         ps.PlotDBStructure.addLiveRelationships(element['COLLECT(ID(p))'][i], element['ID(h)'])
 
