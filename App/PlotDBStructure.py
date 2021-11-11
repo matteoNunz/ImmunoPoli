@@ -1,7 +1,9 @@
 from pyvis.network import Network
 import webbrowser
+import tkinter as tk
 import platform
 import os
+
 
 class PlotDBStructure:
     """
@@ -16,7 +18,13 @@ class PlotDBStructure:
         """
         Method that creates and initialize the network attribute
         """
-        PlotDBStructure.network = Network('500px', '500px', directed=True)
+        # Take the dimensions of the screen
+        root = tk.Tk()
+        width = str(root.winfo_screenwidth()) + "px"
+        height = str(root.winfo_screenheight()) + "px"
+        root.destroy()
+
+        PlotDBStructure.network = Network(height , width , directed=True)
         PlotDBStructure.personColor = 'orange'
         PlotDBStructure.locationColor = 'red'
         PlotDBStructure.houseColor = 'blue'
@@ -51,6 +59,7 @@ class PlotDBStructure:
                 title = node['p']['name'] + " " + node['p']['surname'] + "," \
                         + node['p']['age'] + "," + node['p']['mail'] + "," \
                         + node['p']['number'] + ",app:" + node['p']['app']
+                #title = titleList
                 color = PlotDBStructure.personColor
                 PlotDBStructure.network.add_node(node["ID(p)"], label=label, title=title, color=color)
 
@@ -59,7 +68,7 @@ class PlotDBStructure:
 
                 # Add Location node
                 if 'rate' in node.keys():
-                    label = str(node['ID(l)']) + "_"+str(node['rate']*100)+"%"
+                    label = str(node['ID(l)']) + ", rate: " + str(node['rate']*100) + "%"
                 else:
                     label = node['ID(l)']
 

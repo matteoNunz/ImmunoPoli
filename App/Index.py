@@ -107,12 +107,12 @@ QUERY_OPTIONS_TRENDS = [
     "7 - The rate of vaccinated people who result positive"
 ]
 
-# USER = "neo4j"
-# PASSWORD = "1234"
-# URI = "bolt://localhost:7687"
 USER = "neo4j"
-PASSWORD = "cJhfqi7RhIHR4I8ocQtc5pFPSEhIHDVJBCps3ULNzbA"
-URI = "neo4j+s://057f4a80.databases.neo4j.io"
+PASSWORD = "1234"
+URI = "bolt://localhost:7687"
+# USER = "neo4j"
+# PASSWORD = "cJhfqi7RhIHR4I8ocQtc5pFPSEhIHDVJBCps3ULNzbA"
+# URI = "neo4j+s://057f4a80.databases.neo4j.io"
 
 """
 list of buttons that don't belong to canvas that have to be delete before building a page 
@@ -1151,7 +1151,6 @@ def perform_query(choice):
     ps.PlotDBStructure.__init__()
 
     if choice_number[0] == "1":
-        print("query 1")
         with driver.session() as s:
             result = s.read_transaction(app_contacts)
 
@@ -1163,44 +1162,36 @@ def perform_query(choice):
                 ps.PlotDBStructure.addStructure(personDict)
 
     elif choice_number[0] == "2":
-        print("query 2")
         with driver.session() as s:
             result = s.read_transaction(positive_after_contact)
-
-            print(result)
             ps.PlotDBStructure.addStructure(result)
 
     elif choice_number[0] == "3":
-        print("query 3")
         with driver.session() as s:
             result = s.read_transaction(positive_after_one_dose)
             ps.PlotDBStructure.addStructure(result)
 
     elif choice_number[0] == "4":
         # All people that live in a house with at least a positive now
-        print("query 4")
         with driver.session() as s:
             result = s.read_transaction(people_live_in_positive_house)
+            # Set color = 'red' to better identify the positive member
             ps.PlotDBStructure.setPersonColor('red')
-            listStupid = []
+            listOfNodes = []
             for element in result:
                 # Add the positive Person in the network
                 elementDict = {'p': element['pp'], 'ID(p)': element['ID(pp)']}
-                print(elementDict)
-                # Set color = 'red' to better identify the positive member
-                listStupid.append(elementDict)
-            print(listStupid)
-            ps.PlotDBStructure.addStructure(listStupid)
+                listOfNodes.append(elementDict)
+            ps.PlotDBStructure.addStructure(listOfNodes)
+            # Set the Person nodes color to the default one
             ps.PlotDBStructure.setPersonColor()
 
             for element in result:
-                personToPrint = []
+                nodesToPrint = []
                 # Add the House in the network
                 elementDict = {'h': element['h'], 'ID(h)': element['ID(h)']}
-                personToPrint.append(elementDict)
-                ps.PlotDBStructure.addStructure(personToPrint)
-
-                # fino a qua
+                nodesToPrint.append(elementDict)
+                ps.PlotDBStructure.addStructure(nodesToPrint)
 
                 present = False
                 for r in ps.PlotDBStructure.network.get_edges():
@@ -1208,18 +1199,17 @@ def perform_query(choice):
                         present = True
                         break
                 if not present:
+                    # Add the LIVE relationships to the positive Person
                     ps.PlotDBStructure.addLiveRelationships(element['ID(pp)'], element['ID(h)'])
 
-                # Add the other member in the family
-
-                for i in range(len(element['COLLECT(p)'])):
+                # Add the other members of the families
+                for i in range(len(element['COLLECT(p)']) - 1):
                     elementDict = {'p': element['COLLECT(p)'][i], 'ID(p)': element['COLLECT(ID(p))'][i]}
-                    personToPrint = []
-                    personToPrint.append(elementDict)
+                    personToPrint = [elementDict]
                     ps.PlotDBStructure.addStructure(personToPrint)
-                    # if the element is already on the list don't add it
-                    present = False
 
+                    # if the LIVE relationships is already present, don't add it
+                    present = False
                     for r in ps.PlotDBStructure.network.get_edges():
                         if element['COLLECT(ID(p))'][i] == r['from'] and element['ID(h)'] == r['to']:
                             present = True
@@ -1227,23 +1217,17 @@ def perform_query(choice):
                     if not present:
                         ps.PlotDBStructure.addLiveRelationships(element['COLLECT(ID(p))'][i], element['ID(h)'])
 
-                # Set color to its default value
-                ps.PlotDBStructure.setPersonColor()
-
     elif choice_number[0] == "5":
-        print("query 5")
         with driver.session() as s:
             result = s.read_transaction(house_with_positive)
             ps.PlotDBStructure.addStructure(result)
 
     elif choice_number[0] == "6":
-        print("query 6")
         with driver.session() as s:
             result = s.read_transaction(five_risk_location)
             ps.PlotDBStructure.addStructure(result)
 
     elif choice_number[0] == "7":
-        print("query 7")
         with driver.session() as s:
             result = s.read_transaction(people_at_risk_without_test)
             ps.PlotDBStructure.addStructure(result)
