@@ -56,7 +56,7 @@ class PlotDBStructure:
                 # print("Location node")
                 # Add Location node
                 if 'rate' in node.keys():
-                    label = str(node['ID(l)']) + " "+str(node['rate'])
+                    label = str(node['ID(l)']) + "_"+str(node['rate']*100)+"%"
                 else:
                     label = node['ID(l)']
                 print(node['l'])

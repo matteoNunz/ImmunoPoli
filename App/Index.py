@@ -196,9 +196,9 @@ def positive_after_contact(tx):
         :return: nodes of person
     """
     query = (
-        "MATCH (p:Person)-[inf:COVID_EXPOSURE]->(i:Person)-[m:MAKE_TEST{result: \"Positive\"}]->(Test) "
+        "MATCH (i:Person)-[inf:COVID_EXPOSURE]->(p:Person)-[m:MAKE_TEST{result: \"Positive\"}]->(Test) "
         "WHERE m.date > inf.date + duration({days: 1}) "
-        "RETURN i , ID(i)"
+        "RETURN p, ID(p)"
     )
     result = tx.run(query).data()
     return result
@@ -257,16 +257,15 @@ def five_risk_location(tx):
          :return nodes of person
      """
     query = (
-        "MATCH (p:Person)-[v:VISIT]->(l:Location), (p)-[m:MAKE_TEST {result: \"Positive\"}]->(t:Test) "
-        "WHERE v.date <= m.date <= v.date + duration({Days: 10}) AND v.date >= date() - duration({Days: 30}) and"
-        " id(l)= 266 "
-        "with (COUNT(DISTINCT(p)))*1.0 as num, id(l) as i "
+        "MATCH (p:Person)-[v:VISIT]->(l1:Location), (p)-[m:MAKE_TEST {result: \"Positive\"}]->(t:Test) "
+        "WHERE v.date <= m.date <= v.date + duration({Days: 10}) AND v.date >= date() - duration({Days: 30}) "
+        "with (COUNT(DISTINCT(p)))*1.0 as num, id(l1) as i "
 
-        "MATCH (p1:Person)-[v1:VISIT]->(l1:Location) "
-        "WHERE v1.date >= date() - duration({Days: 30}) and id(l1) = i "
-        "with (COUNT(DISTINCT(p1))) as den, num, l1 "
+        "MATCH (p1:Person)-[v1:VISIT]->(l:Location) "
+        "WHERE v1.date >= date() - duration({Days: 30}) and id(l) = i "
+        "with (COUNT(DISTINCT(p1))) as den, num, l "
 
-        "return num/den as rate, l1 , id(l1) ORDER BY rate DESC LIMIT 5"
+        "return num/den as rate, l , ID(l) ORDER BY rate DESC LIMIT 5"
     )
     result = tx.run(query).data()
     return result
@@ -281,10 +280,10 @@ def people_at_risk_without_test(tx):
      """
 
     query = (
-        "MATCH(p:Person)-[inf: COVID_EXPOSURE]->(i:Person) "
-        "WHERE NOT EXISTS { MATCH (p)-[inf: COVID_EXPOSURE]->(i), (p3:Person)-[m: MAKE_TEST]->(:Test) "
-        "WHERE m.date >= inf.date AND id(i) = id(p3) } "
-        "RETURN i , ID(i)"
+        "MATCH(i:Person)-[inf: COVID_EXPOSURE]->(p:Person) "
+        "WHERE NOT EXISTS { MATCH (i)-[inf: COVID_EXPOSURE]->(p), (p3:Person)-[m: MAKE_TEST]->(:Test) "
+        "WHERE m.date >= inf.date AND id(p) = id(p3) } "
+        "RETURN p , ID(p)"
     )
     result = tx.run(query).data()
     return result
@@ -1185,12 +1184,9 @@ def perform_query(choice):
             ps.PlotDBStructure.setPersonColor('red')
             listStupid = []
             for element in result:
-                # Add the House in the network
-                elementDict = {'h': element['h'], 'ID(h)': element['ID(h)']}
-                ps.PlotDBStructure.addStructure(elementDict)
-
                 # Add the positive Person in the network
                 elementDict = {'p': element['pp'], 'ID(p)': element['ID(pp)']}
+                print(elementDict)
                 # Set color = 'red' to better identify the positive member
                 listStupid.append(elementDict)
             print(listStupid)
@@ -1208,7 +1204,7 @@ def perform_query(choice):
 
                 present = False
                 for r in ps.PlotDBStructure.network.get_edges():
-                    if element['ID(pp)']== r['from'] and element['ID(h)'] == r['to']:
+                    if element['ID(pp)'] == r['from'] and element['ID(h)'] == r['to']:
                         present = True
                         break
                 if not present:
@@ -1233,9 +1229,6 @@ def perform_query(choice):
 
                 # Set color to its default value
                 ps.PlotDBStructure.setPersonColor()
-
-
-
 
     elif choice_number[0] == "5":
         print("query 5")
