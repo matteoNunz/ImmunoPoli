@@ -31,6 +31,9 @@ pip install -r config_environment.txt
 
 ## Database Generator
 
+The dataset is drawn from a random generator. It allows enforcing parameterssuch as the number of visits, tests, covid vaccinations, families and the proba-bility of being positive.
+
+To generete a new dataset on Neo4j Aura type the following command in the terminal:
 
 ```sh
 pyhton3 DataBaseGenerator.py
@@ -53,7 +56,7 @@ The User can:
 - modify some of his personal information 
 - visualize his green pass
 - visualize covid alerts 
-- visualize the list of palaces he visited in the last ten days 
+- visualize the list of palaces he visited
 
 The App Manager can:
 - add new covid test results
