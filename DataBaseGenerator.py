@@ -1051,7 +1051,7 @@ def delete_negative_after_exposure():
     Method that deletes exposure for people who made a negative test after a covid exposure
     """
     query = ("match ()-[c:COVID_EXPOSURE]->(p)-[m:MAKE_TEST{result:\"Negative\"}]->(t) "
-             "where m.date > c.date "
+             "where m.date >= c.date + duration({days: 7}) "
              "delete c")
     with driver.session() as session:
         session.run(query)
