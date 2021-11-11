@@ -108,9 +108,13 @@ QUERY_OPTIONS_TRENDS = [
     "7 - The rate of vaccinated people who result positive"
 ]
 
+#USER = "neo4j"
+#PASSWORD = "1234"
+#URI = "bolt://localhost:7687"
+
 USER = "neo4j"
-PASSWORD = "1234"
-URI = "bolt://localhost:7687"
+PASSWORD = "cJhfqi7RhIHR4I8ocQtc5pFPSEhIHDVJBCps3ULNzbA"
+URI = "neo4j+s://057f4a80.databases.neo4j.io"
 
 """
 list of buttons that don't belong to canvas that have to be delete before building a page 
@@ -210,8 +214,8 @@ def positive_after_one_dose(tx):
      """
     # toDo: verify if the NOT condition works considering the 2 GET different
     query = (
-        "MATCH(t:Test)<-[m:MAKE_TEST{result: \"Positive\"}]-(p:Person)-[g: GET]->(v:Vaccine) "
-        "WHERE NOT (()<-[:GET]-(p)-[:GET]->()) AND m.date > g.date "
+        "MATCH(t:Test)<-[m:MAKE_TEST{result: \"Positive\"}]-(p:Person)-[g: GET_VACCINE]->(v:Vaccine) "
+        "WHERE NOT (()<-[:GET_VACCINE]-(p)-[:GET_VACCINE]->()) AND m.date > g.date "
         "RETURN p , ID(p)"
     )
     result = tx.run(query).data()
@@ -295,7 +299,7 @@ def positive_with_vaccine(tx):
       """
     query = (
         " MATCH (v:Vaccine)<-[g:GET_VACCINE]-(p:Person)-[m:MAKE_TEST{result: \"Positive\"}]->(t:Test) "
-        "MATCH (v)<-[g1:GET]-(p1: Person) "
+        "MATCH (v)<-[g1:GET_VACCINE]-(p1: Person) "
         "WHERE m.date > g.date "
         "RETURN (COUNT(DISTINCT(p)))*100/COUNT(DISTINCT(p1)) AS rate, v.name"
     )
@@ -671,14 +675,14 @@ def delete_contact_exposure(tx, ID):
     :param tx: session
     """
     query = (
-        "MATCH (p:Person) - [inf:INFECTED]-> (i:Person) - [m: MAKE {result: \"Negative\"}]->(:Test) "
-        "WHERE m.date > inf.date + duration({days: 10}) and id(i) = $id "
+        "MATCH (p:Person) - [inf:COVID_EXPOSURE]-> (i:Person) - [m: MAKE_TEST{result: \"Negative\"}]->(:Test) "
+        "WHERE m.date >= inf.date + duration({days: 7}) and id(i) = $id "
         "DELETE inf "
     )
-    result = tx.run(query, id=ID)
+    tx.run(query, id=ID)
 
 
-def createRelationshipsInfect(id, test_date, daysBack):
+def createRelationshipsInfect(id, test_date, test_hour, daysBack):
     """
     Method that finds all the contacts of a positive person
     :param daysBack: is the number of days to look in the past
@@ -692,14 +696,19 @@ def createRelationshipsInfect(id, test_date, daysBack):
     )
     appContactQuery = (
         "MATCH (pp:Person)-[r1:APP_CONTACT]->(ip:Person) "
-        "WHERE ID(pp) = $id AND r1.date > date($date) AND NOT "
+        "WHERE ID(pp) = $id AND (r1.date > date($date) OR (r1.date = date($date) AND r1.hour >= time($hour))) "
+        "AND (r1.date < date($date) + duration({days:7}) OR (r1.date = date($date)+duration({days:7}) AND "
+        "r1.hour <= time($hour))) "
+        "AND NOT "
         "(pp)-[:COVID_EXPOSURE{date: r1.date}]->(ip)"
         "RETURN DISTINCT ID(ip) , r1.date;"
     )
     locationContactQuery = (
         "MATCH (pp:Person)-[r1:VISIT]->(l:Location)<-[r2:VISIT]-(ip:Person) "
-        "WHERE ID(pp) = $id AND ip <> pp AND r1.date > date($date) AND r2.date = r1.date AND "
-        "((r1.star_hour < r2.start_hour AND r1.end_hour > r2.start_hour) OR "
+        "WHERE ID(pp) = $id AND ip <> pp AND (r1.date > date($date) OR (r1.date = date($date) AND r1.start_hour >= time($hour))) "
+        "AND (r1.date < date($date) + duration({days:7}) OR (r1.date = date($date)+duration({days:7}) AND "
+        "r1.end_hour <= time($hour))) AND r2.date = r1.date AND "
+        "((r1.start_hour < r2.start_hour AND r1.end_hour > r2.start_hour) OR "
         "(r2.start_hour < r1.start_hour AND r2.end_hour > r1.start_hour)) AND NOT "
         "(pp)-[:COVID_EXPOSURE{name: l.name , date: r1.date}]->(ip)"
         "RETURN DISTINCT ID(ip) , r1.date , l.name;"
@@ -709,12 +718,12 @@ def createRelationshipsInfect(id, test_date, daysBack):
     """
     date is referred to date test - daysback 
     """
-    date = test_date - datetime.timedelta(daysBack)
+    date = datetime.datetime.strptime(test_date, "%Y-%m-%d") - datetime.timedelta(daysBack)
     infectedIds = []
     with driver.session() as s:
         familyInfected = s.read_transaction(findInfectInFamily, familyQuery, id)
-        appInfected = s.read_transaction(findInfect, appContactQuery, id, date)
-        locationInfected = s.read_transaction(findInfect, locationContactQuery, id, date)
+        appInfected = s.read_transaction(findInfect, appContactQuery, id, date, test_hour)
+        locationInfected = s.read_transaction(findInfect, locationContactQuery, id, date, test_hour)
 
         for el in familyInfected, appInfected, locationInfected:
             if len(el) > 0:
@@ -777,7 +786,7 @@ def findInfectInFamily(tx , query , id):
     return result
 
 
-def findInfect(tx , query , id , date):
+def findInfect(tx , query , id , date, hour):
     """
     Method that executes the query to find the Person infected by other Persons
     :param tx: is the transaction
@@ -785,7 +794,7 @@ def findInfect(tx , query , id , date):
     :param id: is the id of the positive Person
     :param date: is the date from wich start the tracking
     """
-    result = tx.run(query , id = id , date = date).data()
+    result = tx.run(query , id = id , date = date, hour = hour).data()
     return result
 
 
