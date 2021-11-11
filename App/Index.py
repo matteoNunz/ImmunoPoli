@@ -76,13 +76,14 @@ from pathlib import Path
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from tkinter import Tk, Canvas, Entry, Text, Button, PhotoImage, StringVar, OptionMenu
 from pandas import DataFrame
-
+import PlotDBStructure as ps
 import neo4j as nj
 import datetime
 
 import tkinter
 import numpy as np
 import matplotlib.pyplot as plt
+
 
 OUTPUT_PATH = Path(__file__).parent
 ASSETS_PATH = OUTPUT_PATH / Path("./Images")
@@ -110,10 +111,6 @@ QUERY_OPTIONS_TRENDS = [
 USER = "neo4j"
 PASSWORD = "1234"
 URI = "bolt://localhost:7687"
-
-# USER = "neo4j"
-# PASSWORD = "cJhfqi7RhIHR4I8ocQtc5pFPSEhIHDVJBCps3ULNzbA"
-# URI = "neo4j+s://057f4a80.databases.neo4j.io"
 
 """
 list of buttons that don't belong to canvas that have to be delete before building a page 
@@ -897,7 +894,7 @@ def perform_trend(choice):
 
     elif choice_number[0] == "5":
         result = find_vaccinated_for_CAP(session)
-        print(result)
+
         cap = result[0]
         vaccinated = result[1]
 
@@ -1012,7 +1009,7 @@ def perform_query(choice):
     "7 - All people had contact with a positive and haven't done the test yet"
     """
     # Initialize the network for the graph
-    # PlotDBStructure.PlotDBStructure.__init__()
+    ps.PlotDBStructure.__init__()
 
     if choice_number[0] == "1":
         print("query 1")
@@ -1022,21 +1019,23 @@ def perform_query(choice):
             for element in result:
                 # Create Person nodes
                 personDict = {'p': element['p1'], 'ID(p)': element['ID(p1)']}
-                # PlotDBStructure.PlotDBStructure.addStructure(personDict)
+                ps.PlotDBStructure.addStructure(personDict)
                 personDict = {'p': element['p2'], 'ID(p)': element['ID(p2)']}
-                # PlotDBStructure.PlotDBStructure.addStructure(personDict)
+                ps.PlotDBStructure.addStructure(personDict)
 
     elif choice_number[0] == "2":
         print("query 2")
         with driver.session() as s:
             result = s.read_transaction(positive_after_contact)
-            # PlotDBStructure.PlotDBStructure.addStructure(result)
+
+            print(result)
+            ps.PlotDBStructure.addStructure(result)
 
     elif choice_number[0] == "3":
         print("query 3")
         with driver.session() as s:
             result = s.read_transaction(positive_after_one_dose)
-            # PlotDBStructure.PlotDBStructure.addStructure(result)
+            ps.PlotDBStructure.addStructure(result)
 
     elif choice_number[0] == "4":
         # All people that live in a house with at least a positive now
@@ -1047,50 +1046,50 @@ def perform_query(choice):
             for element in result:
                 # Add the House in the network
                 elementDict = {'h': element['h'], 'ID(h)': element['ID(h)']}
-                # PlotDBStructure.PlotDBStructure.addStructure(elementDict)
+                ps.PlotDBStructure.addStructure(elementDict)
 
                 # Add the positive Person in the network
                 elementDict = {'p': element['pp'], 'ID(p)': element['ID(pp)']}
                 # Set color = 'red' to better identify the positive member
-                # PlotDBStructure.PlotDBStructure.setPersonColor('red')
-                # PlotDBStructure.PlotDBStructure.addStructure(elementDict)
+                ps.PlotDBStructure.setPersonColor('red')
+                ps.PlotDBStructure.addStructure(elementDict)
 
                 # Add the LIVE relationships
-                # PlotDBStructure.PlotDBStructure.addLiveRelationships(element['ID(pp)'] , element['ID(h)'])
+                ps.PlotDBStructure.addLiveRelationships(element['ID(pp)'] , element['ID(h)'])
 
                 # Add the other member in the family
                 personToPrint = []
                 for i in range(len(element['COLLECT(p)'])):
                     elementDict = {'p': element['COLLECT(p)'][i], 'ID(p)': element['COLLECT(ID(p))'][i]}
                     personToPrint.append(elementDict)
-                    # PlotDBStructure.PlotDBStructure.addLiveRelationships(element['COLLECT(ID(p))'][i] , element['ID(h)'])
+                    ps.PlotDBStructure.addLiveRelationships(element['COLLECT(ID(p))'][i] , element['ID(h)'])
                 # Set color to its default value
-                # PlotDBStructure.PlotDBStructure.setPersonColor()
-                # PlotDBStructure.PlotDBStructure.addStructure(personToPrint)
+                ps.PlotDBStructure.setPersonColor()
+                ps.PlotDBStructure.addStructure(personToPrint)
 
     elif choice_number[0] == "5":
         print("query 5")
         with driver.session() as s:
             result = s.read_transaction(house_with_positive)
-            # PlotDBStructure.PlotDBStructure.addStructure(result)
+            ps.PlotDBStructure.addStructure(result)
 
     elif choice_number[0] == "6":
         print("query 6")
         with driver.session() as s:
             result = s.read_transaction(five_risk_location)
-            # PlotDBStructure.PlotDBStructure.addStructure(result)
+            ps.PlotDBStructure.addStructure(result)
 
     elif choice_number[0] == "7":
         print("query 7")
         with driver.session() as s:
             result = s.read_transaction(people_at_risk_without_test)
-            # PlotDBStructure.PlotDBStructure.addStructure(result)
+            ps.PlotDBStructure.addStructure(result)
 
     else:
         pass
 
     # Show the graph built
-    # PlotDBStructure.PlotDBStructure.showGraph()
+    ps.PlotDBStructure.showGraph()
 
 
 def ct_value_check(date_initial, ID_personal, hour_initial, testId_initial, result):
