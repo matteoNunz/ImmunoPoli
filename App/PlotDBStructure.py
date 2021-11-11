@@ -1,5 +1,7 @@
 from pyvis.network import Network
-
+import webbrowser
+import platform
+import os
 
 class PlotDBStructure:
     """
