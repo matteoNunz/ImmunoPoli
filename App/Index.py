@@ -84,7 +84,6 @@ import tkinter
 import numpy as np
 import matplotlib.pyplot as plt
 
-
 OUTPUT_PATH = Path(__file__).parent
 ASSETS_PATH = OUTPUT_PATH / Path("./Images")
 
@@ -108,10 +107,12 @@ QUERY_OPTIONS_TRENDS = [
     "7 - The rate of vaccinated people who result positive"
 ]
 
+# USER = "neo4j"
+# PASSWORD = "1234"
+# URI = "bolt://localhost:7687"
 USER = "neo4j"
-PASSWORD = "1234"
-URI = "bolt://localhost:7687"
-
+PASSWORD = "cJhfqi7RhIHR4I8ocQtc5pFPSEhIHDVJBCps3ULNzbA"
+URI = "neo4j+s://057f4a80.databases.neo4j.io"
 """
 list of buttons that don't belong to canvas that have to be delete before building a page 
 """
@@ -757,18 +758,18 @@ def createRelationshipsInfect(id, test_date, daysBack):
             s.write_transaction(createInfectLocation, query, id, infectedId, infectedDate, infectedPlace)
 
 
-def findInfectInFamily(tx , query , id):
+def findInfectInFamily(tx, query, id):
     """
     Method that executes the query to find the infected member of a family
     :param tx: is the transaction
     :param query: is the query to execute
     :param id: is the id of the positive Person
     """
-    result = tx.run(query , id = id).data()
+    result = tx.run(query, id=id).data()
     return result
 
 
-def findInfect(tx , query , id , date):
+def findInfect(tx, query, id, date):
     """
     Method that executes the query to find the Person infected by other Persons
     :param tx: is the transaction
@@ -776,7 +777,7 @@ def findInfect(tx , query , id , date):
     :param id: is the id of the positive Person
     :param date: is the date from wich start the tracking
     """
-    result = tx.run(query , id = id , date = date).data()
+    result = tx.run(query, id=id, date=date).data()
     return result
 
 
@@ -1042,30 +1043,61 @@ def perform_query(choice):
         print("query 4")
         with driver.session() as s:
             result = s.read_transaction(people_live_in_positive_house)
-
+            ps.PlotDBStructure.setPersonColor('red')
+            listStupid = []
             for element in result:
-                # Add the House in the network
-                elementDict = {'h': element['h'], 'ID(h)': element['ID(h)']}
-                ps.PlotDBStructure.addStructure(elementDict)
-
                 # Add the positive Person in the network
                 elementDict = {'p': element['pp'], 'ID(p)': element['ID(pp)']}
+                print(elementDict)
                 # Set color = 'red' to better identify the positive member
-                ps.PlotDBStructure.setPersonColor('red')
-                ps.PlotDBStructure.addStructure(elementDict)
+                listStupid.append(elementDict)
+            print(listStupid)
+            ps.PlotDBStructure.addStructure(listStupid)
+            ps.PlotDBStructure.setPersonColor()
 
-                # Add the LIVE relationships
-                ps.PlotDBStructure.addLiveRelationships(element['ID(pp)'] , element['ID(h)'])
+            for element in result:
+                listStupid = []
+                # Add the House in the network
+                elementDict = {'h': element['h'], 'ID(h)': element['ID(h)']}
+                listStupid.append(elementDict)
+                ps.PlotDBStructure.addStructure(listStupid)
+                ps.PlotDBStructure.showGraph()
+                # fino a qua
+                personToPrint = []
+                personToPrint.append(element['ID(pp)'])
+                ps.PlotDBStructure.addStructure(personToPrint)
+                present=False
+                for r in ps.PlotDBStructure.network.get_edges():
+                    if element[element['ID(pp)']] == r['from'] and element['ID(h)'] == r['to']:
+                      present=True
+                      break
+                if not present:
+                    ps.PlotDBStructure.addLiveRelationships(element[element['ID(pp)']], element['ID(h)'])
 
                 # Add the other member in the family
-                personToPrint = []
+
+
+
                 for i in range(len(element['COLLECT(p)'])):
                     elementDict = {'p': element['COLLECT(p)'][i], 'ID(p)': element['COLLECT(ID(p))'][i]}
+                    personToPrint = []
                     personToPrint.append(elementDict)
-                    ps.PlotDBStructure.addLiveRelationships(element['COLLECT(ID(p))'][i] , element['ID(h)'])
+                    ps.PlotDBStructure.addStructure(personToPrint)
+                    # if the element is already on the list don't add it
+                    present = False
+
+                    for r in ps.PlotDBStructure.network.get_edges():
+                        if element['COLLECT(ID(p))'][i] == r['from'] and element['ID(h)'] == r['to']:
+                           present=True
+                           break
+                    if not present:
+                        ps.PlotDBStructure.addLiveRelationships(element['COLLECT(ID(p))'][i], element['ID(h)'])
+
                 # Set color to its default value
                 ps.PlotDBStructure.setPersonColor()
-                ps.PlotDBStructure.addStructure(personToPrint)
+
+
+
 
     elif choice_number[0] == "5":
         print("query 5")
