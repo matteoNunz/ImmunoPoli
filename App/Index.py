@@ -84,7 +84,6 @@ import tkinter
 import numpy as np
 import matplotlib.pyplot as plt
 
-
 OUTPUT_PATH = Path(__file__).parent
 ASSETS_PATH = OUTPUT_PATH / Path("./Images")
 
@@ -104,13 +103,9 @@ QUERY_OPTIONS_TRENDS = [
     "3 - The number of positives for each month",
     "4 - The number of vaccines done for each month",
     "5 - The number of people that received a vaccine for each CAP",
-    "6 - The number of contacts registered via app for 10 person",
+    "6 - The number of contacts registered via app for at most 10 person",
     "7 - The rate of vaccinated people who result positive"
 ]
-
-#USER = "neo4j"
-#PASSWORD = "1234"
-#URI = "bolt://localhost:7687"
 
 USER = "neo4j"
 PASSWORD = "cJhfqi7RhIHR4I8ocQtc5pFPSEhIHDVJBCps3ULNzbA"
@@ -263,7 +258,7 @@ def five_risk_location(tx):
         "WHERE v.date <= m.date <= v.date + duration({Days: 10}) AND v.date >= date() - duration({Days: 30}) and"
         " id(l)= 266 "
         "with (COUNT(DISTINCT(p)))*1.0 as num, id(l) as i "
-  
+
         "MATCH (p1:Person)-[v1:VISIT]->(l1:Location) "
         "WHERE v1.date >= date() - duration({Days: 30}) and id(l1) = i "
         "with (COUNT(DISTINCT(p1))) as den, num, l1 "
@@ -572,6 +567,7 @@ def find_place_visited(tx, ID):
     result = tx.run(query, ID=ID)
 
     for relation in result:
+
         place = []
         z = relation.data()['l.name']
         z = str(z)
@@ -594,15 +590,20 @@ def find_place_visited(tx, ID):
             "WHERE v.date <= m.date <= v.date + duration({Days: 10}) AND v.date >= date() - duration({Days: 30}) and "
             "id(l)= $ID "
             "with (COUNT(DISTINCT(p)))*1.0 as num, id(l) as i "
-            
+
             "MATCH (p1:Person)-[v1:VISIT]->(l)  "
             "WHERE  v1.date >= date() - duration({Days: 30}) and id(l) = i "
             "with (COUNT(DISTINCT(p1))) as den, num  "
 
             "return num/den as rate "
-            )
+        )
+
         risk_rate = tx.run(risk_query, ID=location_id)
-        risk = risk_rate.data()[0]['rate'] * 100
+
+        if len(risk_rate.data()) == 0:
+            risk = 0
+        else:
+            risk = risk_rate.data()[0]['rate'] * 100
         risk_formatted = round(risk, 2)
         place.append(risk_formatted)
         places.append(place)
@@ -775,18 +776,18 @@ def createRelationshipsInfect(id, test_date, test_hour, daysBack):
             s.write_transaction(createInfectLocation, query, id, infectedId, infectedDate, infectedPlace)
 
 
-def findInfectInFamily(tx , query , id):
+def findInfectInFamily(tx, query, id):
     """
     Method that executes the query to find the infected member of a family
     :param tx: is the transaction
     :param query: is the query to execute
     :param id: is the id of the positive Person
     """
-    result = tx.run(query , id = id).data()
+    result = tx.run(query, id=id).data()
     return result
 
 
-def findInfect(tx , query , id , date, hour):
+def findInfect(tx, query, id, date, hour):
     """
     Method that executes the query to find the Person infected by other Persons
     :param tx: is the transaction
@@ -794,7 +795,7 @@ def findInfect(tx , query , id , date, hour):
     :param id: is the id of the positive Person
     :param date: is the date from wich start the tracking
     """
-    result = tx.run(query , id = id , date = date, hour = hour).data()
+    result = tx.run(query, id=id, date=date, hour=hour).data()
     return result
 
 
@@ -820,6 +821,124 @@ def createInfectLocation(tx, query, id, ipid, date, name):
 
 
 """VALUES MANAGING"""
+
+
+def return_to_main(button_exit):
+    # clear all
+
+    button_exit.destroy()
+
+    global plot
+    global button_list
+    global entry_list
+
+    if plot is not None:
+        plot.destroy()
+    plot = None
+
+    for x in button_list:
+        x.destroy()
+    button_list = []
+
+    for x in entry_list:
+        x.destroy()
+    entry_list = []
+
+    global personal_information
+    personal_information = []
+
+    global new_fields_pi
+    new_fields_pi = []
+
+    global green_pass
+    green_pass = []
+
+    global tests
+    tests = []
+
+    global places
+    places = []
+
+    global exposures
+    exposures = []
+
+    global error
+    if error is not None:
+        canvas.delete(error)
+
+    error = None
+
+    global label
+    if label is not None:
+        canvas.delete(label)
+    label = None
+
+    # build main
+
+    canvas.delete("all")
+
+    title = canvas.create_text(
+        260.0,
+        317.0,
+        anchor="nw",
+        text="ImmunoPoli",
+        fill="#000000",
+        font=("Comfortaa Regular", 34 * -1)
+    )
+
+    subtitle = canvas.create_text(
+        195.0,
+        363.0,
+        anchor="nw",
+        text="Welcome to COVID-19 information portal",
+        fill="#000000",
+        font=("Poppins Regular", 16 * -1)
+    )
+
+    # user login button
+    button_image_0 = PhotoImage(
+        file=relative_to_assets("button_0.png"))
+    button_0 = Button(
+        image=button_image_0,
+        borderwidth=1000,
+        highlightthickness=0,
+        command=lambda: user_login(title, subtitle, button__1, button_0),
+        relief="flat"
+    )
+    button_0.place(
+        x=414.0,
+        y=405.0,
+        width=200.0,
+        height=60.0
+    )
+
+    # app manager login button
+    button_image__1 = PhotoImage(
+        file=relative_to_assets("button_-1.png"))
+    button__1 = Button(
+        image=button_image__1,
+        borderwidth=1000,
+        highlightthickness=0,
+        command=lambda: app_manager_login(title, subtitle, button__1, button_0),
+        relief="flat"
+    )
+
+    button__1.place(
+        x=85.0,
+        y=405.0,
+        width=200.0,
+        height=60.0
+    )
+
+    image_image_1 = PhotoImage(
+        file=relative_to_assets("logo.png"))
+    image_1 = canvas.create_image(
+        350.0,
+        164.0,
+        image=image_image_1
+    )
+
+    window.mainloop()
 
 
 def perform_trend(choice):
@@ -1074,14 +1193,14 @@ def perform_query(choice):
                 ps.PlotDBStructure.addStructure(elementDict)
 
                 # Add the LIVE relationships
-                ps.PlotDBStructure.addLiveRelationships(element['ID(pp)'] , element['ID(h)'])
+                ps.PlotDBStructure.addLiveRelationships(element['ID(pp)'], element['ID(h)'])
 
                 # Add the other member in the family
                 personToPrint = []
                 for i in range(len(element['COLLECT(p)'])):
                     elementDict = {'p': element['COLLECT(p)'][i], 'ID(p)': element['COLLECT(ID(p))'][i]}
                     personToPrint.append(elementDict)
-                    ps.PlotDBStructure.addLiveRelationships(element['COLLECT(ID(p))'][i] , element['ID(h)'])
+                    ps.PlotDBStructure.addLiveRelationships(element['COLLECT(ID(p))'][i], element['ID(h)'])
                 # Set color to its default value
                 ps.PlotDBStructure.setPersonColor()
                 ps.PlotDBStructure.addStructure(personToPrint)
@@ -1481,6 +1600,21 @@ def user_login(title, subtitle, button__1, button_0):
     global entry_list
     entry_list = [entry_1]
 
+    button_image = PhotoImage(
+        file=relative_to_assets("exit.png"))
+    button_exit = Button(
+        image=button_image,
+        borderwidth=1000,
+        highlightthickness=0,
+        command=lambda: return_to_main(button_exit),
+        relief="flat"
+    )
+    button_exit.place(
+        x=610.0,
+        y=40.0,
+        width=55.0,
+        height=60.0)
+
     # update window
     window.mainloop()
 
@@ -1535,6 +1669,21 @@ def app_manager_login(title, subtitle, button__1, button_0):
 
     global entry_list
     entry_list = [entry_1]
+
+    button_image = PhotoImage(
+        file=relative_to_assets("exit.png"))
+    button_exit = Button(
+        image=button_image,
+        borderwidth=1000,
+        highlightthickness=0,
+        command=lambda: return_to_main(button_exit),
+        relief="flat"
+    )
+    button_exit.place(
+        x=620.0,
+        y=421.0,
+        width=55.0,
+        height=60.0)
 
     window.mainloop()
 
@@ -1947,6 +2096,15 @@ def create_db():
         text="Database Query",
         fill="#6370FF",
         font=("Comfortaa Bold", 20 * -1)
+    )
+
+    canvas.create_text(
+        130.0,
+        300.0,
+        anchor="nw",
+        text="If the result is not empty, it is displayed in a browser window",
+        fill="#000000",
+        font=("Comfortaa ", 16 * -1)
     )
 
     button_image_1 = PhotoImage(
