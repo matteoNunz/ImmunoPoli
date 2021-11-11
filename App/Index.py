@@ -256,10 +256,15 @@ def five_risk_location(tx):
      """
     query = (
         "MATCH (p:Person)-[v:VISIT]->(l:Location), (p)-[m:MAKE_TEST {result: \"Positive\"}]->(t:Test) "
-        "MATCH (p1:Person)-[v1:VISIT]->(l) "
-        "WHERE v.date <= m.date <= v.date + duration({Days: 10}) AND v.date >= date() - duration({Days: 30}) AND "
-        "v1.date >= date() - duration({Days: 30}) "
-        "RETURN (COUNT(DISTINCT(p)))*1.0 / (COUNT(DISTINCT(p1))) AS rate, l , ID(l) ORDER BY rate DESC LIMIT 5 "
+        "WHERE v.date <= m.date <= v.date + duration({Days: 10}) AND v.date >= date() - duration({Days: 30}) and"
+        " id(l)= 266 "
+        "with (COUNT(DISTINCT(p)))*1.0 as num, id(l) as i "
+  
+        "MATCH (p1:Person)-[v1:VISIT]->(l1:Location) "
+        "WHERE v1.date >= date() - duration({Days: 30}) and id(l1) = i "
+        "with (COUNT(DISTINCT(p1))) as den, num, l1 "
+
+        "return num/den as rate, l1 , id(l1) ORDER BY rate DESC LIMIT 5"
     )
     result = tx.run(query).data()
     return result
@@ -581,13 +586,17 @@ def find_place_visited(tx, ID):
         place.append(y)
         location_id = relation.data()['id(l)']
         risk_query = (
-            "MATCH (t)<-[m:MAKE_TEST{result:\"Positive\"}]-(p:Person)-[v:VISIT]->(l)"
-            "MATCH (p1:Person)-[v1:VISIT]->(l)"
-            "WHERE id(l) = $ID AND v.date <= m.date <= v.date + duration({Days: 10}) "
-            " AND v.date >= date() - duration({Days: 30}) "
-            "AND v1.date >= date() - duration({Days: 30})"
-            "RETURN (COUNT(DISTINCT(p)))*1.0 / (COUNT(DISTINCT(p1))) AS rate"
-        )
+            "MATCH (p:Person)-[v:VISIT]->(l:Location), (p)-[m:MAKE_TEST {result: \"Positive\"}]->(t:Test) "
+            "WHERE v.date <= m.date <= v.date + duration({Days: 10}) AND v.date >= date() - duration({Days: 30}) and "
+            "id(l)= $ID "
+            "with (COUNT(DISTINCT(p)))*1.0 as num, id(l) as i "
+            
+            "MATCH (p1:Person)-[v1:VISIT]->(l)  "
+            "WHERE  v1.date >= date() - duration({Days: 30}) and id(l) = i "
+            "with (COUNT(DISTINCT(p1))) as den, num  "
+
+            "return num/den as rate "
+            )
         risk_rate = tx.run(risk_query, ID=location_id)
         risk = risk_rate.data()[0]['rate'] * 100
         risk_formatted = round(risk, 2)
@@ -1044,6 +1053,7 @@ def perform_query(choice):
             result = s.read_transaction(people_live_in_positive_house)
 
             for element in result:
+                print(element)
                 # Add the House in the network
                 elementDict = {'h': element['h'], 'ID(h)': element['ID(h)']}
                 ps.PlotDBStructure.addStructure(elementDict)
