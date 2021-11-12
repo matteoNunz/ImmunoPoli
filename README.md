@@ -7,7 +7,7 @@
 ## Index
 
 - Group components
-- Enviroment setup 
+- Environment setup 
 - Database Generator
 - GUI 
 
@@ -15,7 +15,7 @@
 
 | Cognome | Nome | e-mail | Matricola | Codice Persona
 | ------ | ------ |----- |----- |----- |
-| Musumeci | Margherita| margherita.musumeci@mail.polimi.it| 907435| 10600069
+| Musumeci | Margherita| margherita.musumeci@mail.polimi.it| 991549| 10600069
 | Nunziante |  Matteo| matteo.nunziante@mail.polimi.it | 992518 | 10670132
 | Rendina |Piero | piero.rendina@mail.polimi.it  | 991437 | 10629696
 | Sanchini |  Andrea | andrea.sanchini@mail.polimi.it | 992072 | 10675541 | 
@@ -31,9 +31,9 @@ pip install -r config_environment.txt
 
 ## Database Generator
 
-The dataset is drawn from a random generator. It allows enforcing parameterssuch as the number of visits, tests, covid vaccinations, families and the proba-bility of being positive.
+The dataset is drawn from a random generator. It allows enforcing parameters such as the number of visits, tests, COVID-19 vaccinations, families and the probability of being positive.
 
-To generete a new dataset on Neo4j Aura type the following command in the terminal:
+To generate a new dataset on Neo4j Aura type the following command in the terminal:
 
 ```sh
 pyhton3 DataBaseGenerator.py
@@ -51,6 +51,14 @@ pyhton3 App/Index.py
 ```
 ![front page](App/Images/index.png?raw=true)
 
+The App Manager can:
+- add new COVID-19 test results
+- perform queries to the database 
+- see common trends
+
+The Location Manager can:
+- register a person that is visiting his location on the current day
+
 The User can:
 - visualize his personal information 
 - modify some of his personal information 
@@ -58,7 +66,4 @@ The User can:
 - visualize covid alerts 
 - visualize the list of palaces he visited
 
-The App Manager can:
-- add new covid test results
-- perform queries to the database 
-- see common trends 
+

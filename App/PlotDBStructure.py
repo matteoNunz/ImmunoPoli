@@ -277,10 +277,10 @@ class PlotDBStructure:
             print("Empty graph: nothing to show!")
             return
         PlotDBStructure.network.set_edge_smooth('dynamic')
+        PlotDBStructure.network.show('graph.html')
 
         if platform.system() == "Darwin":  # check if on OSX
             file_location = "file://" + os.path.abspath('graph.html')
             webbrowser.get().open(file_location, new=1)
-        else:
-            PlotDBStructure.network.show('graph.html')
+
 
