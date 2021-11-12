@@ -51,6 +51,14 @@ pyhton3 App/Index.py
 ```
 ![front page](App/Images/index.png?raw=true)
 
+The App Manager can:
+- add new covid test results
+- perform queries to the database 
+- see common trends
+
+The Location Manager can:
+- register a person that is visiting his location on the current day
+
 The User can:
 - visualize his personal information 
 - modify some of his personal information 
@@ -58,7 +66,4 @@ The User can:
 - visualize covid alerts 
 - visualize the list of palaces he visited
 
-The App Manager can:
-- add new covid test results
-- perform queries to the database 
-- see common trends 
+
