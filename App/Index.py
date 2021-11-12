@@ -90,16 +90,17 @@ ASSETS_PATH = OUTPUT_PATH / Path("./Images")
 
 QUERY_OPTIONS = [
     "1 - All contacts registered via the app",
-    "2 - All people who result positive after direct contact with a positive",
-    "3 - All people who result positive after a vaccine dose",
-    "4 - All people that live in a house with at least a positive now",
-    "5 - Tree of exposures started by a person",
-    "6 - The first five places visited with a higher risk rate",
-    "7 - All people had contact with a positive and haven't done the test yet",
-    "8 - All people that haven't gotten the vaccine yet",
-    "9 - All people with just one dose of vaccine",
-    "10 - All people with two doses of vaccine",
-    "11 - Show the entire database"
+    "2 - All covid exposures registered",
+    "3 - All people who result positive after direct contact with a positive",
+    "4 - All people who result positive after a vaccine dose",
+    "5 - All people that live in a house with at least a positive now",
+    "6 - Tree of exposures started by a person",
+    "7 - The first ten places visited with a higher risk rate",
+    "8 - All people had contact with a positive and haven't done the test yet",
+    "9 - All people that haven't gotten the vaccine yet",
+    "10 - All people with just one dose of vaccine",
+    "11 - All people with two doses of vaccine",
+    "12 - Show the entire database"
 ]
 
 QUERY_OPTIONS_TRENDS = [
@@ -191,6 +192,20 @@ def app_contacts(tx):
     return result
 
 
+def covid_exposures(tx):
+    """
+    Method that queries the database for collecting all covid exposures
+    :param tx: session
+    :return nodes of person
+    """
+    query = (
+        "MATCH (n1:Person)-[r:COVID_EXPOSURE]->(n2:Person) "
+        "RETURN n1 , ID(n1) , n2 , ID(n2) , r , r.date , r.name"
+    )
+    result = tx.run(query).data()
+    return result
+
+
 def positive_after_contact(tx):
     """
         Method that queries the database for collecting all people that result positive after a contact
@@ -257,9 +272,9 @@ def tree_of_exposures(tx , id):
     return result
 
 
-def five_risk_location(tx):
+def ten_risk_location(tx):
     """
-         Method that queries the database for collecting 5 locations with the highest risk
+         Method that queries the database for collecting 10 locations with the highest risk
          :param tx: session
          :return nodes of person
      """
@@ -272,7 +287,7 @@ def five_risk_location(tx):
         "WHERE v1.date >= date() - duration({Days: 30}) and id(l) = i "
         "with (COUNT(DISTINCT(p1))) as den, num, l "
 
-        "return num/den as rate, l , ID(l) ORDER BY rate DESC LIMIT 5"
+        "return num/den as rate, l , ID(l) ORDER BY rate DESC LIMIT 10"
     )
     result = tx.run(query).data()
     return result
@@ -334,7 +349,7 @@ def people_with_two_dose(tx):
      """
     query = (
         "MATCH (n2:Vaccine)<-[r1:GET_VACCINE]-(n1:Person)-[r2:GET_VACCINE]->(n3:Vaccine) "
-        "WHERE r1 <> r2 "
+        "WHERE r1 <> r2 AND r1.date < r2.date "
         "RETURN n1 , ID(n1) , r1 , r1.date , r1.country , r1.expirationDate , n2 , ID(n2) , "
         "r2 , r2.date , r2.country , r2.expirationDate , n3 , ID(n3)"
     )
@@ -1431,17 +1446,18 @@ def perform_query(choice):
     choice_number = choice.split(" ")
 
     """
-    "1 - All direct and indirect contacts registered via the app",
-    "2 - All people who result positive after direct contact with a Person",
-    "3 - All people who result positive after a vaccine dose",
-    "4 - All people that live in a house with at least a positive now",
-    "5 - All homes with at least a positive now",
-    "6 - The first five places visited with a higher risk rate",
-    "7 - All people had contact with a positive and haven't done the test yet",
-    "8 - All people that haven't gotten the vaccine yet",
-    "9 - All people with just one dose of vaccine",
-    "10 - All people with two doses of vaccine",
-    "11 - Show the entire database"
+    "1 - All contacts registered via the app",
+    "2 - All covid exposures registered",
+    "3 - All people who result positive after direct contact with a positive",
+    "4 - All people who result positive after a vaccine dose",
+    "5 - All people that live in a house with at least a positive now",
+    "6 - Tree of exposures started by a person",
+    "7 - The first ten places visited with a higher risk rate",
+    "8 - All people had contact with a positive and haven't done the test yet",
+    "9 - All people that haven't gotten the vaccine yet",
+    "10 - All people with just one dose of vaccine",
+    "11 - All people with two doses of vaccine",
+    "12 - Show the entire database"
     """
     # Initialize the network for the graph
     ps.PlotDBStructure.__init__()
@@ -1465,15 +1481,32 @@ def perform_query(choice):
 
     elif choice_number[0] == "2":
         with driver.session() as s:
+            result = s.read_transaction(covid_exposures)
+
+            # Create all the nodes
+            nodesToPrint = []
+            for element in result:
+                elementDict = {'p': element['n1'], 'ID(p)': element['ID(n1)']}
+                nodesToPrint.append(elementDict)
+                elementDict = {'p': element['n2'], 'ID(p)': element['ID(n2)']}
+                nodesToPrint.append(elementDict)
+
+            ps.PlotDBStructure.setPersonColor('blue')
+            ps.PlotDBStructure.addStructure(nodesToPrint)
+            ps.PlotDBStructure.addStructure(result)
+            print(ps.PlotDBStructure.network.get_nodes())
+
+    elif choice_number[0] == "3":
+        with driver.session() as s:
             result = s.read_transaction(positive_after_contact)
             ps.PlotDBStructure.addStructure(result)
 
-    elif choice_number[0] == "3":
+    elif choice_number[0] == "4":
         with driver.session() as s:
             result = s.read_transaction(positive_after_one_dose)
             ps.PlotDBStructure.addStructure(result)
 
-    elif choice_number[0] == "4":
+    elif choice_number[0] == "5":
         # All people that live in a house with at least a positive now
         with driver.session() as s:
             result = s.read_transaction(people_live_in_positive_house)
@@ -1519,21 +1552,25 @@ def perform_query(choice):
                     if not present:
                         ps.PlotDBStructure.addLiveRelationships(element['COLLECT(ID(p))'][i], element['ID(h)'])
 
-    elif choice_number[0] == "5":
+    elif choice_number[0] == "6":
         with driver.session() as s:
-            id = 9
+            id = 1044
+            # Todo: add the possibility to add the id
             # Verify id 9 is positive and exist
 
             result = s.read_transaction(tree_of_exposures , id)
             nodeToPrint = []
             for element in result:
-                print(element['ID(p2)'] , element['ID(p4)'])
                 elementDict = {'p': element['p2'], 'ID(p)': element['ID(p2)']}
                 nodeToPrint.append(elementDict)
                 ps.PlotDBStructure.addStructure(nodeToPrint)
                 elementDict = {'p': element['p4'], 'ID(p)': element['ID(p4)']}
                 nodeToPrint.append(elementDict)
                 ps.PlotDBStructure.addStructure(nodeToPrint)
+
+                # To avoid auto-relationships
+                if element['ID(p2)'] == element['ID(p4)']:
+                    continue
 
                 present = False
                 for r in ps.PlotDBStructure.network.get_edges():
@@ -1544,17 +1581,17 @@ def perform_query(choice):
                     ps.PlotDBStructure.addCovidExposureRelationships(element['ID(p2)'] , element['ID(p4)'] ,
                                                                  element['ce.date'] , element['ce.name'])
 
-    elif choice_number[0] == "6":
+    elif choice_number[0] == "7":
         with driver.session() as s:
-            result = s.read_transaction(five_risk_location)
+            result = s.read_transaction(ten_risk_location)
             ps.PlotDBStructure.addStructure(result)
 
-    elif choice_number[0] == "7":
+    elif choice_number[0] == "8":
         with driver.session() as s:
             result = s.read_transaction(people_at_risk_without_test)
             ps.PlotDBStructure.addStructure(result)
 
-    elif choice_number[0] == "8":
+    elif choice_number[0] == "9":
         with driver.session() as s:
             result = s.read_transaction(people_with_no_vaccine)
             nodesToPrint = []
@@ -1562,7 +1599,7 @@ def perform_query(choice):
                 nodesToPrint.append(node)
             ps.PlotDBStructure.addStructure(nodesToPrint)
 
-    elif choice_number[0] == "9":
+    elif choice_number[0] == "10":
         with driver.session() as s:
             result = s.read_transaction(people_with_one_dose)
 
@@ -1581,7 +1618,7 @@ def perform_query(choice):
             ps.PlotDBStructure.addStructure(nodesToPrint)
             ps.PlotDBStructure.addStructure(relationshipsToPrint)
 
-    elif choice_number[0] == "10":
+    elif choice_number[0] == "11":
         with driver.session() as s:
             result = s.read_transaction(people_with_two_dose)
 
@@ -1606,7 +1643,7 @@ def perform_query(choice):
             ps.PlotDBStructure.addStructure(nodesToPrint)
             ps.PlotDBStructure.addStructure(relationshipsToPrint)
 
-    elif choice_number[0] == "11":
+    elif choice_number[0] == "12":
         with driver.session() as s:
             personNodes = s.read_transaction(findAllPerson)
             houseNodes = s.read_transaction(findAllHome)
