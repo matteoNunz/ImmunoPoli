@@ -95,8 +95,9 @@ QUERY_OPTIONS = [
     "4 - All people that live in a house with at least a positive now",
     "5 - Tree of exposures started by a person",
     "6 - The first five places visited with a higher risk rate",
-    "7 - All people had contact with a positive and haven't done the test yet"
-    "8 - All people that haven't gotten the vaccine yet"
+    "7 - All people had contact with a positive and haven't done the test yet",
+    "8 - All people that haven't gotten the vaccine yet",
+    "10 - Show the entire database"
 ]
 
 QUERY_OPTIONS_TRENDS = [
@@ -294,13 +295,28 @@ def people_at_risk_without_test(tx):
     return result
 
 
+def people_with_no_vaccine(tx):
+    """
+         Method that queries the database for collecting all people that hasn't gotten the vaccine yet
+         :param tx: session
+         :return nodes of person
+     """
+    query = (
+        "MATCH (p:Person) "
+        "WHERE NOT ((p)-[:GET_VACCINE]->()) "
+        "RETURN p , ID(p)"
+    )
+    result = tx.run(query).data()
+    return result
+
+
 def positive_with_vaccine(tx):
     """
       Method that queries the database to calculate how many people who are vaccinated results positive to a covid test
       :param tx: session
       """
     query = (
-        " MATCH (v:Vaccine)<-[g:GET_VACCINE]-(p:Person)-[m:MAKE_TEST{result: \"Positive\"}]->(t:Test) "
+        "MATCH (v:Vaccine)<-[g:GET_VACCINE]-(p:Person)-[m:MAKE_TEST{result: \"Positive\"}]->(t:Test) "
         "MATCH (v)<-[g1:GET_VACCINE]-(p1: Person) "
         "WHERE m.date > g.date "
         "RETURN (COUNT(DISTINCT(p)))*100/COUNT(DISTINCT(p1)) AS rate, v.name"
@@ -316,6 +332,160 @@ def positive_with_vaccine(tx):
         vaccine.append(x.data()["v.name"])
 
     return [vaccine, rate]
+
+
+def findAllPerson(tx):
+    """
+    Method that finds all the nodes Person in the data base
+    :param tx: is the transaction
+    :return: a list of nodes
+    """
+    query = (
+        "MATCH (p:Person) "
+        "RETURN p , ID(p);"
+    )
+    results = tx.run(query).data()
+    return results
+
+
+def findAllHome(tx):
+    """
+    Method that finds all the nodes House in the data base
+    :param tx: is the transaction
+    :return: a list of nodes
+    """
+    query = (
+        "MATCH (h:House) "
+        "RETURN h , ID(h);"
+    )
+    results = tx.run(query).data()
+    return results
+
+
+def findAllLocation(tx):
+    """
+    Method that finds all the nodes Location in the data base
+    :param tx: is the transaction
+    :return: a list of nodes
+    """
+    query = (
+        "MATCH (l:Location) "
+        "RETURN l , ID(l);"
+    )
+    results = tx.run(query).data()
+    return results
+
+
+def findAllVaccine(tx):
+    """
+    Method that finds all the nodes Vaccine in the data base
+    :param tx: is the transaction
+    :return: a list of nodes
+    """
+    query = (
+        "MATCH (v:Vaccine) "
+        "RETURN v , ID(v);"
+    )
+    results = tx.run(query).data()
+    return results
+
+
+def findAllTest(tx):
+    """
+    Method that finds all the nodes Test in the data base
+    :param tx: is the transaction
+    :return: a list of nodes
+    """
+    query = (
+        "MATCH (t:Test) "
+        "RETURN t , ID(t);"
+    )
+    results = tx.run(query).data()
+    return results
+
+
+def findAllLiveRelationships(tx):
+    """
+    Method that finds all Live relationships in the data base
+    :param tx: is the transaction
+    :return: a list of relationships
+    """
+    query = (
+        "MATCH (n1:Person)-[r:LIVE]->(n2:House) "
+        "RETURN ID(n1) , r , ID(n2);"
+    )
+    results = tx.run(query).data()
+    return results
+
+
+def findAllAppContactRelationships(tx):
+    """
+    Method that finds all App_Contact relationships in the data base
+    :param tx: is the transaction
+    :return: a list of relationships
+    """
+    query = (
+        "MATCH (n1:Person)-[r:APP_CONTACT]->(n2:Person) "
+        "RETURN ID(n1) , r , r.date , r.hour, ID(n2);"
+    )
+    results = tx.run(query).data()
+    return results
+
+
+def findAllVisitRelationships(tx):
+    """
+    Method that finds all VISIT relationships in the data base
+    :param tx: is the transaction
+    :return: a list of relationships
+    """
+    query = (
+        "MATCH (n1:Person)-[r:VISIT]->(n2:Location) "
+        "RETURN ID(n1) , r , r.date , r.start_hour , r.end_hour , ID(n2);"
+    )
+    results = tx.run(query).data()
+    return results
+
+
+def findAllGetVaccineRelationships(tx):
+    """
+    Method that finds all GET (a vaccine) relationships in the data base
+    :param tx: is the transaction
+    :return: a list of relationships
+    """
+    query = (
+        "MATCH (n1:Person)-[r:GET_VACCINE]->(n2:Vaccine) "
+        "RETURN ID(n1) , r , r.date , r.country , r.expirationDate , ID(n2);"
+    )
+    results = tx.run(query).data()
+    return results
+
+
+def findAllMakeTestRelationships(tx):
+    """
+    Method that finds all MAKE (a test) relationships in the data base
+    :param tx: is the transaction
+    :return: a list of relationships
+    """
+    query = (
+        "MATCH (n1:Person)-[r:MAKE_TEST]->(n2:Test) "
+        "RETURN ID(n1) , r , r.date , r.hour , r.result , ID(n2);"
+    )
+    results = tx.run(query).data()
+    return results
+
+
+def findAllInfectedRelationships(tx):
+    """
+    Method that finds all INFECTED relationships in the data base
+    :param tx: is the transaction
+    :return: a list of relationships
+    """
+    query = (
+        "MATCH (n1:Person)-[r:COVID_EXPOSURE]->(n2:Person) "
+        "RETURN ID(n1) , r , r.date , r.name , ID(n2);"
+    )
+    results = tx.run(query).data()
+    return results
 
 
 def find_vaccinated_for_CAP(tx):
@@ -1235,7 +1405,9 @@ def perform_query(choice):
     "4 - All people that live in a house with at least a positive now",
     "5 - All homes with at least a positive now",
     "6 - The first five places visited with a higher risk rate",
-    "7 - All people had contact with a positive and haven't done the test yet"
+    "7 - All people had contact with a positive and haven't done the test yet",
+    "8 - All people that haven't gotten the vaccine yet",
+    "10 - Show the entire database"
     """
     # Initialize the network for the graph
     ps.PlotDBStructure.__init__()
@@ -1320,12 +1492,8 @@ def perform_query(choice):
 
             result = s.read_transaction(tree_of_exposures , id)
             nodeToPrint = []
-            print("\n\n\n")
-            print(result)
-            print("\n\n\n")
             for element in result:
                 print(element['ID(p2)'] , element['ID(p4)'])
-                print(element)
                 elementDict = {'p': element['p2'], 'ID(p)': element['ID(p2)']}
                 nodeToPrint.append(elementDict)
                 ps.PlotDBStructure.addStructure(nodeToPrint)
@@ -1353,7 +1521,42 @@ def perform_query(choice):
             ps.PlotDBStructure.addStructure(result)
 
     elif choice_number[0] == "8":
-        print("query 8")
+        with driver.session() as s:
+            result = s.read_transaction(people_with_no_vaccine)
+            nodesToPrint = []
+            for node in result:
+                nodesToPrint.append(node)
+            ps.PlotDBStructure.addStructure(nodesToPrint)
+
+    elif choice_number[0] == "10":
+        with driver.session() as s:
+            personNodes = s.read_transaction(findAllPerson)
+            houseNodes = s.read_transaction(findAllHome)
+            locationNodes = s.read_transaction(findAllLocation)
+            vaccineNodes = s.read_transaction(findAllVaccine)
+            testNodes = s.read_transaction(findAllTest)
+            liveRelationships = s.read_transaction(findAllLiveRelationships)
+            visitRelationships = s.read_transaction(findAllVisitRelationships)
+            appContactRelationships = s.read_transaction(findAllAppContactRelationships)
+            getRelationships = s.read_transaction(findAllGetVaccineRelationships)
+            makeRelationships = s.read_transaction(findAllMakeTestRelationships)
+            infectRelationships = s.read_transaction(findAllInfectedRelationships)
+
+            # Add nodes
+            ps.PlotDBStructure.addStructure(personNodes)
+            ps.PlotDBStructure.addStructure(houseNodes)
+            ps.PlotDBStructure.addStructure(locationNodes)
+            ps.PlotDBStructure.addStructure(vaccineNodes)
+            ps.PlotDBStructure.addStructure(testNodes)
+
+            # Add relationships
+            ps.PlotDBStructure.addStructure(liveRelationships)
+            ps.PlotDBStructure.addStructure(visitRelationships)
+            ps.PlotDBStructure.addStructure(appContactRelationships)
+            ps.PlotDBStructure.addStructure(makeRelationships)
+            ps.PlotDBStructure.addStructure(getRelationships)
+            ps.PlotDBStructure.addStructure(infectRelationships)
+
     else:
         pass
 
