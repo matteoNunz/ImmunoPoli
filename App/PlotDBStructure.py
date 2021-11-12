@@ -116,6 +116,7 @@ class PlotDBStructure:
                 if rType == 'LIVE':
                     color = PlotDBStructure.liveColor
                     PlotDBStructure.network.add_edge(id1, id2, title=rType, color=color)
+
                 elif rType == 'APP_CONTACT':
                     if 'r.hour' in relationship.keys():
                         hour = str(relationship['r.hour']).split('.')[0]
@@ -124,6 +125,7 @@ class PlotDBStructure:
                     title = rType + ",date: " + str(relationship['r.date']) + ",hour: " + hour
                     color = PlotDBStructure.appContactColor
                     PlotDBStructure.network.add_edge(id1, id2, title=title, color=color)
+
                 elif rType == 'VISIT':
                     start_hour = str(relationship['r.start_hour']).split('.')[0]
                     end_hour = str(relationship['r.end_hour']).split('.')[0]
@@ -131,17 +133,20 @@ class PlotDBStructure:
                             + start_hour + ",end_hour: " + end_hour
                     color = PlotDBStructure.visitColor
                     PlotDBStructure.network.add_edge(id1, id2, title=title, color=color)
+
                 elif rType == 'GET':
                     title = rType + ",date: " + str(relationship['r.date']) + ",expiration_date: " \
                             + str(relationship['r.expirationDate']) + ",country: " + relationship['r.country']
                     color = PlotDBStructure.getVaccineColor
                     PlotDBStructure.network.add_edge(id1, id2, title=title, color=color)
+
                 elif rType == 'MAKE_TEST':
                     hour = str(relationship['r.hour']).split('.')[0]
                     title = rType + ",date: " + str(relationship['r.date']) + ",hour: " + hour \
                             + ",result: " + relationship['r.result']
                     color = PlotDBStructure.makeTestColor
                     PlotDBStructure.network.add_edge(id1, id2, title=title, color=color)
+
                 elif rType == 'COVID_EXPOSURE':
                     title = rType + ",date: " + str(relationship['r.date']) + ",place: " + str(relationship['r.name'])
                     if relationship['r.name'] is None:
@@ -149,6 +154,7 @@ class PlotDBStructure:
                     else:
                         color = PlotDBStructure.infectedLocationColor
                     PlotDBStructure.network.add_edge(id1, id2, title=title, color=color)
+
                 else:
                     pass
 
@@ -161,6 +167,20 @@ class PlotDBStructure:
         """
         color = PlotDBStructure.liveColor
         PlotDBStructure.network.add_edge(pId, hId, title='LIVE', color=color)
+
+    @staticmethod
+    def addCovidExposureRelationships(p1Id , p2Id , date , place = None):
+        """
+        Method that adds the relationships COVID_EXPOSURE
+        :param p1Id: is the id of the first person
+        :param p2Id: is th id of the second person
+        :param date: is the date of the exposure
+        :param place: is the place of the exposure
+        """
+        title = "COVID_EXPOSURE" + ",date: " + str(date) + ",place: " + str(place)
+        color = PlotDBStructure.infectedLocationColor
+        PlotDBStructure.network.add_edge(p1Id , p2Id , title = title , color = color)
+
 
     @staticmethod
     def setPersonColor(color='orange'):
