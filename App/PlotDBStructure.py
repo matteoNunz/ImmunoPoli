@@ -134,7 +134,7 @@ class PlotDBStructure:
                     color = PlotDBStructure.visitColor
                     PlotDBStructure.network.add_edge(id1, id2, title=title, color=color)
 
-                elif rType == 'GET':
+                elif rType == 'GET_VACCINE':
                     title = rType + ",date: " + str(relationship['r.date']) + ",expiration_date: " \
                             + str(relationship['r.expirationDate']) + ",country: " + relationship['r.country']
                     color = PlotDBStructure.getVaccineColor

@@ -11,10 +11,10 @@ from enum import IntEnum
 import datetime
 
 MAX_NUMBER_OF_FAMILY_MEMBER = 5
-NUMBER_OF_FAMILY = 20
-MAX_NUMBER_OF_CONTACT_PER_DAY = 300  # For new contact relationships
+NUMBER_OF_FAMILY = 200
+MAX_NUMBER_OF_CONTACT_PER_DAY = 3000  # For new contact relationships
 
-MAX_NUMBER_OF_VISIT_PER_DAY = 400  # For new visit relationships
+MAX_NUMBER_OF_VISIT_PER_DAY = 4000  # For new visit relationships
 
 MAX_CIVIC_NUMBER = 100
 
@@ -24,9 +24,9 @@ PROBABILITY_TO_HAVE_APP = 0.5
 PROBABILITY_TO_BE_POSITIVE = 0.5
 PROBABILITY_TO_BE_TESTED_AFTER_INFECTED = 0.8
 
-MAX_NUMBER_OF_VACCINE_PER_DAY = 200  # For new get vaccinated relationships
+MAX_NUMBER_OF_VACCINE_PER_DAY = 2000  # For new get vaccinated relationships
 
-MAX_NUMBER_OF_TEST_PER_DAY = 30  # For new make test relationships
+MAX_NUMBER_OF_TEST_PER_DAY = 3000  # For new make test relationships
 
 
 # BOLT = "bolt://localhost:7687"
@@ -829,7 +829,7 @@ def createRelationshipsMakeTest(d, pIds, tIds):
             # Check whether or not I have been infected by someone
             delete_possible_infection_command = (
                 "MATCH ()-[i:COVID_EXPOSURE]->(p:Person)"
-                "WHERE ID(p) = $personId AND (date($date) >= i.date + duration({days: 7}) "
+                "WHERE ID(p) = $personId AND (date($date) >= i.date + duration({days: 7})) "
                 "DELETE i"
             )
             with d.session() as s:
@@ -1337,12 +1337,11 @@ if __name__ == '__main__':
     driver = openConnection()
 
     # Only read from the graph
-    printDatabase()
+    # printDatabase()
 
     # Close the connection
-    closeConnection(driver)
-    exit()
-
+    # closeConnection(driver)
+    # exit()
 
     # Read names from the file
     names = readNames()
@@ -1465,7 +1464,7 @@ if __name__ == '__main__':
     for positive in data_for_positive:
         positive_id = positive['ID(p)']
         contagion_date = str(positive['infectionDate'])
-        #Instruction needed to comply with Python way to manage dates
+        # Instruction needed to comply with Python way to manage dates
         contagion_datetime = datetime.datetime.strptime(contagion_date, "%Y-%m-%d")
         contagion_hour = str(positive['infectionHour'])
         createRelationshipsInfect(positive_id, contagion_datetime, contagion_hour, 7)

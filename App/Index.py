@@ -112,13 +112,9 @@ QUERY_OPTIONS_TRENDS = [
     "7 - The rate of vaccinated people who result positive"
 ]
 
-# USER = "neo4j"
-# PASSWORD = "cJhfqi7RhIHR4I8ocQtc5pFPSEhIHDVJBCps3ULNzbA"
-# URI = "neo4j+s://057f4a80.databases.neo4j.io"
-
 USER = "neo4j"
-PASSWORD = "1234"
-URI = "bolt://localhost:7687"
+PASSWORD = "cJhfqi7RhIHR4I8ocQtc5pFPSEhIHDVJBCps3ULNzbA"
+URI = "neo4j+s://057f4a80.databases.neo4j.io"
 
 """
 list of buttons that don't belong to canvas that have to be delete before building a page 
@@ -338,6 +334,7 @@ def people_with_two_dose(tx):
      """
     query = (
         "MATCH (n2:Vaccine)<-[r1:GET_VACCINE]-(n1:Person)-[r2:GET_VACCINE]->(n3:Vaccine) "
+        "WHERE r1 <> r2 "
         "RETURN n1 , ID(n1) , r1 , r1.date , r1.country , r1.expirationDate , n2 , ID(n2) , "
         "r2 , r2.date , r2.country , r2.expirationDate , n3 , ID(n3)"
     )
@@ -1576,8 +1573,9 @@ def perform_query(choice):
                 nodesToPrint.append(elementDict)
                 elementDict = {'v': element['n2'], 'ID(v)': element['ID(n2)']}
                 nodesToPrint.append(elementDict)
-                elementDict = {'r': element['r'], 'date': element['r.date'] ,
-                               'expirationDate': element['r.expirationDate'] , 'country': element['r.country']}
+                elementDict = {'r': element['r'], 'r.date': element['r.date'] ,
+                               'r.expirationDate': element['r.expirationDate'] , 'r.country': element['r.country'] ,
+                               'ID(n1)': element['ID(n1)'] , 'ID(n2)': element['ID(n2)']}
                 relationshipsToPrint.append(elementDict)
             # Add the nodes and the relationships
             ps.PlotDBStructure.addStructure(nodesToPrint)
@@ -1596,11 +1594,13 @@ def perform_query(choice):
                 nodesToPrint.append(elementDict)
                 elementDict = {'v': element['n3'], 'ID(v)': element['ID(n3)']}
                 nodesToPrint.append(elementDict)
-                elementDict = {'r': element['r1'], 'date': element['r1.date'] ,
-                               'expirationDate': element['r1.expirationDate'] , 'country': element['r1.country']}
+                elementDict = {'r': element['r1'], 'r.date': element['r1.date'] ,
+                               'r.expirationDate': element['r1.expirationDate'] , 'r.country': element['r1.country'] ,
+                               'ID(n1)': element['ID(n1)'] , 'ID(n2)': element['ID(n2)']}
                 relationshipsToPrint.append(elementDict)
-                elementDict = {'r': element['r2'], 'date': element['r2.date'] ,
-                               'expirationDate': element['r2.expirationDate'] , 'country': element['r2.country']}
+                elementDict = {'r': element['r2'], 'r.date': element['r2.date'] ,
+                               'r.expirationDate': element['r2.expirationDate'] , 'r.country': element['r2.country'] ,
+                               'ID(n1)': element['ID(n1)'] , 'ID(n2)': element['ID(n2)']}
                 relationshipsToPrint.append(elementDict)
             # Add the nodes and the relationships
             ps.PlotDBStructure.addStructure(nodesToPrint)
