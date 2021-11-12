@@ -178,14 +178,13 @@ def close_connection(connection):
 
 def app_contacts(tx):
     """
-    Method that queries the database for collecting all people who directly or indirectly was in
-    contact with a positive
+    Method that queries the database for collecting all people who directly or indirectly had a contact
     :param tx: session
     :return nodes of person
     """
     query = (
-        "MATCH (p1:Person)-[r:APP_CONTACT *]->(p2:Person) "
-        "RETURN p1 , ID(p1) , p2 , ID(p2) , r "
+        "MATCH (n1:Person)-[r:APP_CONTACT]->(n2:Person) "
+        "RETURN n1 , ID(n1) , n2 , ID(n2) , r , r.date , r.hour"
     )
     result = tx.run(query).data()
     return result
@@ -1241,12 +1240,18 @@ def perform_query(choice):
         with driver.session() as s:
             result = s.read_transaction(app_contacts)
 
+            # Create all the nodes
+            nodesToPrint = []
             for element in result:
-                # Create Person nodes
-                personDict = {'p': element['p1'], 'ID(p)': element['ID(p1)']}
-                ps.PlotDBStructure.addStructure(personDict)
-                personDict = {'p': element['p2'], 'ID(p)': element['ID(p2)']}
-                ps.PlotDBStructure.addStructure(personDict)
+                elementDict = {'p': element['n1'], 'ID(p)': element['ID(n1)']}
+                nodesToPrint.append(elementDict)
+                elementDict = {'p': element['n2'], 'ID(p)': element['ID(n2)']}
+                nodesToPrint.append(elementDict)
+
+            ps.PlotDBStructure.setPersonColor('green')
+            ps.PlotDBStructure.addStructure(nodesToPrint)
+            ps.PlotDBStructure.addStructure(result)
+            print(ps.PlotDBStructure.network.get_nodes())
 
     elif choice_number[0] == "2":
         with driver.session() as s:

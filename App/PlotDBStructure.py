@@ -120,7 +120,7 @@ class PlotDBStructure:
                     if 'r.hour' in relationship.keys():
                         hour = str(relationship['r.hour']).split('.')[0]
                     else:
-                        hour = None
+                        hour = str(None)
                     title = rType + ",date: " + str(relationship['r.date']) + ",hour: " + hour
                     color = PlotDBStructure.appContactColor
                     PlotDBStructure.network.add_edge(id1, id2, title=title, color=color)

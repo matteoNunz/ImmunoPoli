@@ -12,9 +12,9 @@ import datetime
 
 MAX_NUMBER_OF_FAMILY_MEMBER = 5
 NUMBER_OF_FAMILY = 20
-MAX_NUMBER_OF_CONTACT_PER_DAY = 300 # For new contact relationships
+MAX_NUMBER_OF_CONTACT_PER_DAY = 300  # For new contact relationships
 
-MAX_NUMBER_OF_VISIT_PER_DAY = 400 # For new visit relationships
+MAX_NUMBER_OF_VISIT_PER_DAY = 400  # For new visit relationships
 
 MAX_CIVIC_NUMBER = 100
 
@@ -24,9 +24,9 @@ PROBABILITY_TO_HAVE_APP = 0.5
 PROBABILITY_TO_BE_POSITIVE = 0.5
 PROBABILITY_TO_BE_TESTED_AFTER_INFECTED = 0.8
 
-MAX_NUMBER_OF_VACCINE_PER_DAY = 200 # For new get vaccinated relationships
+MAX_NUMBER_OF_VACCINE_PER_DAY = 200  # For new get vaccinated relationships
 
-MAX_NUMBER_OF_TEST_PER_DAY = 30 # For new make test relationships
+MAX_NUMBER_OF_TEST_PER_DAY = 30  # For new make test relationships
 
 
 # BOLT = "bolt://localhost:7687"
@@ -235,6 +235,7 @@ def readTests():
             testsList.append(line.rstrip('\n').rstrip().lstrip())
     f.close()
     return testsList
+
 
 def deleteAll(tx):
     """
@@ -1045,7 +1046,7 @@ def createRelationshipsInfect(id, test_date, test_hour, daysBack):
             s.write_transaction(createInfectLocation , query , id , infectedId , infectedDate , infectedPlace)
 
 
-#TODO check how many days are required to delete the exposure
+# TODO check how many days are required to delete the exposure
 def delete_negative_after_exposure():
     """
     Method that deletes exposure for people who made a negative test after a covid exposure
