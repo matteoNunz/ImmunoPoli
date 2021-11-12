@@ -1556,12 +1556,12 @@ def save_pi_changes(phone, email):
     count = check_if_mail_exist(session, email)
     if count > 0:
         error = canvas.create_text(
-            170.0,
-            372.0,
+            338,
+            322,
             anchor="nw",
-            text="ERROR: email exists yet ",
+            text="ERROR: \nemail exists yet ",
             fill="#CA0000",
-            font=("Comfortaa Regular", 16 * -1)
+            font=("Comfortaa Regular", 10 * -1)
         )
         return
 
