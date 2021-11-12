@@ -97,7 +97,9 @@ QUERY_OPTIONS = [
     "6 - The first five places visited with a higher risk rate",
     "7 - All people had contact with a positive and haven't done the test yet",
     "8 - All people that haven't gotten the vaccine yet",
-    "10 - Show the entire database"
+    "9 - All people with just one dose of vaccine",
+    "10 - All people with two doses of vaccine",
+    "11 - Show the entire database"
 ]
 
 QUERY_OPTIONS_TRENDS = [
@@ -110,9 +112,13 @@ QUERY_OPTIONS_TRENDS = [
     "7 - The rate of vaccinated people who result positive"
 ]
 
+# USER = "neo4j"
+# PASSWORD = "cJhfqi7RhIHR4I8ocQtc5pFPSEhIHDVJBCps3ULNzbA"
+# URI = "neo4j+s://057f4a80.databases.neo4j.io"
+
 USER = "neo4j"
-PASSWORD = "cJhfqi7RhIHR4I8ocQtc5pFPSEhIHDVJBCps3ULNzbA"
-URI = "neo4j+s://057f4a80.databases.neo4j.io"
+PASSWORD = "1234"
+URI = "bolt://localhost:7687"
 
 """
 list of buttons that don't belong to canvas that have to be delete before building a page 
@@ -210,7 +216,6 @@ def positive_after_one_dose(tx):
          :param tx: session
          :return nodes of person
      """
-    # toDo: verify if the NOT condition works considering the 2 GET different
     query = (
         "MATCH(t:Test)<-[m:MAKE_TEST{result: \"Positive\"}]-(p:Person)-[g: GET_VACCINE]->(v:Vaccine) "
         "WHERE NOT (()<-[:GET_VACCINE]-(p)-[:GET_VACCINE]->()) AND m.date > g.date "
@@ -305,6 +310,36 @@ def people_with_no_vaccine(tx):
         "MATCH (p:Person) "
         "WHERE NOT ((p)-[:GET_VACCINE]->()) "
         "RETURN p , ID(p)"
+    )
+    result = tx.run(query).data()
+    return result
+
+
+def people_with_one_dose(tx):
+    """
+         Method that queries the database for collecting all people that has just a dose of vaccine
+         :param tx: session
+         :return nodes of person
+     """
+    query = (
+        "MATCH (n1:Person)-[r:GET_VACCINE]->(n2:Vaccine) "
+        "WHERE NOT (()<-[:GET_VACCINE]-(n1)-[:GET_VACCINE]->()) "
+        "RETURN n1 , ID(n1) , r , r.date , r.country , r.expirationDate , n2 , ID(n2)"
+    )
+    result = tx.run(query).data()
+    return result
+
+
+def people_with_two_dose(tx):
+    """
+         Method that queries the database for collecting all people that has two doses of vaccine
+         :param tx: session
+         :return nodes of person
+     """
+    query = (
+        "MATCH (n2:Vaccine)<-[r1:GET_VACCINE]-(n1:Person)-[r2:GET_VACCINE]->(n3:Vaccine) "
+        "RETURN n1 , ID(n1) , r1 , r1.date , r1.country , r1.expirationDate , n2 , ID(n2) , "
+        "r2 , r2.date , r2.country , r2.expirationDate , n3 , ID(n3)"
     )
     result = tx.run(query).data()
     return result
@@ -1407,7 +1442,9 @@ def perform_query(choice):
     "6 - The first five places visited with a higher risk rate",
     "7 - All people had contact with a positive and haven't done the test yet",
     "8 - All people that haven't gotten the vaccine yet",
-    "10 - Show the entire database"
+    "9 - All people with just one dose of vaccine",
+    "10 - All people with two doses of vaccine",
+    "11 - Show the entire database"
     """
     # Initialize the network for the graph
     ps.PlotDBStructure.__init__()
@@ -1528,7 +1565,48 @@ def perform_query(choice):
                 nodesToPrint.append(node)
             ps.PlotDBStructure.addStructure(nodesToPrint)
 
+    elif choice_number[0] == "9":
+        with driver.session() as s:
+            result = s.read_transaction(people_with_one_dose)
+
+            nodesToPrint = []
+            relationshipsToPrint = []
+            for element in result:
+                elementDict = {'p': element['n1'], 'ID(p)': element['ID(n1)']}
+                nodesToPrint.append(elementDict)
+                elementDict = {'v': element['n2'], 'ID(v)': element['ID(n2)']}
+                nodesToPrint.append(elementDict)
+                elementDict = {'r': element['r'], 'date': element['r.date'] ,
+                               'expirationDate': element['r.expirationDate'] , 'country': element['r.country']}
+                relationshipsToPrint.append(elementDict)
+            # Add the nodes and the relationships
+            ps.PlotDBStructure.addStructure(nodesToPrint)
+            ps.PlotDBStructure.addStructure(relationshipsToPrint)
+
     elif choice_number[0] == "10":
+        with driver.session() as s:
+            result = s.read_transaction(people_with_two_dose)
+
+            nodesToPrint = []
+            relationshipsToPrint = []
+            for element in result:
+                elementDict = {'p': element['n1'], 'ID(p)': element['ID(n1)']}
+                nodesToPrint.append(elementDict)
+                elementDict = {'v': element['n2'], 'ID(v)': element['ID(n2)']}
+                nodesToPrint.append(elementDict)
+                elementDict = {'v': element['n3'], 'ID(v)': element['ID(n3)']}
+                nodesToPrint.append(elementDict)
+                elementDict = {'r': element['r1'], 'date': element['r1.date'] ,
+                               'expirationDate': element['r1.expirationDate'] , 'country': element['r1.country']}
+                relationshipsToPrint.append(elementDict)
+                elementDict = {'r': element['r2'], 'date': element['r2.date'] ,
+                               'expirationDate': element['r2.expirationDate'] , 'country': element['r2.country']}
+                relationshipsToPrint.append(elementDict)
+            # Add the nodes and the relationships
+            ps.PlotDBStructure.addStructure(nodesToPrint)
+            ps.PlotDBStructure.addStructure(relationshipsToPrint)
+
+    elif choice_number[0] == "11":
         with driver.session() as s:
             personNodes = s.read_transaction(findAllPerson)
             houseNodes = s.read_transaction(findAllHome)
