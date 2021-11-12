@@ -20,6 +20,7 @@ Abbreviations:
 - ce = covid exposure
 - p = place
 - db = database
+- lm = location manager
 
 Buttons:
 
@@ -74,7 +75,7 @@ checked new ct:
 
 from pathlib import Path
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from tkinter import Tk, Canvas, Entry, Text, Button, PhotoImage, StringVar, OptionMenu
+from tkinter import Tk, Canvas, Entry, Text, Button, PhotoImage, StringVar, OptionMenu, END
 from pandas import DataFrame
 import PlotDBStructure as ps
 import neo4j as nj
@@ -127,6 +128,7 @@ entry_list = []
 for the following list the format was specified in the comments above 
 """
 personal_information = []
+location_information = []
 new_fields_pi = []
 green_pass = []
 tests = []
@@ -428,6 +430,29 @@ def positive_age_average(tx):
     if average is not None:
         average = round(average, 2)
     return average
+
+
+def find_location_by_ID(tx, ID):
+    """
+    Method that finds a location given it's ID
+    :param tx: is the transaction
+    :param ID: is the ID to find
+    :return: all the nodes that have attribute equal to ID
+    """
+    global location_information
+    location_information = []
+
+    query = (
+        "MATCH (l:Location) "
+        "WHERE id(l) = $ID "
+        "RETURN l.name "
+    )
+    result = tx.run(query, ID=ID)
+
+    location_information.append(ID)
+
+    for node in result:
+        location_information.append(node.data()['l.name'])
 
 
 def find_person_by_ID(tx, ID):
@@ -822,6 +847,43 @@ def createInfectLocation(tx, query, id, ipid, date, name):
     tx.run(query, id=id, ipid=ipid, date=date, name=name)
 
 
+def check_if_mail_exist(tx, email):
+    """
+       Method that queries the database for understand if a person with given email exist
+       :param tx: is the transaction
+       :param ID: is the ID of the person
+        :return TRUE OR FALSE
+       """
+    query = (
+        "MATCH (p:Person) "
+        "WHERE p.mail = $mail "
+        "RETURN p"
+    )
+
+    result = tx.run(query, mail=email).data()
+    count = 0
+
+    for node in result:
+        count = count + 1
+
+    return count
+
+
+def create_visit(tx, email, shour, ehour, date):
+    """
+    Create a new visit
+    """
+
+    query = (
+        "MATCH (p:Person) , (l:Location) "
+        "WHERE p.mail = $mail AND id(l) = $locationId "
+        "MERGE (p)-[:VISIT {date: date($date) , start_hour: time($startHour) , end_hour: time($endHour)}]->(l); "
+
+    )
+
+    tx.run(query, mail=email, locationId=location_information[0], date=date, startHour=shour, endHour=ehour)
+
+
 """VALUES MANAGING"""
 
 
@@ -904,11 +966,11 @@ def return_to_main(button_exit):
         image=button_image_0,
         borderwidth=1000,
         highlightthickness=0,
-        command=lambda: user_login(title, subtitle, button__1, button_0),
+        command=lambda: user_login(title, subtitle, button__1, button_0, location),
         relief="flat"
     )
     button_0.place(
-        x=414.0,
+        x=465.0,
         y=405.0,
         width=200.0,
         height=60.0
@@ -921,15 +983,40 @@ def return_to_main(button_exit):
         image=button_image__1,
         borderwidth=1000,
         highlightthickness=0,
-        command=lambda: app_manager_login(title, subtitle, button__1, button_0),
+        command=lambda: app_manager_login(title, subtitle, button__1, button_0, location),
         relief="flat"
     )
 
     button__1.place(
-        x=85.0,
+        x=35.0,
         y=405.0,
         width=200.0,
         height=60.0
+    )
+
+    location_image = PhotoImage(
+        file=relative_to_assets("location.png"))
+    location = Button(
+        image=location_image,
+        borderwidth=1000,
+        highlightthickness=0,
+        command=lambda: location_manager_login(title, subtitle, button__1, button_0, location),
+        relief="flat"
+    )
+
+    location.place(
+        x=250.0,
+        y=405.0,
+        width=200.0,
+        height=60.0
+    )
+
+    image_image_1 = PhotoImage(
+        file=relative_to_assets("logo.png"))
+    image_1 = canvas.create_image(
+        350.0,
+        164.0,
+        image=image_image_1
     )
 
     image_image_1 = PhotoImage(
@@ -1373,7 +1460,7 @@ def ct_value_check(date_initial, ID_personal, hour_initial, testId_initial, resu
         return
 
     if (0 > hour_split[0] or hour_split[0] > 23) or (0 > hour_split[1] or hour_split[1] > 59):
-        print(len(hour_split), hour_split[0], hour_split[1])
+
         error = canvas.create_text(
             175.0,
             455.0,
@@ -1387,10 +1474,10 @@ def ct_value_check(date_initial, ID_personal, hour_initial, testId_initial, resu
     add_new_test(session, ID, testId, date_initial, hour_initial, result)
     if result == "Negative":
         delete_contact_exposure(session, ID)
-        print("negative done")
+
     elif result == "Positive":
         createRelationshipsInfect(ID, date_initial, 10)
-        print("positive done")
+
     create_add_ct()
 
 
@@ -1461,10 +1548,21 @@ def save_pi_changes(phone, email):
             )
             return
 
+    count = check_if_mail_exist(session, email)
+    if count > 0:
+        error = canvas.create_text(
+            170.0,
+            372.0,
+            anchor="nw",
+            text="ERROR: email exists yet ",
+            fill="#CA0000",
+            font=("Comfortaa Regular", 16 * -1)
+        )
+        return
+
     new_fields_pi.append(phone)
     new_fields_pi.append(email)
 
-    global session
     update_information_by_ID(session, personal_information[0])
     create_pi()
 
@@ -1551,10 +1649,381 @@ def collect_user_information(ID_person, subtitle):
     create_pi()
 
 
+def collect_location_information(ID_location, subtitle):
+    """
+    Method that is able to collect data and call personal information page constructor
+    :param ID_person: id inserted by the user
+    """
+
+    # no integer or empty
+    try:
+        ID = int(ID_location)
+    except ValueError:
+        canvas.itemconfig(subtitle, text="The following field must be fulfilled with a number", fill="red")
+        canvas.coords(subtitle, 160, 363)
+        return
+
+    global session
+
+    global personal_information
+    find_location_by_ID(session, ID)
+
+    # id is not link to any person (also negative )
+    if len(location_information) < 2:
+        canvas.itemconfig(subtitle, text="The following field must be fulfilled with an existing ID", fill="red")
+        canvas.coords(subtitle, 140, 363)
+        return
+
+    canvas.delete("all")
+    global button_list
+    for x in button_list:
+        x.destroy()
+
+    global entry_list
+
+    for x in entry_list:
+        x.destroy()
+
+    entry_list = []
+    button_list = []
+
+    create_lm()
+
+
+def location_cancel(entry_1, entry_2, entry_3):
+    """
+    Method that clears all entry in the page
+    """
+    global error
+
+    if error is not None:
+        canvas.delete(error)
+
+    entry_1.delete(0, END)
+    entry_2.delete(0, END)
+    entry_3.delete(0, END)
+
+
+def location_done(email, shour, ehour):
+    """
+    Method that checks if all fiels are filled rightly and calls the method that performs the query
+    """
+
+    global error
+
+    if error is not None:
+        canvas.delete(error)
+
+    if email == '':
+        email = personal_information[5]
+    else:
+        if len(email.split("@")) != 2:
+            error = canvas.create_text(
+                170.0,
+                372.0,
+                anchor="nw",
+                text="ERROR: wrong email format '@' is missing ",
+                fill="#CA0000",
+                font=("Comfortaa Regular", 16 * -1)
+            )
+            return
+        elif len(email.split(".")) < 2:
+            error = canvas.create_text(
+                170.0,
+                372.0,
+                anchor="nw",
+                text="ERROR: wrong email format '.' is missing ",
+                fill="#CA0000",
+                font=("Comfortaa Regular", 16 * -1)
+            )
+            return
+        elif (" " in email) or ("," in email):
+            error = canvas.create_text(
+                170.0,
+                372.0,
+                anchor="nw",
+                text="ERROR: wrong email format avoid using spaces and commas  ",
+                fill="#CA0000",
+                font=("Comfortaa Regular", 16 * -1)
+            )
+            return
+
+    count = check_if_mail_exist(session, email)
+    if count != 1:
+        error = canvas.create_text(
+            170.0,
+            372.0,
+            anchor="nw",
+            text="ERROR: email does not exist  ",
+            fill="#CA0000",
+            font=("Comfortaa Regular", 16 * -1)
+        )
+        return
+
+    hour_split = shour.split(":")
+    if len(hour_split) != 2:
+        error = canvas.create_text(
+            170.0,
+            372.0,
+            anchor="nw",
+            text="ERROR: invalid format of start hour, try with HH:MM",
+            fill="#CA0000",
+            font=("Comfortaa Bold", 16 * -1)
+        )
+        return
+
+    try:
+        hour_split[0] = int(hour_split[0])
+        hour_split[1] = int(hour_split[1])
+    except ValueError:
+        error = canvas.create_text(
+            170.0,
+            372.0,
+            anchor="nw",
+            text="ERROR: invalid start hour format, try with HH:MM ",
+            fill="#CA0000",
+            font=("Comfortaa Bold", 16 * -1)
+        )
+        return
+
+    if (0 > hour_split[0] or hour_split[0] > 23) or (0 > hour_split[1] or hour_split[1] > 59):
+        error = canvas.create_text(
+            170.0,
+            372.0,
+            anchor="nw",
+            text="ERROR: invalid start hour range",
+            fill="#CA0000",
+            font=("Comfortaa Bold", 16 * -1)
+        )
+        return
+
+    hour_split_e = ehour.split(":")
+    if len(hour_split_e) != 2:
+        error = canvas.create_text(
+            170.0,
+            372.0,
+            anchor="nw",
+            text="ERROR: invalid format of end hour, try with HH:MM",
+            fill="#CA0000",
+            font=("Comfortaa Bold", 16 * -1)
+        )
+        return
+
+    try:
+        hour_split_e[0] = int(hour_split_e[0])
+        hour_split_e[1] = int(hour_split_e[1])
+    except ValueError:
+        error = canvas.create_text(
+            170.0,
+            372.0,
+            anchor="nw",
+            text="ERROR: invalid end hour format, try with HH:MM ",
+            fill="#CA0000",
+            font=("Comfortaa Bold", 16 * -1)
+        )
+        return
+
+    if (0 > hour_split_e[0] or hour_split_e[0] > 23) or (0 > hour_split_e[1] or hour_split_e[1] > 59):
+        error = canvas.create_text(
+            170.0,
+            372.0,
+            anchor="nw",
+            text="ERROR: invalid end hour range",
+            fill="#CA0000",
+            font=("Comfortaa Bold", 16 * -1)
+        )
+        return
+
+    # if is provided a range
+    if (hour_split_e[0] < hour_split[0]) or (hour_split_e[0] == hour_split[0] and hour_split_e[1] < hour_split[1]):
+        error = canvas.create_text(
+            170.0,
+            372.0,
+            anchor="nw",
+            text="ERROR: invalid hour range, start hour must be before the end",
+            fill="#CA0000",
+            font=("Comfortaa Bold", 16 * -1)
+        )
+        return
+
+    date = datetime.date.today().strftime('%Y-%m-%d')
+    create_visit(session, email, shour, ehour, date)
+
+    create_lm()
+
+
 """PAGE BUILDER"""
 
 
-def user_login(title, subtitle, button__1, button_0):
+def create_lm():
+    """
+       Method that creates the location manager interface for registering new client that visit his location
+       :return: nothing
+    """
+    canvas.delete("all")
+    global button_list
+
+    global plot
+    if plot is not None:
+        plot.destroy()
+    plot = None
+
+    for x in button_list:
+        x.destroy()
+
+    global entry_list
+
+    for x in entry_list:
+        x.destroy()
+
+    entry_list = []
+
+    canvas.create_text(
+        289.0,
+        113.0,
+        anchor="nw",
+        text="ImmunoPoli",
+        fill="#000000",
+        font=("Comfortaa Regular", 20 * -1)
+    )
+
+    image_image_1 = PhotoImage(
+        file=relative_to_assets("image_1.png"))
+    image_1 = canvas.create_image(
+        349.0,
+        61.0,
+        image=image_image_1
+    )
+
+    canvas.create_text(
+        160.0,
+        166.0,
+        anchor="nw",
+        text="Register clients that today visit your location:",
+        fill="#6370FF",
+        font=("Comfortaa Bold", 20 * -1)
+    )
+
+    canvas.create_text(
+        160.0,
+        206.0,
+        anchor="nw",
+        text=location_information[1],
+        fill="#6370FF",
+        font=("Comfortaa Bold", 20 * -1)
+    )
+
+    canvas.create_text(
+        170.0,
+        258.0,
+        anchor="nw",
+        text="Client Mail",
+        fill="#000000",
+        font=("Comfortaa Bold", 16 * -1)
+    )
+    canvas.create_text(
+        170.0,
+        298.0,
+        anchor="nw",
+        text="Start Hour",
+        fill="#000000",
+        font=("Comfortaa Bold", 16 * -1)
+    )
+
+    canvas.create_text(
+        170.0,
+        338.0,
+        anchor="nw",
+        text="End Hour",
+        fill="#000000",
+        font=("Comfortaa Bold", 16 * -1)
+    )
+
+    canvas.create_text(
+        400.0,
+        318.0,
+        anchor="nw",
+        text="HH:MM",
+        fill="#000000",
+        font=("Comfortaa Bold", 12 * -1)
+    )
+
+    entry_1 = Entry(
+        bd=0,
+        bg="#ffffff",
+        highlightthickness=0
+    )
+    entry_1.place(
+        x=295.0,
+        y=258.0,
+        width=200.0,
+        height=17.0
+    )
+
+    entry_2 = Entry(
+        bd=0,
+        bg="#ffffff",
+        highlightthickness=0
+    )
+    entry_2.place(
+        x=295.0,
+        y=297.0,
+        width=91.0,
+        height=17.0
+    )
+
+    entry_3 = Entry(
+        bd=0,
+        bg="#ffffff",
+        highlightthickness=0
+    )
+    entry_3.place(
+        x=295.0,
+        y=338.0,
+        width=91.0,
+        height=17.0
+    )
+
+    close_image = PhotoImage(
+        file=relative_to_assets("close.png"))
+    close = Button(
+        image=close_image,
+        borderwidth=1000,
+        highlightthickness=0,
+        command=lambda: location_cancel(entry_1, entry_2, entry_3),
+        relief="flat"
+    )
+    close.place(
+        x=383.0,
+        y=410.0,
+        width=68.0,
+        height=68.0
+    )
+
+    check_image = PhotoImage(
+        file=relative_to_assets("check.png"))
+    check = Button(
+        image=check_image,
+        borderwidth=1000,
+        highlightthickness=0,
+        command=lambda: location_done(entry_1.get(), entry_2.get(), entry_3.get()),
+        relief="flat"
+    )
+    check.place(
+        x=266.0,
+        y=410.0,
+        width=68.0,
+        height=68.0
+    )
+
+    button_list = [check, close]
+
+    entry_list = [entry_1, entry_2, entry_3]
+
+    window.mainloop()
+
+
+def user_login(title, subtitle, button__1, button_0, location):
     """
     Method that builds user login page
     :param title: text field from front page that has to modify
@@ -1566,6 +2035,7 @@ def user_login(title, subtitle, button__1, button_0):
 
     button__1.destroy()
     button_0.destroy()
+    location.destroy()
 
     # modify the innter text
     canvas.itemconfig(title, text="Please insert your personal ID")
@@ -1628,7 +2098,7 @@ def user_login(title, subtitle, button__1, button_0):
     window.mainloop()
 
 
-def app_manager_login(title, subtitle, button__1, button_0):
+def app_manager_login(title, subtitle, button__1, button_0, location):
     """
        Method that builds app manager login page
        :param title: text field from front page that has to modify
@@ -1640,6 +2110,7 @@ def app_manager_login(title, subtitle, button__1, button_0):
 
     button__1.destroy()
     button_0.destroy()
+    location.destroy()
 
     canvas.itemconfig(title, text="Please insert you personal ID")
     canvas.coords(title, 130, 320)
@@ -1664,6 +2135,77 @@ def app_manager_login(title, subtitle, button__1, button_0):
         borderwidth=1000,
         highlightthickness=0,
         command=lambda: collect_app_manager_information(entry_1.get(), subtitle),
+        relief="flat"
+    )
+    login.place(
+        x=293.0,
+        y=442.0,
+        width=114.0,
+        height=36.0
+    )
+
+    global button_list
+    button_list = [login]
+
+    global entry_list
+    entry_list = [entry_1]
+
+    button_image = PhotoImage(
+        file=relative_to_assets("exit.png"))
+    button_exit = Button(
+        image=button_image,
+        borderwidth=1000,
+        highlightthickness=0,
+        command=lambda: return_to_main(button_exit),
+        relief="flat"
+    )
+    button_exit.place(
+        x=620.0,
+        y=421.0,
+        width=55.0,
+        height=60.0)
+
+    window.mainloop()
+
+
+def location_manager_login(title, subtitle, button__1, button_0, location):
+    """
+          Method that builds location manager login page
+          :param title: text field from front page that has to modify
+          :param subtitle: text field from front page that has to modify
+          :param button__1: button to delete
+          :param button_0: button to delete
+          :param location: button to delete
+          :return:
+       """
+
+    button__1.destroy()
+    button_0.destroy()
+    location.destroy()
+
+    canvas.itemconfig(title, text="Please insert the ID of your location")
+    canvas.coords(title, 100, 320)
+    canvas.itemconfig(subtitle, text="We remind you to keep it secret ")
+    canvas.coords(subtitle, 230, 363)
+    entry_1 = Entry(
+        bd=0,
+        bg="#ffffff",
+        highlightthickness=0
+    )
+    entry_1.place(
+        x=219.0,
+        y=402.0,
+        width=262.0,
+        height=28.0
+    )
+
+    login_image = PhotoImage(
+        file=relative_to_assets("login.png"))
+    login = Button(
+        image=login_image,
+        borderwidth=1000,
+        highlightthickness=0,
+        command=lambda: collect_location_information(entry_1.get(), subtitle),
         relief="flat"
     )
     login.place(
@@ -3435,11 +3977,11 @@ button_0 = Button(
     image=button_image_0,
     borderwidth=1000,
     highlightthickness=0,
-    command=lambda: user_login(title, subtitle, button__1, button_0),
+    command=lambda: user_login(title, subtitle, button__1, button_0, location),
     relief="flat"
 )
 button_0.place(
-    x=414.0,
+    x=465.0,
     y=405.0,
     width=200.0,
     height=60.0
@@ -3452,12 +3994,29 @@ button__1 = Button(
     image=button_image__1,
     borderwidth=1000,
     highlightthickness=0,
-    command=lambda: app_manager_login(title, subtitle, button__1, button_0),
+    command=lambda: app_manager_login(title, subtitle, button__1, button_0, location),
     relief="flat"
 )
 
 button__1.place(
-    x=85.0,
+    x=35.0,
+    y=405.0,
+    width=200.0,
+    height=60.0
+)
+
+location_image = PhotoImage(
+    file=relative_to_assets("location.png"))
+location = Button(
+    image=location_image,
+    borderwidth=1000,
+    highlightthickness=0,
+    command=lambda: location_manager_login(title, subtitle, button__1, button_0, location),
+    relief="flat"
+)
+
+location.place(
+    x=250.0,
     y=405.0,
     width=200.0,
     height=60.0
