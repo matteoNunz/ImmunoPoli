@@ -829,8 +829,7 @@ def createRelationshipsMakeTest(d, pIds, tIds):
             # Check whether or not I have been infected by someone
             delete_possible_infection_command = (
                 "MATCH ()-[i:COVID_EXPOSURE]->(p:Person)"
-                "WHERE ID(p) = $personId AND (i.date < date($date) OR "
-                "i.date = date($date) AND i.hour < time($hour))"
+                "WHERE ID(p) = $personId AND (date($date) >= i.date + duration({days: 7}) "
                 "DELETE i"
             )
             with d.session() as s:
@@ -1046,7 +1045,6 @@ def createRelationshipsInfect(id, test_date, test_hour, daysBack):
             s.write_transaction(createInfectLocation , query , id , infectedId , infectedDate , infectedPlace)
 
 
-# TODO check how many days are required to delete the exposure
 def delete_negative_after_exposure():
     """
     Method that deletes exposure for people who made a negative test after a covid exposure

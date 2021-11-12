@@ -7,7 +7,7 @@
 ## Index
 
 - Group components
-- Enviroment setup 
+- Environment setup 
 - Database Generator
 - GUI 
 
@@ -31,9 +31,9 @@ pip install -r config_environment.txt
 
 ## Database Generator
 
-The dataset is drawn from a random generator. It allows enforcing parameterssuch as the number of visits, tests, covid vaccinations, families and the proba-bility of being positive.
+The dataset is drawn from a random generator. It allows enforcing parameters such as the number of visits, tests, COVID-19 vaccinations, families and the probability of being positive.
 
-To generete a new dataset on Neo4j Aura type the following command in the terminal:
+To generate a new dataset on Neo4j Aura type the following command in the terminal:
 
 ```sh
 pyhton3 DataBaseGenerator.py
@@ -52,7 +52,7 @@ pyhton3 App/Index.py
 ![front page](App/Images/index.png?raw=true)
 
 The App Manager can:
-- add new covid test results
+- add new COVID-19 test results
 - perform queries to the database 
 - see common trends
 
