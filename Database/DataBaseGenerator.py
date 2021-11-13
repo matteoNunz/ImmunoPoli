@@ -11,10 +11,10 @@ from enum import IntEnum
 import datetime
 
 MAX_NUMBER_OF_FAMILY_MEMBER = 5
-NUMBER_OF_FAMILY = 200
+NUMBER_OF_FAMILY = 150
 MAX_NUMBER_OF_CONTACT_PER_DAY = 3000  # For new contact relationships
 
-MAX_NUMBER_OF_VISIT_PER_DAY = 4000  # For new visit relationships
+MAX_NUMBER_OF_VISIT_PER_DAY = 5000  # For new visit relationships
 
 MAX_CIVIC_NUMBER = 100
 
@@ -26,14 +26,12 @@ PROBABILITY_TO_BE_TESTED_AFTER_INFECTED = 0.8
 
 MAX_NUMBER_OF_VACCINE_PER_DAY = 2000  # For new get vaccinated relationships
 
-MAX_NUMBER_OF_TEST_PER_DAY = 3000  # For new make test relationships
+MAX_NUMBER_OF_TEST_PER_DAY = 4000  # For new make test relationships
 
 
 # BOLT = "bolt://localhost:7687"
 # PASSWORD = "991437"
 
-"""BOLT = "bolt://3.91.213.132:7687"
-PASSWORD = "blocks-company-calendar"""
 USER = "neo4j"
 PASSWORD = "cJhfqi7RhIHR4I8ocQtc5pFPSEhIHDVJBCps3ULNzbA"
 URI = "neo4j+s://057f4a80.databases.neo4j.io"
@@ -667,7 +665,7 @@ def createRelationshipsVisit(d , pIds , lIds):
         personId = pIds[pIndex]
         # Choose the hour/date
 
-        date = datetime.date.today() - datetime.timedelta(days=randint(0, 10))
+        date = datetime.date.today() - datetime.timedelta(days=randint(0, 150))
         date = date.strftime("%Y-%m-%d")
         h = randint(0, 22)
         minutes = randint(0, 59)
@@ -680,8 +678,8 @@ def createRelationshipsVisit(d , pIds , lIds):
             minutes = "0" + str(minutes)
         endHour = str(h) + ":" + str(minutes)
         n = 0
-        while validateDate(d, date, personId, endHour) == False and n < 5:
-            date = datetime.date.today() - datetime.timedelta(days=randint(0, 20))
+        while validateDate(d, date, personId, endHour) == False and n < 20:
+            date = datetime.date.today() - datetime.timedelta(days=randint(0, 150))
             date = date.strftime("%Y-%m-%d")
             h = randint(0, 22)
             minutes = randint(0, 59)
@@ -744,14 +742,14 @@ def createRelationshipsGetVaccine(d, pIds, vIds):
     :return: nothing
     """
     # Choose how many new visit relationships
-    numberOfVaccines = randint(0,MAX_NUMBER_OF_VACCINE_PER_DAY)
+    numberOfVaccines = MAX_NUMBER_OF_VACCINE_PER_DAY
 
     for _ in range(0, numberOfVaccines):
         vIndex = randint(0, len(vIds) - 1)
         vaccineId = vIds[vIndex]
         pIndex = randint(0, len(pIds) - 1)
         personId = pIds[pIndex]
-        date = datetime.date.today() - datetime.timedelta(days=randint(0, 60))
+        date = datetime.date.today() - datetime.timedelta(days=randint(0, 150))
         country = "Italy"
         # For the future: maybe do a random country
         # Ask to  neo4j server how many vaccines the user did
@@ -765,22 +763,26 @@ def createRelationshipsGetVaccine(d, pIds, vIds):
 
         # if no vaccines do one, else make the second vaccine
         if len(datas) == 0:
-            expDate = date + datetime.timedelta(days=28)
+            string2 = str(date + datetime.timedelta(days=28)).split("-")
+            expDate = datetime.date(int(string2[0]), int(string2[1]), int(string2[2]))
+            print("Exp date is: ", expDate)
         else:
             if len(datas) == 1:
-                string1 = datas[0]["date"].split("-")
-                date = datetime.date(int(string1[0]), int(string1[1]), int(string1[2].split(",")[0]))
-                expDate = date + datetime.timedelta(days=365)
+                string1 = str(datas[0]["date"]).split("-")
+                date = datetime.date(int(string1[0]), int(string1[1]), int(string1[2]))
+                string2 = str(date + datetime.timedelta(days=365)).split("-")
+                expDate = datetime.date(int(string2[0]), int(string2[1]), int(string2[2]))
+                print("Exp date is: " , expDate)
                 vaccineId = datas[0]["vaccineID"]
             else:
-                return
+                continue
         date = date.strftime("%Y-%m-%d")
-        expDate = expDate.strftime("%Y-%m-%d,%H:%M")
+        expDate = expDate.strftime("%Y-%m-%d")
 
         query = (
             "MATCH (p:Person) , (v:Vaccine) "
             "WHERE ID(p) = $personId AND ID(v) = $vaccineId "
-            "MERGE (p)-[:GET_VACCINE{date:date($date),country:$country,expirationDate:$expDate}]->(v); "
+            "MERGE (p)-[:GET_VACCINE{date:date($date),country:$country,expirationDate:date($expDate)}]->(v); "
         )
 
         # Execute the query
@@ -805,7 +807,7 @@ def createRelationshipsMakeTest(d, pIds, tIds):
         testId = tIds[tIndex]
         pIndex = randint(0, len(pIds) - 1)
         personId = pIds[pIndex]
-        date = datetime.date.today() - datetime.timedelta(days=randint(0, 10))
+        date = datetime.date.today() - datetime.timedelta(days=randint(0, 150))
         h = randint(0, 23)
         minutes = randint(0, 59)
         if minutes < 10:
@@ -914,9 +916,14 @@ def findAllPositivePerson():
     :return: a list of positive ids
     """
     query = (
-        "MATCH (p:Person)-[r:MAKE_TEST]->(t:Test) "
-        "WHERE r.result = \"Positive\" "
-        "RETURN DISTINCT ID(p), r.date as infectionDate, r.hour as infectionHour;"
+        """
+        MATCH (p:Person)-[t:MAKE_TEST{result: \"Positive\"}]->()
+        WHERE NOT EXISTS {
+            MATCH (p)-[t2:MAKE_TEST{result: \"Negative\"}]->()
+            WHERE t2.date > t.date
+        }
+        RETURN distinct ID(p) , t.date as infectionDate , t.hour as infectionHour
+        """
     )
 
     positiveIdsFound = runQueryRead(driver, query)
@@ -1337,11 +1344,11 @@ if __name__ == '__main__':
     driver = openConnection()
 
     # Only read from the graph
-    printDatabase()
+    # printDatabase()
 
     # Close the connection
-    closeConnection(driver)
-    exit()
+    # closeConnection(driver)
+    # exit()
 
     # Read names from the file
     names = readNames()
@@ -1359,16 +1366,6 @@ if __name__ == '__main__':
     print("Vaccines read")
     tests = readTests()
     print("Tests read")
-
-    """
-    print("Hours are: " + str(hours))
-    print("Locations are: " + str(locations))
-    print("Number of hours is: " + str(len(hours)))
-    print("Number of names is: " + str(len(names)))
-    print("Number of surnames is: " + str(len(surnames)))
-    print("Number of locations is: " + str(len(locations)))
-    print("Number of dates is: " + str(len(dates)))
-    """
 
     # Create the family list
     families = createFamilies(names , surnames)
@@ -1401,22 +1398,6 @@ if __name__ == '__main__':
 
     print("The final query is: ")
     print(generalQuery)
-
-    """
-    # Find all the positive Person
-    positiveIds = findAllPositivePerson()
-    print("Positive are:")
-    print(positiveIds)
-    # Search all the infected Person tracked
-    trackedPersonIds = []
-    for positiveId in positiveIds:
-        print(positiveId['ID(p)'])
-        createRelationshipsInfect(positiveId['ID(p)'] , 7)
-
-    # Print the whole structure
-    print_database_with_pyvis()
-    exit()
-    """
 
     # Delete the nodes already present
     with driver.session() as session:
@@ -1471,13 +1452,7 @@ if __name__ == '__main__':
     # Search all the infected Person tracked
     delete_negative_after_exposure()
     trackedPersonIds = []
-    """Commented because we create infection after a positive test"""
-    """for positiveId in positiveIds:
-        print(positiveId['ID(p)'])
-        createRelationshipsInfect(positiveId['ID(p)'], 7)
-        if random() < PROBABILITY_TO_BE_TESTED_AFTER_INFECTED:
-            createRelationshipsMakeTest(driver, positiveIds, testsIds)
-    """
+
     # Print the whole structure
     printDatabase()
 
