@@ -12,7 +12,8 @@
 \usepackage{tasks}
 \usepackage{tabularx}
 \usepackage{titlesec}
-
+\usepackage{subcaption}
+\newcommand{\link}[1]{{\color{blue}\href{#1}{#1}}}
 
 \titleformat{\paragraph}
 {\normalfont\normalsize\bfseries}{\theparagraph}{1em}{}
@@ -30,11 +31,16 @@
     {\huge\bfseries SMBUD 2021 - Project work\@ \\ delivery 1  \par}
     
     \vspace{1.5cm}
+ 
+     {\huge\bfseries ImmunoPoli \par}
+
+    \vspace{1.5cm}
+
     {\large \textbf{Group 20} \par
     
-    \begin{center}
+    
         
-         
+    \begin{center}
         {\begin{tabular}{l l }
         Margherita & Musumeci \\
         Matteo & Nunziante \\
@@ -80,6 +86,7 @@ It stores data coming from various sources, such as data collected either throug
 \input{files/assumptions}
 
 \newpage
+
 \section{Conceptual model of the database}
 \input{files/conceptual_model}
 \newpage
@@ -88,11 +95,13 @@ It stores data coming from various sources, such as data collected either throug
 
 \section{Queries}
 \input{files/queries}
-
 \newpage
 \section{Commands}
-
+\input{files/commands}
+\newpage
 \section{Application}
 \input{files/application}
-
+\newpage
+\section{Materials}
+All the contents covered in this report are available at the link below:\\* \link{https://github.com/matteoNunz/ImmunoPoli}
 \end{document}

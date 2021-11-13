@@ -3,12 +3,13 @@ The project relies on the hypotheses described below:
 
 \begin{enumerate}
     \item All information provided by people is truthful.
-    \item Noone visits a place knowing that they have been tested positive.
-    \item There is no limit for the number of vaccine doses injectable.
-    \item The property \textit{app} in Person entity is a boolean attribute used to identify whether or not the person has any type of contact tracing application.
-    \item The period ranging from virus incubation to test outcome acknowledgment is \textbf{seven days}.
+    \item \label{assumption_2} Noone visits a place knowing that their last test is positive. 
+    \item The limit for the number of vaccine doses injectable is \emph{two}.
+    \item There is no house inhabited by underage people only.
+    \item The people are prevented from changing their residence address.
+    \item The period ranging from virus incubation to test outcome acknowledgement is \emph{seven days}. It means that to be declared safe, each user needs a negative swab after at least seven days from the covid exposure.
     \item Every address is associated with just one house or public place.
-    \item Deletion of information about contacts occurred more than ten days before the current date. They are useless because once a person is tested positive, we check their potential connections up to seven days before the test date. 
-    \item The database includes only entries related to indoor places. Those are assumed to be accessible through a specific ticket/badge and a covid certificate vaccination scan. It is reasonable that once a certificate is scanned, all details are shared with our application to create an instance of \textit{visit} relationship.
-    \item Since the \textit{infect} relationship represents a \textbf{covid exposure}, the actual contagion refers to a positive swab without a negative one after a fixed amount of time. 
-\end{enumerate}
+    \item The database includes only entries related to indoor places. Those are assumed to be accessible through a covid certificate vaccination scan. It is reasonable that once a certificate is scanned, all details are shared with our application to create an instance of \textit{visit} relationship. 
+    \item Since the \textit{covid exposure} relationship represents a possible contact with the virus, for each user, the actual contagion refers to the last positive swab. 
+\end{enumerate}    
+    
