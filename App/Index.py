@@ -266,9 +266,16 @@ def tree_of_exposures(tx , id):
     query = (
         """
         MATCH g1 = (p1:Person)-[relationship1:COVID_EXPOSURE*1..2]->(p2:Person)
-        WHERE ID(p1) = $id 
-        
+        WHERE ID(p1) = $id AND 
+            ALL ( idx in range(1 , size(relationships(g1)) - 1) 
+            WHERE (relationships(g1))[idx - 1].date <= (relationships(g1))[idx].date
+            )
+
         MATCH g2 = (p2)-[relationship2:COVID_EXPOSURE*0..2]->(p5:Person)
+        WHERE 
+            ALL (idx in range(1 , size(relationships(g2)) - 1) 
+            WHERE (relationships(g2))[idx - 1].date <= (relationships(g2))[idx].date
+            )
 
         MATCH ()<-[t1:MAKE_TEST{result: "Positive"}]-(p3:Person)-[ce:COVID_EXPOSURE]->(p4:Person)-[t2:MAKE_TEST{result: "Positive"}]->()
         WHERE t1.date <= t2.date AND ce.date <= t1.date AND (ce IN relationships(g1) OR ce IN relationships(g2))
