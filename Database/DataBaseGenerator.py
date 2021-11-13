@@ -1337,11 +1337,11 @@ if __name__ == '__main__':
     driver = openConnection()
 
     # Only read from the graph
-    # printDatabase()
+    printDatabase()
 
     # Close the connection
-    # closeConnection(driver)
-    # exit()
+    closeConnection(driver)
+    exit()
 
     # Read names from the file
     names = readNames()

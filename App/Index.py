@@ -94,13 +94,14 @@ QUERY_OPTIONS = [
     "3 - All people who result positive after direct contact with a positive",
     "4 - All people who result positive after a vaccine dose",
     "5 - All people that live in a house with at least a positive now",
-    "6 - Tree of exposures started by a person",
+    "6 - Worst case of tree of exposures caused by a person",
     "7 - The first ten places visited with a higher risk rate",
     "8 - All people had contact with a positive and haven't done the test yet",
     "9 - All people that haven't gotten the vaccine yet",
     "10 - All people with just one dose of vaccine",
     "11 - All people with two doses of vaccine",
-    "12 - Show the entire database"
+    "12 - All positive people",
+    "13 - Show the entire database"
 ]
 
 QUERY_OPTIONS_TRENDS = [
@@ -112,6 +113,10 @@ QUERY_OPTIONS_TRENDS = [
     "6 - The number of contacts registered via app for at most 10 person",
     "7 - The rate of vaccinated people who result positive"
 ]
+
+USER = "neo4j"
+PASSWORD = "1234"
+URI = "bolt://localhost:7687"
 
 USER = "neo4j"
 PASSWORD = "cJhfqi7RhIHR4I8ocQtc5pFPSEhIHDVJBCps3ULNzbA"
@@ -260,14 +265,17 @@ def tree_of_exposures(tx , id):
     """
     query = (
         """
-        MATCH (p1:Person)-[relationships:COVID_EXPOSURE*..4]->(p2:Person)
+        MATCH g1 = (p1:Person)-[relationship1:COVID_EXPOSURE*1..2]->(p2:Person)
         WHERE ID(p1) = $id 
         
+        MATCH g2 = (p2)-[relationship2:COVID_EXPOSURE*0..2]->(p5:Person)
+
         MATCH ()<-[t1:MAKE_TEST{result: "Positive"}]-(p3:Person)-[ce:COVID_EXPOSURE]->(p4:Person)-[t2:MAKE_TEST{result: "Positive"}]->()
-        WHERE t1.date < t2.date AND ce.date < t1.date AND ce IN relationships
-        RETURN p2 , ID(p2) , ce , ce.name , ce.date , p4 , ID(p4)
+        WHERE t1.date <= t2.date AND ce.date <= t1.date AND (ce IN relationships(g1) OR ce IN relationships(g2))
+        RETURN DISTINCT p3 , ID(p3) , ce , ce.name , ce.date , p4 , ID(p4)
         """
     )
+
     result = tx.run(query , id = id).data()
     return result
 
@@ -379,6 +387,27 @@ def positive_with_vaccine(tx):
         vaccine.append(x.data()["v.name"])
 
     return [vaccine, rate]
+
+
+def find_positive(tx):
+    """
+      Method that queries the database to find all positive Person
+      :param tx: session
+      :return: nodes of Person
+    """
+    query = (
+        """
+        MATCH (p:Person)-[t:MAKE_TEST{result: \"Positive\"}]->()
+        WHERE NOT EXISTS {
+            MATCH (p)-[t2:MAKE_TEST{result: \"Negative\"}]->()
+            WHERE t2.date > t.date
+        }
+        RETURN distinct p , ID(p)
+        """
+    )
+
+    result = tx.run(query).data()
+    return result
 
 
 def findAllPerson(tx):
@@ -1445,20 +1474,6 @@ def perform_query(choice):
     choice = variable.get()
     choice_number = choice.split(" ")
 
-    """
-    "1 - All contacts registered via the app",
-    "2 - All covid exposures registered",
-    "3 - All people who result positive after direct contact with a positive",
-    "4 - All people who result positive after a vaccine dose",
-    "5 - All people that live in a house with at least a positive now",
-    "6 - Tree of exposures started by a person",
-    "7 - The first ten places visited with a higher risk rate",
-    "8 - All people had contact with a positive and haven't done the test yet",
-    "9 - All people that haven't gotten the vaccine yet",
-    "10 - All people with just one dose of vaccine",
-    "11 - All people with two doses of vaccine",
-    "12 - Show the entire database"
-    """
     # Initialize the network for the graph
     ps.PlotDBStructure.__init__()
 
@@ -1554,31 +1569,46 @@ def perform_query(choice):
 
     elif choice_number[0] == "6":
         with driver.session() as s:
-            id = 1044
-            # Todo: add the possibility to add the id
-            # Verify id 9 is positive and exist
+            # Take all the positive Person
+            result = s.read_transaction(find_positive)
+            idMax = result[0]['ID(p)']
+            maxNumOfEl = 0
+            for el in result:
+                resultOfId = s.read_transaction(tree_of_exposures , el['ID(p)'])
+                if len(resultOfId) > maxNumOfEl:
+                    maxNumOfEl = len(resultOfId)
+                    idMax = el['ID(p)']
+                print("Person:" + str(el['ID(p)']) + " has a tree size of " + str(len(resultOfId)))
 
-            result = s.read_transaction(tree_of_exposures , id)
+            print("\n\n")
+            print("IdMax is: " , idMax)
+
+            result = s.read_transaction(tree_of_exposures , idMax)
             nodeToPrint = []
             for element in result:
-                elementDict = {'p': element['p2'], 'ID(p)': element['ID(p2)']}
-                nodeToPrint.append(elementDict)
-                ps.PlotDBStructure.addStructure(nodeToPrint)
+                elementDict = {'p': element['p3'], 'ID(p)': element['ID(p3)']}
+                # If it's the root
+                if element['ID(p3)'] == idMax:
+                    ps.PlotDBStructure.setPersonColor('red')
+                    ps.PlotDBStructure.addStructure([elementDict])
+                    ps.PlotDBStructure.setPersonColor()
+                else:
+                    nodeToPrint.append(elementDict)
                 elementDict = {'p': element['p4'], 'ID(p)': element['ID(p4)']}
                 nodeToPrint.append(elementDict)
                 ps.PlotDBStructure.addStructure(nodeToPrint)
 
                 # To avoid auto-relationships
-                if element['ID(p2)'] == element['ID(p4)']:
+                if element['ID(p3)'] == element['ID(p4)']:
                     continue
 
                 present = False
                 for r in ps.PlotDBStructure.network.get_edges():
-                    if element['ID(p2)'] == r['from'] and element['ID(p4)'] == r['to']:
+                    if element['ID(p3)'] == r['from'] and element['ID(p4)'] == r['to']:
                         present = True
                         break
                 if not present:
-                    ps.PlotDBStructure.addCovidExposureRelationships(element['ID(p2)'] , element['ID(p4)'] ,
+                    ps.PlotDBStructure.addCovidExposureRelationships(element['ID(p3)'] , element['ID(p4)'] ,
                                                                  element['ce.date'] , element['ce.name'])
 
     elif choice_number[0] == "7":
@@ -1644,6 +1674,11 @@ def perform_query(choice):
             ps.PlotDBStructure.addStructure(relationshipsToPrint)
 
     elif choice_number[0] == "12":
+        with driver.session() as s:
+            result = s.read_transaction(find_positive)
+            ps.PlotDBStructure.addStructure(result)
+
+    elif choice_number[0] == "13":
         with driver.session() as s:
             personNodes = s.read_transaction(findAllPerson)
             houseNodes = s.read_transaction(findAllHome)

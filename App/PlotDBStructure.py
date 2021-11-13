@@ -57,8 +57,8 @@ class PlotDBStructure:
                 # Add Person nodes
                 label = node["ID(p)"]
                 title = node['p']['name'] + " " + node['p']['surname'] + "," \
-                        + node['p']['age'] + "," + node['p']['mail'] + "," \
-                        + node['p']['number'] + ",app:" + node['p']['app']
+                        + str(node['p']['age']) + "," + node['p']['mail'] + "," \
+                        + str(node['p']['number']) + ",app:" + str(node['p']['app'])
                 #title = titleList
                 color = PlotDBStructure.personColor
                 PlotDBStructure.network.add_node(node["ID(p)"], label=label, title=title, color=color)
