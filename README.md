@@ -9,7 +9,10 @@
 - Group components
 - Environment setup 
 - Database Generator
-- GUI 
+  - Neo4j Aura
+- GUI
+  - Application Login
+  - Tests
 
 ## Group Components
 
@@ -39,6 +42,26 @@ To generate a new dataset on Neo4j Aura type the following command in the termin
 pyhton3 DataBaseGenerator.py
 ```
 
+### Neo4j Aura 
+
+Credentials for access to the remote Database are the following:
+
+URI 
+
+```sh
+neo4j+s://057f4a80.databases.neo4j.io
+```
+USER 
+
+```sh
+neo4j
+```
+
+PASSWORD 
+```sh
+cJhfqi7RhIHR4I8ocQtc5pFPSEhIHDVJBCps3ULNzbA
+```
+
 ## GUI 
 
 The Graphical User Interface is made with Tkinter library.
@@ -65,8 +88,8 @@ The User can:
 - visualize covid alerts 
 - visualize the list of palaces he visited
 
-## Application Login 
-To access the application the IDs is needed. Here there is the list of the IDs to sign in.
+### Application Login 
+To access the application the IDs are needed. Here there is the list of the IDs to sign in.
 <div style="text-align: center;">
 
 | App Manager/User | Location Manager
@@ -77,5 +100,20 @@ To access the application the IDs is needed. Here there is the list of the IDs t
 |       2506       | 3220
 |       2575       | 3228
 |       2783       | 3169
+
+</div>
+
+### Tests 
+To add a new covid test result the test IDs are needed. Here there is the list of the IDs to use.
+<div style="text-align: center;">
+
+| Test Name        | Test ID 
+| ---------------- | --------------- |
+|                  |                 | 
+|                  |                 |  
+|                  |                 |  
+|                  |                 | 
+|                  |                 |  
+|                  |                 | 
 
 </div>
