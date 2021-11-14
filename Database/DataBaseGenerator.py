@@ -12,9 +12,9 @@ import datetime
 
 MAX_NUMBER_OF_FAMILY_MEMBER = 5
 NUMBER_OF_FAMILY = 150
-MAX_NUMBER_OF_CONTACT_PER_DAY = 2000  # For new contact relationships
+MAX_NUMBER_OF_CONTACT= 2000  # For new contact relationships
 
-MAX_NUMBER_OF_VISIT_PER_DAY = 5000  # For new visit relationships
+MAX_NUMBER_OF_VISIT = 5000  # For new visit relationships
 
 MAX_CIVIC_NUMBER = 100
 
@@ -24,9 +24,9 @@ PROBABILITY_TO_HAVE_APP = 0.5
 PROBABILITY_TO_BE_POSITIVE = 0.5
 PROBABILITY_TO_BE_TESTED_AFTER_INFECTED = 0.8
 
-MAX_NUMBER_OF_VACCINE_PER_DAY = 2000  # For new get vaccinated relationships
+MAX_NUMBER_OF_VACCINE = 2000  # For new get vaccinated relationships
 
-MAX_NUMBER_OF_TEST_PER_DAY = 4000  # For new make test relationships
+MAX_NUMBER_OF_TEST = 4000  # For new make test relationships
 
 MAX_NUMBER_OF_ATTEMPTS_FOR_VALID_DATE = 25
 
@@ -605,7 +605,7 @@ def createRelationshipsAppContact(d , pIds):
     :return: nothing
     """
     # Create the number of app contact for the day
-    numOfContact = MAX_NUMBER_OF_CONTACT_PER_DAY
+    numOfContact = MAX_NUMBER_OF_CONTACT
 
     for _ in range(0 , numOfContact):
         # Choose two random people
@@ -658,7 +658,7 @@ def createRelationshipsVisit(d , pIds , lIds):
     :return: nothing
     """
     # Choose how many new visit relationships
-    numberOfVisits = MAX_NUMBER_OF_VISIT_PER_DAY
+    numberOfVisits = MAX_NUMBER_OF_VISIT
 
     for _ in range(0 , numberOfVisits):
         lIndex = randint(0 , len(lIds) - 1)
@@ -742,7 +742,7 @@ def createRelationshipsGetVaccine(d, pIds, vIds):
     :return: nothing
     """
     # Choose how many new visit relationships
-    numberOfVaccines = MAX_NUMBER_OF_VACCINE_PER_DAY
+    numberOfVaccines = MAX_NUMBER_OF_VACCINE
 
     for _ in range(0, numberOfVaccines):
         vIndex = randint(0, len(vIds) - 1)
@@ -799,7 +799,7 @@ def createRelationshipsMakeTest(d, pIds, tIds):
     :return: nothing
     """
     # Choose how many new visit relationships
-    numberOfTest = MAX_NUMBER_OF_TEST_PER_DAY
+    numberOfTest = MAX_NUMBER_OF_TEST
 
     for _ in range(0, numberOfTest):
         probability = random()
