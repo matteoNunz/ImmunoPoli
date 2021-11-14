@@ -116,10 +116,6 @@ QUERY_OPTIONS_TRENDS = [
 ]
 
 USER = "neo4j"
-PASSWORD = "1234"
-URI = "bolt://localhost:7687"
-
-USER = "neo4j"
 PASSWORD = "cJhfqi7RhIHR4I8ocQtc5pFPSEhIHDVJBCps3ULNzbA"
 URI = "neo4j+s://057f4a80.databases.neo4j.io"
 
