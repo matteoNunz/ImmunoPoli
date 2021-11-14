@@ -9,24 +9,23 @@ import App.PlotDBStructure as ps
 from random import randint, random
 from enum import IntEnum
 import datetime
+
 MAX_CIVIC_NUMBER = 100
 PHONE_NUMBER_LENGTH = 10
 
 MAX_NUMBER_OF_FAMILY_MEMBER = 5
 NUMBER_OF_FAMILY = 150
 
-MAX_NUMBER_OF_CONTACT = 1000  # For new contact relationships
+MAX_NUMBER_OF_CONTACT = 2000  # For new contact relationships
 MAX_NUMBER_OF_VISIT = 5000  # For new visit relationships
 MAX_NUMBER_OF_VACCINE = 750  # For new get vaccinated relationships
 MAX_NUMBER_OF_TEST = 4000  # For new make test relationships
-
 
 PROBABILITY_TO_HAVE_APP = 0.5
 PROBABILITY_TO_BE_POSITIVE = 0.5
 PROBABILITY_TO_BE_TESTED_AFTER_INFECTED = 0.8
 
 MAX_NUMBER_OF_ATTEMPTS_FOR_VALID_DATE = 15
-
 
 CONTACT_DAYS_BACKS = 10
 VISITS_DAYS_BACKS = 150
@@ -50,6 +49,7 @@ class PersonAttribute(IntEnum):
     MAIL = 3
     NUMBER = 4
     APP = 5
+
     # And so on...
 
     @classmethod
@@ -71,6 +71,7 @@ class LocationAttribute(IntEnum):
     CAP = 4
     CITY = 5
     PROVINCE = 6
+
     # and so on ...
 
     @classmethod
@@ -190,7 +191,7 @@ def readHouseAddresses():
     :return: a list of addresses
     """
     addressesRead = []
-    with open("Files/HouseAddresses.txt" , 'r', encoding = 'utf8') as f:
+    with open("Files/HouseAddresses.txt", 'r', encoding='utf8') as f:
         for line in f:
             if line == "\n":
                 continue
@@ -245,8 +246,11 @@ def deleteAll(tx):
     :return: nothing
     """
     query = (
-        "MATCH (n) "
-        "DETACH DELETE n"
+
+        "MATCH(p1:Person)-[a:APP_CONTACT]->(p2:Person)"
+        "WHERE a.date < date() - duration({Days: 10}) OR (a.date = date() - duration({Days: 10}) AND a.hour < time())"
+        "DELETE a"
+
     )
 
     tx.run(query)
@@ -444,25 +448,25 @@ def createFamilies(namesList, surnamesList):
     """
     familiesList = []
     surnameIndex = 0
-    for _ in range(0 , NUMBER_OF_FAMILY):
+    for _ in range(0, NUMBER_OF_FAMILY):
         # Choose a size for the family
-        numberOfMembers = randint(1 , MAX_NUMBER_OF_FAMILY_MEMBER)
+        numberOfMembers = randint(1, MAX_NUMBER_OF_FAMILY_MEMBER)
         # Family will contain the name in pos 0 and the surname in pos 1
         familyEl = [None] * numberOfMembers
         casualFamily = False
-        for j in range(0 , len(familyEl)):
+        for j in range(0, len(familyEl)):
             familyEl[j] = [None] * PersonAttribute.numberOfAttribute()
             # Append a random name
-            name = str(namesList[randint(0 , len(names) - 1)])
+            name = str(namesList[randint(0, len(names) - 1)])
             familyEl[j][int(PersonAttribute.NAME)] = name
             # Append the next surname
             surname = str(surnamesList[surnameIndex])
             familyEl[j][int(PersonAttribute.SURNAME)] = surname
             # Append a random age
             if j == 0:
-                age = randint(18 , 99)
+                age = randint(18, 99)
             else:
-                age = randint(1 , 99)
+                age = randint(1, 99)
             familyEl[j][int(PersonAttribute.AGE)] = age
             # Append the mail
             mail = name.lower() + "." + surname.lower() + str(age) + "@immunoPoli.it"
@@ -470,8 +474,8 @@ def createFamilies(namesList, surnamesList):
             familyEl[j][int(PersonAttribute.MAIL)] = mail
             # Append the phone number
             number = 0
-            for i in range(0 , PHONE_NUMBER_LENGTH):
-                number += randint(0 , 9) * 10 ** i
+            for i in range(0, PHONE_NUMBER_LENGTH):
+                number += randint(0, 9) * 10 ** i
             familyEl[j][int(PersonAttribute.NUMBER)] = number
             # Append the app attribute
             if random() < PROBABILITY_TO_HAVE_APP:
@@ -482,7 +486,7 @@ def createFamilies(namesList, surnamesList):
 
             # In every family there will be at least 2 surnames
             # In case of friends living together there is a probability of 30% to have more than 2 surnames in a family
-            if j == 0 and randint(0 , 100) < 30:  # Family of not familiar
+            if j == 0 and randint(0, 100) < 30:  # Family of not familiar
                 casualFamily = True
             if j == 0 or (numberOfMembers > 2 and casualFamily):
                 surnameIndex += 1
@@ -495,55 +499,57 @@ def createFamilies(namesList, surnamesList):
     return familiesList
 
 
-def createNodesFamily(familiesList , houseAddressesList):
+def createNodesFamily(familiesList, houseAddressesList):
     """
     Method that append some command to the general query
     :param houseAddressesList: is the list containing addresses ofr houses
     :param familiesList: is the list of families
     :return: nothing
     """
-    creationQuery = []       # Query that will contains all the queries for the node creation
+    creationQuery = []  # Query that will contains all the queries for the node creation
     relationshipsQuery = []  # Query that will contains all the queries for the relationship creation
     for familyEl in familiesList:
         for memberEl in familyEl:
             currentQuery = (
-                "CREATE (p:Person {name: \"" + str(memberEl[int(PersonAttribute.NAME)]) + "\" , surname: \"" +
-                str(memberEl[int(PersonAttribute.SURNAME)]) + "\" , age: \"" + str(memberEl[int(PersonAttribute.AGE)]) +
-                "\" , mail: \"" + str(memberEl[int(PersonAttribute.MAIL)]) + "\" , number: \"" +
-                str(memberEl[int(PersonAttribute.NUMBER)]) + "\" , app: \"" +
-                str(memberEl[int(PersonAttribute.APP)]) + "\"}); "
+                    "CREATE (p:Person {name: \"" + str(memberEl[int(PersonAttribute.NAME)]) + "\" , surname: \"" +
+                    str(memberEl[int(PersonAttribute.SURNAME)]) + "\" , age: \"" + str(
+                memberEl[int(PersonAttribute.AGE)]) +
+                    "\" , mail: \"" + str(memberEl[int(PersonAttribute.MAIL)]) + "\" , number: \"" +
+                    str(memberEl[int(PersonAttribute.NUMBER)]) + "\" , app: \"" +
+                    str(memberEl[int(PersonAttribute.APP)]) + "\"}); "
             )
             creationQuery.append(currentQuery)
         # Create the name of the house
         memberFamily = familyEl[0]
         familyName = memberFamily[PersonAttribute.NAME] + " " + memberFamily[PersonAttribute.SURNAME] + " house"
-        addressIndex = randint(0 , len(houseAddressesList) - 1)
+        addressIndex = randint(0, len(houseAddressesList) - 1)
         address = houseAddressesList[addressIndex]
-        civicNumber = randint(0 , MAX_CIVIC_NUMBER)
+        civicNumber = randint(0, MAX_CIVIC_NUMBER)
         currentQuery = (
-            "CREATE (h:House {name: \"" + str(familyName) + "\" , address: \"" + str(address[HouseAttribute.ADDRESS]) +
-            "\",  civic_number: \"" + str(civicNumber) + "\" , CAP: \"" + str(address[HouseAttribute.CAP]) +
-            "\", city:  \"" + str(address[HouseAttribute.CITY]) + "\" , province: \""
-            + str(address[HouseAttribute.PROVINCE]) + "\"}); "
+                "CREATE (h:House {name: \"" + str(familyName) + "\" , address: \"" + str(
+            address[HouseAttribute.ADDRESS]) +
+                "\",  civic_number: \"" + str(civicNumber) + "\" , CAP: \"" + str(address[HouseAttribute.CAP]) +
+                "\", city:  \"" + str(address[HouseAttribute.CITY]) + "\" , province: \""
+                + str(address[HouseAttribute.PROVINCE]) + "\"}); "
         )
         creationQuery.append(currentQuery)
 
         # Create the LIVE relationships
         for memberEl in familyEl:
             currentQuery = (
-                "MATCH (p:Person) , (h:House) "
-                "WHERE p.name = \"" + str(memberEl[int(PersonAttribute.NAME)]) +
-                "\" AND p.surname = \"" + str(memberEl[int(PersonAttribute.SURNAME)]) + "\" AND p.age= \"" +
-                str(memberEl[int(PersonAttribute.AGE)]) + "\" AND h.name = \"" + str(familyName) +
-                "\" AND h.address = \"" + str(address[HouseAttribute.ADDRESS]) + "\" AND h.civic_number = \"" +
-                str(civicNumber) + "\" AND h.CAP = \"" + str(address[HouseAttribute.CAP]) +
-                "\" AND h.city = \"" + str(address[HouseAttribute.CITY]) + "\" AND h.province = \"" +
-                str(address[HouseAttribute.PROVINCE]) + "\" "
-                "CREATE (p)-[:LIVE]->(h);"
+                    "MATCH (p:Person) , (h:House) "
+                    "WHERE p.name = \"" + str(memberEl[int(PersonAttribute.NAME)]) +
+                    "\" AND p.surname = \"" + str(memberEl[int(PersonAttribute.SURNAME)]) + "\" AND p.age= \"" +
+                    str(memberEl[int(PersonAttribute.AGE)]) + "\" AND h.name = \"" + str(familyName) +
+                    "\" AND h.address = \"" + str(address[HouseAttribute.ADDRESS]) + "\" AND h.civic_number = \"" +
+                    str(civicNumber) + "\" AND h.CAP = \"" + str(address[HouseAttribute.CAP]) +
+                    "\" AND h.city = \"" + str(address[HouseAttribute.CITY]) + "\" AND h.province = \"" +
+                    str(address[HouseAttribute.PROVINCE]) + "\" "
+                                                            "CREATE (p)-[:LIVE]->(h);"
             )
             relationshipsQuery.append(currentQuery)
 
-    return creationQuery , relationshipsQuery
+    return creationQuery, relationshipsQuery
 
 
 def createNodeLocations(locationsList):
@@ -555,13 +561,13 @@ def createNodeLocations(locationsList):
     locationsQuery = []
     for locationEl in locationsList:
         currentQuery = (
-            "CREATE (l:Location {name: \"" + str(locationEl[int(LocationAttribute.NAME)]) + "\" , type: \"" +
-            str(locationEl[int(LocationAttribute.TYPE)]) + "\" , address: \"" +
-            str(locationEl[int(LocationAttribute.ADDRESS)]) + "\" , civic_number: \"" +
-            str(locationEl[int(LocationAttribute.CIVIC_NUMBER)]) + "\", CAP: \"" +
-            str(locationEl[int(LocationAttribute.CAP)]) + "\" , city: \"" +
-            str(locationEl[int(LocationAttribute.CITY)]) + "\" , province: \"" +
-            str(locationEl[int(LocationAttribute.PROVINCE)]) + "\"}); "
+                "CREATE (l:Location {name: \"" + str(locationEl[int(LocationAttribute.NAME)]) + "\" , type: \"" +
+                str(locationEl[int(LocationAttribute.TYPE)]) + "\" , address: \"" +
+                str(locationEl[int(LocationAttribute.ADDRESS)]) + "\" , civic_number: \"" +
+                str(locationEl[int(LocationAttribute.CIVIC_NUMBER)]) + "\", CAP: \"" +
+                str(locationEl[int(LocationAttribute.CAP)]) + "\" , city: \"" +
+                str(locationEl[int(LocationAttribute.CITY)]) + "\" , province: \"" +
+                str(locationEl[int(LocationAttribute.PROVINCE)]) + "\"}); "
         )
         locationsQuery.append(currentQuery)
     return locationsQuery
@@ -598,7 +604,7 @@ def createNodeTests(testsList):
     return testsQuery
 
 
-def createRelationshipsAppContact(d , pIds):
+def createRelationshipsAppContact(d, pIds):
     """
     Method that creates random relationship
     :param d: is the connection (driver)
@@ -608,11 +614,11 @@ def createRelationshipsAppContact(d , pIds):
     # Create the number of app contact for the day
     numOfContact = MAX_NUMBER_OF_CONTACT
 
-    for _ in range(0 , numOfContact):
+    for _ in range(0, numOfContact):
         # Choose two random people
-        randomIndex = randint(0 , len(pIds) - 1)
+        randomIndex = randint(0, len(pIds) - 1)
         pId1 = pIds[randomIndex]
-        randomIndex = randint(0 , len(pIds) - 1)
+        randomIndex = randint(0, len(pIds) - 1)
         pId2 = pIds[randomIndex]
         # Choose the hour/date
         # Verify if it's the same node
@@ -647,10 +653,10 @@ def createRelationshipsAppContact(d , pIds):
         )
         # Execute the query
         with d.session() as s:
-            s.write_transaction(createContact , query , pId1 , pId2 , hour , date)
+            s.write_transaction(createContact, query, pId1, pId2, hour, date)
 
 
-def createRelationshipsVisit(d , pIds , lIds):
+def createRelationshipsVisit(d, pIds, lIds):
     """
     Method that creates VISIT relationships
     :param d: is the connection (driver)
@@ -661,10 +667,10 @@ def createRelationshipsVisit(d , pIds , lIds):
     # Choose how many new visit relationships
     numberOfVisits = MAX_NUMBER_OF_VISIT
 
-    for _ in range(0 , numberOfVisits):
-        lIndex = randint(0 , len(lIds) - 1)
+    for _ in range(0, numberOfVisits):
+        lIndex = randint(0, len(lIds) - 1)
         locationId = lIds[lIndex]
-        pIndex = randint(0 , len(pIds) - 1)
+        pIndex = randint(0, len(pIds) - 1)
         personId = pIds[pIndex]
         # Choose the hour/date
 
@@ -705,7 +711,7 @@ def createRelationshipsVisit(d , pIds , lIds):
         # Execute the query
 
         with d.session() as s:
-            s.write_transaction(createVisit , query , personId , locationId , date , startHour , endHour)
+            s.write_transaction(createVisit, query, personId, locationId, date, startHour, endHour)
 
 
 def validateDate(d, date, personId, hour):
@@ -840,7 +846,7 @@ def createRelationshipsMakeTest(d, pIds, tIds):
                                     personId, string_date, hour)
         # Execute the query
         with d.session() as s:
-            s.write_transaction(createMakingTest, query, personId, testId, string_date,hour,result)
+            s.write_transaction(createMakingTest, query, personId, testId, string_date, hour, result)
 
 
 def delete_possible_infection(tx, command, personId, date, hour):
@@ -851,10 +857,10 @@ def delete_possible_infection(tx, command, personId, date, hour):
     :param date: date of the test
     :param hour: hour of the test
     """
-    tx.run(command, personId = personId, date = date, hour = hour)
+    tx.run(command, personId=personId, date=date, hour=hour)
 
 
-def createVisit(tx , query , personId , locationId , date , startHour , endHour):
+def createVisit(tx, query, personId, locationId, date, startHour, endHour):
     """
     Method that executes the query to create a VISIT relationship
     :param endHour: ending time of the visit
@@ -866,8 +872,8 @@ def createVisit(tx , query , personId , locationId , date , startHour , endHour)
     :param locationId: is the id of the Location
     :return: nothing
     """
-    tx.run(query , personId = personId , locationId = locationId , date = date , startHour = startHour ,
-           endHour = endHour)
+    tx.run(query, personId=personId, locationId=locationId, date=date, startHour=startHour,
+           endHour=endHour)
 
 
 def createGettingVaccine(tx, query, personId, vaccineId, date, country, expDate):
@@ -896,7 +902,7 @@ def gettingNumberVaccines(tx, query, personId):
     return tx.run(query, personId=personId).data()
 
 
-def createMakingTest(tx, query, personId, testId, date, hour , result):
+def createMakingTest(tx, query, personId, testId, date, hour, result):
     """
     Method that executes the query to create a VISIT relationship
     :param tx: is the transaction
@@ -908,7 +914,7 @@ def createMakingTest(tx, query, personId, testId, date, hour , result):
     :param result: result of the test
     :return: nothing
     """
-    tx.run(query, personId=personId, testId=testId, date=date, hour=hour , result=result)
+    tx.run(query, personId=personId, testId=testId, date=date, hour=hour, result=result)
 
 
 def findAllPositivePerson():
@@ -995,12 +1001,9 @@ def createRelationshipsInfect(id, test_date, test_hour, daysBack):
                 # Take just the id
                 infectedIds.append(el[0]['ID(ip)'])
 
-
         infectedIds = []
         for el in familyInfected:
-
             infectedIds.append(el['ID(ip)'])
-
 
         for infectedId in infectedIds:
             query = (
@@ -1008,7 +1011,7 @@ def createRelationshipsInfect(id, test_date, test_hour, daysBack):
                 "WHERE ID(pp) = $id AND ID(ip) = $ipid "
                 "CREATE (pp)-[:COVID_EXPOSURE{date:date($date)}]->(ip);"
             )
-            s.write_transaction(createInfectFamily , query , id , infectedId, date.strftime("%Y-%m-%d"))
+            s.write_transaction(createInfectFamily, query, id, infectedId, date.strftime("%Y-%m-%d"))
 
         infectedIds = []
         for el in appInfected:
@@ -1017,14 +1020,13 @@ def createRelationshipsInfect(id, test_date, test_hour, daysBack):
             details.append(el['r1.date'])
             infectedIds.append(details)
 
-
-        for infectedId , infectedDate in infectedIds:
+        for infectedId, infectedDate in infectedIds:
             query = (
                 "MATCH (pp:Person) , (ip:Person) "
                 "WHERE ID(pp) = $id AND ID(ip) = $ipid "
                 "CREATE (pp)-[:COVID_EXPOSURE{date: date($date)}]->(ip);"
             )
-            s.write_transaction(createInfectApp , query , id , infectedId , infectedDate)
+            s.write_transaction(createInfectApp, query, id, infectedId, infectedDate)
 
         infectedIds = []
 
@@ -1035,14 +1037,13 @@ def createRelationshipsInfect(id, test_date, test_hour, daysBack):
             details.append(el['l.name'])
             infectedIds.append(details)
 
-
-        for infectedId , infectedDate , infectedPlace in infectedIds:
+        for infectedId, infectedDate, infectedPlace in infectedIds:
             query = (
                 "MATCH (pp:Person) , (ip:Person) "
                 "WHERE ID(pp) = $id AND ID(ip) = $ipid "
                 "CREATE (pp)-[:COVID_EXPOSURE{date: date($date) , name: $name}]->(ip);"
             )
-            s.write_transaction(createInfectLocation , query , id , infectedId , infectedDate , infectedPlace)
+            s.write_transaction(createInfectLocation, query, id, infectedId, infectedDate, infectedPlace)
 
 
 def delete_negative_after_exposure():
@@ -1056,39 +1057,39 @@ def delete_negative_after_exposure():
         session.run(query)
 
 
-def createInfectFamily(tx , query , id , ipid, date):
+def createInfectFamily(tx, query, id, ipid, date):
     """
     Method that create the relationship Infect
     """
-    tx.run(query , id = id , ipid = ipid, date = date)
+    tx.run(query, id=id, ipid=ipid, date=date)
 
 
-def createInfectApp(tx , query , id , ipid , date):
+def createInfectApp(tx, query, id, ipid, date):
     """
     Method that create the relationship Infect
     """
-    tx.run(query , id = id , ipid = ipid , date  = date)
+    tx.run(query, id=id, ipid=ipid, date=date)
 
 
-def createInfectLocation(tx , query , id , ipid , date , name):
+def createInfectLocation(tx, query, id, ipid, date, name):
     """
     Method that create the relationship Infect
     """
-    tx.run(query , id = id , ipid = ipid , date = date , name = name)
+    tx.run(query, id=id, ipid=ipid, date=date, name=name)
 
 
-def findInfectInFamily(tx , query , id):
+def findInfectInFamily(tx, query, id):
     """
     Method that executes the query to find the infected member of a family
     :param tx: is the transaction
     :param query: is the query to execute
     :param id: is the id of the positive Person
     """
-    result = tx.run(query , id = id).data()
+    result = tx.run(query, id=id).data()
     return result
 
 
-def findInfect(tx , query , id , date, hour):
+def findInfect(tx, query, id, date, hour):
     """
     Method that executes the query to find the Person infected by other Persons
     :param tx: is the transaction
@@ -1096,11 +1097,11 @@ def findInfect(tx , query , id , date, hour):
     :param id: is the id of the positive Person
     :param date: is the date from wich start the tracking
     """
-    result = tx.run(query , id = id , date = date, hour = hour).data()
+    result = tx.run(query, id=id, date=date, hour=hour).data()
     return result
 
 
-def createContact(tx, query, pId1, pId2 , hour , date):
+def createContact(tx, query, pId1, pId2, hour, date):
     """
     Method that executes the query to create a CONTACT_APP relationship
     :param date: the date of the contact
@@ -1111,18 +1112,17 @@ def createContact(tx, query, pId1, pId2 , hour , date):
     :param pId2: is the id of the second Person
     :return: nothing
     """
-    tx.run(query , pId1 = pId1 , pId2 = pId2 , hour = hour , date = date)
+    tx.run(query, pId1=pId1, pId2=pId2, hour=hour, date=date)
 
 
-def getPersonIds(withApp = False):
+def getPersonIds(withApp=False):
     """
     Method that retrieves all the ids of Person Node
     :param withApp: if True, retrieve the id of person with app = True
     :return: a list of integer corresponding to the person ids
     """
     with driver.session() as s:
-        ids = s.write_transaction(getPersonId , withApp)
-
+        ids = s.write_transaction(getPersonId, withApp)
 
     pIds = []
     for idEl in ids:
@@ -1131,7 +1131,7 @@ def getPersonIds(withApp = False):
     return pIds
 
 
-def getPersonId(tx , withApp):
+def getPersonId(tx, withApp):
     """
     Method that retrieves the ids of Person in the data base
     :param tx: is the transaction
@@ -1165,7 +1165,6 @@ def getLocationsIds():
     lIds = []
     for idEl in ids:
         lIds.append(idEl["ID(l)"])
-
 
     return lIds
 
@@ -1208,11 +1207,9 @@ def getVaccinesIds():
     with driver.session() as s:
         ids = s.write_transaction(getVaccinesId)
 
-
     vIds = []
     for idEl in ids:
         vIds.append(idEl["ID(v)"])
-
 
     return vIds
 
@@ -1225,11 +1222,9 @@ def getTestsIds():
     with driver.session() as s:
         ids = s.write_transaction(getTestsId)
 
-
     tIds = []
     for idEl in ids:
         tIds.append(idEl["ID(t)"])
-
 
     return tIds
 
@@ -1262,7 +1257,7 @@ def runQuery(tx, query, isReturn=False):
         return result.data()
 
 
-def runQueryWrite(d , queryList):
+def runQueryWrite(d, queryList):
     """
     Method that run a generic query
     :param d: is the connection to the database (driver)
@@ -1271,7 +1266,7 @@ def runQueryWrite(d , queryList):
     """
     for query in queryList:
         with d.session() as s:
-            s.write_transaction(runQuery , query)
+            s.write_transaction(runQuery, query)
 
 
 def runQueryRead(d, query):
@@ -1282,7 +1277,7 @@ def runQueryRead(d, query):
     :return: nothing
     """
     with d.session() as s:
-        results = s.read_transaction(runQuery , query , True)
+        results = s.read_transaction(runQuery, query, True)
     return results
 
 
@@ -1355,11 +1350,9 @@ if __name__ == '__main__':
 
     tests = readTests()
 
-
     # Create the family list
     print("Creating families...")
-    families = createFamilies(names , surnames)
-
+    families = createFamilies(names, surnames)
 
     # Query is an attribute that will contain the whole query to instantiate the database
     generalQuery = []
@@ -1385,8 +1378,6 @@ if __name__ == '__main__':
     # Adds the relationships queries to the generalQuery
     for subQuery in rQuery:
         generalQuery.append(subQuery)
-
-
 
     # Delete the nodes already present
     with driver.session() as session:
