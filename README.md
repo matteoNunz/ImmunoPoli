@@ -45,7 +45,7 @@ The dataset is drawn from a random generator. It allows enforcing parameters suc
 To generate a new dataset on Neo4j Aura type the following command in the terminal:
 
 ```sh
-pyhton3 DataBaseGenerator.py
+python3 DataBaseGenerator.py
 ```
 
 ### Neo4j Aura 
@@ -95,7 +95,8 @@ The User can:
 - visualize the list of palaces he visited
 
 ### Application Login 
-To access the application the IDs are needed. Here there is the list of the IDs to sign in.
+To access the application the IDs are needed. Here there is the list of some IDs to sign in.
+Other IDs can be retrieved by looking for them as Person ID inside the Neo4j database.
 <div style="text-align: center;">
 
 | App Manager/User | Location Manager
