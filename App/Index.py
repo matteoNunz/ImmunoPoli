@@ -1902,7 +1902,7 @@ def ct_value_check(date_initial, ID_personal, hour_initial, testId_initial, resu
         delete_contact_exposure(session, ID)
 
     elif result == "Positive":
-        createRelationshipsInfect(ID, date_initial, 10)
+        createRelationshipsInfect(ID, date_initial, hour_initial,10)
 
     create_add_ct()
 
@@ -1925,7 +1925,7 @@ def save_pi_changes(phone, email):
         create_pi()
 
     if phone == '':
-        int_phone = personal_information[4]
+        phone = personal_information[4]
     else:
         try:
             int_phone = int(phone)
@@ -1973,18 +1973,18 @@ def save_pi_changes(phone, email):
                 font=("Comfortaa Regular", 10 * -1)
             )
             return
-
-    count = check_if_mail_exist(session, email)
-    if count > 0:
-        error = canvas.create_text(
-            338,
-            322,
-            anchor="nw",
-            text="ERROR: \nemail exists yet ",
-            fill="#CA0000",
-            font=("Comfortaa Regular", 10 * -1)
-        )
-        return
+        else:
+            count = check_if_mail_exist(session, email)
+            if count > 0:
+                error = canvas.create_text(
+                    338,
+                    322,
+                    anchor="nw",
+                    text="ERROR: \nemail exists yet ",
+                    fill="#CA0000",
+                    font=("Comfortaa Regular", 10 * -1)
+                )
+                return
 
     new_fields_pi.append(phone)
     new_fields_pi.append(email)
