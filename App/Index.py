@@ -808,7 +808,9 @@ def find_covid_tests_by_ID(tx, ID):
     query = (
         "MATCH(p: Person)-[r:MAKE_TEST]->(n:Test) "
         "WHERE id(p) = $ID "
-        "RETURN n.name, r.date, r.hour, r.result"
+        "RETURN n.name, r.date, r.hour, r.result "
+        "ORDER BY r.date DESC "
+        "LIMIT 10"
     )
 
     result = tx.run(query, ID=ID)
@@ -834,6 +836,8 @@ def find_covid_exposures_by_ID(tx, ID):
         "MATCH (p: Person)-[i:COVID_EXPOSURE]->(p1:Person) "
         "WHERE id(p1) = $ID "
         "RETURN i.date, i.name "
+        "ORDER BY i.date DESC "
+        "LIMIT 10"
     )
 
     global exposures
@@ -857,7 +861,9 @@ def find_place_visited(tx, ID):
     query = (
         "MATCH (p:Person)-[r:VISIT]->(l:Location) "
         "WHERE id(p) = $ID  "
-        "RETURN r.date, l.name, r.start_hour, r.end_hour, id(l)"
+        "RETURN r.date, l.name, r.start_hour, r.end_hour, id(l) "
+        "ORDER BY r.date DESC "
+        "LIMIT 10"
     )
 
     result = tx.run(query, ID=ID)
