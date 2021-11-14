@@ -9,28 +9,29 @@ import App.PlotDBStructure as ps
 from random import randint, random
 from enum import IntEnum
 import datetime
+MAX_CIVIC_NUMBER = 100
+PHONE_NUMBER_LENGTH = 10
 
 MAX_NUMBER_OF_FAMILY_MEMBER = 5
 NUMBER_OF_FAMILY = 150
+
 MAX_NUMBER_OF_CONTACT = 1000  # For new contact relationships
-
 MAX_NUMBER_OF_VISIT = 5000  # For new visit relationships
+MAX_NUMBER_OF_VACCINE = 750  # For new get vaccinated relationships
+MAX_NUMBER_OF_TEST = 4000  # For new make test relationships
 
-MAX_CIVIC_NUMBER = 100
-
-PHONE_NUMBER_LENGTH = 10
 
 PROBABILITY_TO_HAVE_APP = 0.5
 PROBABILITY_TO_BE_POSITIVE = 0.5
 PROBABILITY_TO_BE_TESTED_AFTER_INFECTED = 0.8
 
-MAX_NUMBER_OF_VACCINE = 750  # For new get vaccinated relationships
-
-MAX_NUMBER_OF_TEST = 4000  # For new make test relationships
-
 MAX_NUMBER_OF_ATTEMPTS_FOR_VALID_DATE = 15
 
 
+CONTACT_DAYS_BACKS = 10
+VISITS_DAYS_BACKS = 150
+VACCINES_DAYS_BACKS = 150
+TESTS_DAYS_BACKS = 150
 # BOLT = "bolt://localhost:7687"
 # PASSWORD = "991437"
 
@@ -617,7 +618,7 @@ def createRelationshipsAppContact(d , pIds):
         # Verify if it's the same node
         if pId1 == pId2:
             continue
-        date = datetime.date.today() - datetime.timedelta(days=randint(0, 10))
+        date = datetime.date.today() - datetime.timedelta(days=randint(0, CONTACT_DAYS_BACKS))
         date = date.strftime("%Y-%m-%d")
         h = randint(0, 23)
         minutes = randint(0, 59)
@@ -667,7 +668,7 @@ def createRelationshipsVisit(d , pIds , lIds):
         personId = pIds[pIndex]
         # Choose the hour/date
 
-        date = datetime.date.today() - datetime.timedelta(days=randint(0, 150))
+        date = datetime.date.today() - datetime.timedelta(days=randint(0, VISITS_DAYS_BACKS))
         date = date.strftime("%Y-%m-%d")
         h = randint(0, 22)
         minutes = randint(0, 59)
@@ -749,7 +750,7 @@ def createRelationshipsGetVaccine(d, pIds, vIds):
         vaccineId = vIds[vIndex]
         pIndex = randint(0, len(pIds) - 1)
         personId = pIds[pIndex]
-        date = datetime.date.today() - datetime.timedelta(days=randint(0, 150))
+        date = datetime.date.today() - datetime.timedelta(days=randint(0, VACCINES_DAYS_BACKS))
         country = "Italy"
         # For the future: maybe do a random country
         # Ask to  neo4j server how many vaccines the user did
@@ -807,7 +808,7 @@ def createRelationshipsMakeTest(d, pIds, tIds):
         testId = tIds[tIndex]
         pIndex = randint(0, len(pIds) - 1)
         personId = pIds[pIndex]
-        date = datetime.date.today() - datetime.timedelta(days=randint(0, 150))
+        date = datetime.date.today() - datetime.timedelta(days=randint(0, TESTS_DAYS_BACKS))
         h = randint(0, 23)
         minutes = randint(0, 59)
         if minutes < 10:
