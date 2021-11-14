@@ -47,7 +47,6 @@ To start the application type the following command in the terminal:
 
 ```sh
 pyhton3 App/Index.py
-
 ```
 ![front page](App/Images/index.png?raw=true)
 
@@ -66,4 +65,17 @@ The User can:
 - visualize covid alerts 
 - visualize the list of palaces he visited
 
+## Application Login 
+To access the application the IDs is needed. Here there is the list of the IDs to sign in.
+<div style="text-align: center;">
 
+| App Manager/User | Location Manager
+| ---------------- | --------------- |
+|       2878       |      3148
+|       2822       | 3168
+|       3126       | 3203
+|       2506       | 3220
+|       2575       | 3228
+|       2783       | 3169
+
+</div>
