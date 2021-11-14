@@ -12,7 +12,7 @@ import datetime
 
 MAX_NUMBER_OF_FAMILY_MEMBER = 5
 NUMBER_OF_FAMILY = 150
-MAX_NUMBER_OF_CONTACT= 2000  # For new contact relationships
+MAX_NUMBER_OF_CONTACT = 1000  # For new contact relationships
 
 MAX_NUMBER_OF_VISIT = 5000  # For new visit relationships
 
@@ -24,11 +24,11 @@ PROBABILITY_TO_HAVE_APP = 0.5
 PROBABILITY_TO_BE_POSITIVE = 0.5
 PROBABILITY_TO_BE_TESTED_AFTER_INFECTED = 0.8
 
-MAX_NUMBER_OF_VACCINE = 2000  # For new get vaccinated relationships
+MAX_NUMBER_OF_VACCINE = 750  # For new get vaccinated relationships
 
 MAX_NUMBER_OF_TEST = 4000  # For new make test relationships
 
-MAX_NUMBER_OF_ATTEMPTS_FOR_VALID_DATE = 25
+MAX_NUMBER_OF_ATTEMPTS_FOR_VALID_DATE = 15
 
 
 # BOLT = "bolt://localhost:7687"
@@ -765,14 +765,14 @@ def createRelationshipsGetVaccine(d, pIds, vIds):
         if len(datas) == 0:
             string2 = str(date + datetime.timedelta(days=28)).split("-")
             expDate = datetime.date(int(string2[0]), int(string2[1]), int(string2[2]))
-            print("Exp date is: ", expDate)
+
         else:
             if len(datas) == 1:
                 string1 = str(datas[0]["date"]).split("-")
                 date = datetime.date(int(string1[0]), int(string1[1]), int(string1[2]))
                 string2 = str(date + datetime.timedelta(days=365)).split("-")
                 expDate = datetime.date(int(string2[0]), int(string2[1]), int(string2[2]))
-                print("Exp date is: " , expDate)
+
                 vaccineId = datas[0]["vaccineID"]
             else:
                 continue
@@ -988,24 +988,18 @@ def createRelationshipsInfect(id, test_date, test_hour, daysBack):
         familyInfected = s.read_transaction(findInfectInFamily, familyQuery, id)
         appInfected = s.read_transaction(findInfect, appContactQuery, id, date, test_hour)
         locationInfected = s.read_transaction(findInfect, locationContactQuery, id, date, test_hour)
-        print(familyInfected)
+
         for el in familyInfected, appInfected, locationInfected:
             if len(el) > 0:
                 # Take just the id
                 infectedIds.append(el[0]['ID(ip)'])
-        print("Family infected by " + str(id))
-        print(familyInfected)
-        print("App infected by " + str(id))
-        print(appInfected)
-        print("Location infected by " + str(id))
-        print(locationInfected)
+
 
         infectedIds = []
         for el in familyInfected:
-            print("Person is: ", el['ID(ip)'])
+
             infectedIds.append(el['ID(ip)'])
-        print("Family infected by ", str(id))
-        print(infectedIds)
+
 
         for infectedId in infectedIds:
             query = (
@@ -1021,8 +1015,7 @@ def createRelationshipsInfect(id, test_date, test_hour, daysBack):
             details.append(el['ID(ip)'])
             details.append(el['r1.date'])
             infectedIds.append(details)
-        print("App infected by " + str(id))
-        print(infectedIds)
+
 
         for infectedId , infectedDate in infectedIds:
             query = (
@@ -1033,15 +1026,14 @@ def createRelationshipsInfect(id, test_date, test_hour, daysBack):
             s.write_transaction(createInfectApp , query , id , infectedId , infectedDate)
 
         infectedIds = []
-        print(locationInfected)
+
         for el in locationInfected:
             details = []
             details.append(el['ID(ip)'])
             details.append(el['r1.date'])
             details.append(el['l.name'])
             infectedIds.append(details)
-        print("Location infected by " + str(id))
-        print(infectedIds)
+
 
         for infectedId , infectedDate , infectedPlace in infectedIds:
             query = (
@@ -1129,12 +1121,11 @@ def getPersonIds(withApp = False):
     """
     with driver.session() as s:
         ids = s.write_transaction(getPersonId , withApp)
-    print(ids)
+
 
     pIds = []
     for idEl in ids:
         pIds.append(idEl["ID(p)"])
-    print(pIds)
 
     return pIds
 
@@ -1169,12 +1160,11 @@ def getLocationsIds():
     """
     with driver.session() as s:
         ids = s.write_transaction(getLocationsId)
-    print(ids)
 
     lIds = []
     for idEl in ids:
         lIds.append(idEl["ID(l)"])
-    print(lIds)
+
 
     return lIds
 
@@ -1216,12 +1206,12 @@ def getVaccinesIds():
     """
     with driver.session() as s:
         ids = s.write_transaction(getVaccinesId)
-    print(ids)
+
 
     vIds = []
     for idEl in ids:
         vIds.append(idEl["ID(v)"])
-    print(vIds)
+
 
     return vIds
 
@@ -1233,12 +1223,12 @@ def getTestsIds():
     """
     with driver.session() as s:
         ids = s.write_transaction(getTestsId)
-    print(ids)
+
 
     tIds = []
     for idEl in ids:
         tIds.append(idEl["ID(t)"])
-    print(tIds)
+
 
     return tIds
 
@@ -1279,8 +1269,6 @@ def runQueryWrite(d , queryList):
     :return: nothing
     """
     for query in queryList:
-        print("Executing query: ")
-        print(query)
         with d.session() as s:
             s.write_transaction(runQuery , query)
 
@@ -1352,24 +1340,25 @@ if __name__ == '__main__':
 
     # Read names from the file
     names = readNames()
-    print("Names read")
+
     # Read surnames from the file
     surnames = readSurnames()
-    print("Surnames read")
+
     # Read locations
     locations = readLocations()
-    print("Locations read")
+
     # Read house addresses
     houseAddresses = readHouseAddresses()
-    print("House addresses read")
+
     vaccines = readVaccines()
-    print("Vaccines read")
+
     tests = readTests()
-    print("Tests read")
+
 
     # Create the family list
+    print("Creating families...")
     families = createFamilies(names , surnames)
-    print("Families created")
+
 
     # Query is an attribute that will contain the whole query to instantiate the database
     generalQuery = []
@@ -1396,8 +1385,7 @@ if __name__ == '__main__':
     for subQuery in rQuery:
         generalQuery.append(subQuery)
 
-    print("The final query is: ")
-    print(generalQuery)
+
 
     # Delete the nodes already present
     with driver.session() as session:
@@ -1408,13 +1396,15 @@ if __name__ == '__main__':
 
     # Generate random tests
     # Take tests ids
+    print("Creating random tests...")
     testsIds = getTestsIds()
     personIds = getPersonIds()
-    # Generate the relationship
+    # # Generate the relationship
     createRelationshipsMakeTest(driver, personIds, testsIds)
 
     # Generate random contacts with app tracing
     # Take Person ids of people with app attribute equal to True)
+    print("Creating random app contact relationships...")
     personIds = getPersonIds(True)
     # Generate the relationships
     createRelationshipsAppContact(driver, personIds)
@@ -1422,26 +1412,27 @@ if __name__ == '__main__':
     # Generate random visits
     # Take Location ids
     locationIds = getLocationsIds()
-    personId = getPersonIds()
+    personIds = getPersonIds()
     # Generate the relationship
-    createRelationshipsVisit(driver, personId, locationIds)
+    print("Creating random visit relationships...")
+    createRelationshipsVisit(driver, personIds, locationIds)
 
     # Generate random vaccines
     # Take vaccines ids
     vaccineIds = getVaccinesIds()
+    print("Creating random vaccines...")
     # Generate the relationship
     createRelationshipsGetVaccine(driver, personIds, vaccineIds)
 
     # Verify the nodes are been created
-    with driver.session() as session:
-        numberOfNodes = session.read_transaction(countAll)
-    print("Number of nodes: " + str(numberOfNodes))
+    # with driver.session() as session:
+    #     numberOfNodes = session.read_transaction(countAll)
+    # print("Number of nodes: " + str(numberOfNodes))
 
     # Find all the positive Person
     data_for_positive = findAllPositivePerson()
-    print("Positive are:")
-    print(data_for_positive)
 
+    print("Creating covid exposure relationships...")
     for positive in data_for_positive:
         positive_id = positive['ID(p)']
         contagion_date = str(positive['infectionDate'])

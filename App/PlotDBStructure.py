@@ -274,7 +274,6 @@ class PlotDBStructure:
         """
         # Show the result
         if len(PlotDBStructure.network.get_nodes()) == 0:
-            print("Empty graph: nothing to show!")
             return
         PlotDBStructure.network.set_edge_smooth('dynamic')
         PlotDBStructure.network.show('graph.html')

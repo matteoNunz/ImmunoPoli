@@ -36,7 +36,6 @@ def textNewNames(lowerNames):
     f = open("Files/Names.txt" , "w" , encoding = 'utf8')
     for name in lowerNames:
         upperName = name[0].upper() + name[1:len(name)]
-        print(upperName)
         f.write(upperName + "\n")
 
 

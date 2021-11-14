@@ -1512,7 +1512,7 @@ def perform_query(choice):
             ps.PlotDBStructure.setPersonColor('green')
             ps.PlotDBStructure.addStructure(nodesToPrint)
             ps.PlotDBStructure.addStructure(result)
-            print(ps.PlotDBStructure.network.get_nodes())
+            ps.PlotDBStructure.network.get_nodes()
 
     elif choice_number[0] == "2":
         with driver.session() as s:
@@ -1529,7 +1529,7 @@ def perform_query(choice):
             ps.PlotDBStructure.setPersonColor('blue')
             ps.PlotDBStructure.addStructure(nodesToPrint)
             ps.PlotDBStructure.addStructure(result)
-            print(ps.PlotDBStructure.network.get_nodes())
+            ps.PlotDBStructure.network.get_nodes()
 
     elif choice_number[0] == "3":
         with driver.session() as s:
@@ -1598,10 +1598,8 @@ def perform_query(choice):
                 if len(resultOfId) > maxNumOfEl:
                     maxNumOfEl = len(resultOfId)
                     idMax = el['ID(p)']
-                print("Person:" + str(el['ID(p)']) + " has a tree size of " + str(len(resultOfId)))
 
-            print("\n\n")
-            print("IdMax is: " , idMax)
+
 
             result = s.read_transaction(tree_of_exposures , idMax)
             nodeToPrint = []
