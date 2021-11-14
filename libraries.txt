@@ -5,7 +5,3 @@ matplotlib
 pandas
 numpy
 datetime
-os
-platform
-pathlib
-webbrowser

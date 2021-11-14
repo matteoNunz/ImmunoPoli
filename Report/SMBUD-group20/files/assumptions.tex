@@ -3,13 +3,13 @@ The project relies on the hypotheses described below:
 
 \begin{enumerate}
     \item All information provided by people is truthful.
-    \item \label{assumption_2} Noone visits a place knowing that their last test is positive. 
+    \item \label{assumption_2} No one visits a place knowing that their last test is positive. 
     \item The limit for the number of vaccine doses injectable is \emph{two}.
     \item There is no house inhabited by underage people only.
     \item The people are prevented from changing their residence address.
-    \item The period ranging from virus incubation to test outcome acknowledgement is \emph{seven days}. It means that to be declared safe, each user needs a negative swab after at least seven days from the covid exposure.
-    \item Every address is associated with just one house or public place.
-    \item The database includes only entries related to indoor places. Those are assumed to be accessible through a covid certificate vaccination scan. It is reasonable that once a certificate is scanned, all details are shared with our application to create an instance of \textit{visit} relationship. 
+    \item The period ranging from virus incubation to test outcome acknowledgement is \emph{seven days}. It entails that the people who had contact with the positive person, up to seven days before the test, have been potentially exposed to the virus. To be declared safe, each user involved in the exposures needs a negative swab at least seven days after the contact.
     \item Since the \textit{covid exposure} relationship represents a possible contact with the virus, for each user, the actual contagion refers to the last positive swab. 
+    \item Every address is associated with just one house or public place.
+    \item The database includes only entries related to indoor places. Those are assumed to be accessible through a covid certificate vaccination scan. The registration before entering is feasible also by giving own email. Moreover, for those not equipped with the certificate, access is allowed by providing their references. 
 \end{enumerate}    
     

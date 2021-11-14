@@ -18,10 +18,10 @@
 
 \subsection{Relationships}
 \begin{itemize}
-    \item The \textit{\textbf{covid exposure}} relationship represents a \emph{possible viral infection}. Once a positive test is inserted into the database, the system triggers a command\footnote{see section \ref{section: 6} for further details about the command.} to easily find all the people at risk of contagion and notify them of the possible infection. People are obliged to make a swab, and in case of a negative result after at least seven days, the relationship is deleted.
+    \item The \textit{\textbf{covid exposure}} relationship represents a \emph{possible viral infection}. Once a positive test is inserted into the database, the system triggers a command\footnote{see section \ref{section: 6} for further details about the command.} to easily find all the people at risk of contagion and to add an instance of the relationship for all of them. People are obliged to make a swab, and in case of a negative result after at least seven days, the relationship is deleted.
     \item The \textit{\textbf{live}} relationship binds a person with where he resides.
     \item The \textit{\textbf{visit}} relationship involves all the public places where it is more likely that personal information is collected. It serves both realism and simplicity purposes because we don't need to take care of outdoor spots.
     \item The \textit{\textbf{app contact}} relationship gathers all contacts detected by any tracking system that supports localization and applications installation, regardless of its type.
-    \item The \textit{\textbf{make test}} relationship links the user with a tests he has made. It contains information such as the hour, the date and the outcome.
+    \item The \textit{\textbf{make test}} relationship links the user with a test he has made. It contains information such as the hour, the date and the outcome.
     \item The \textit{\textbf{get vaccine}} relationship connects the user to the vaccine he got. As well as \emph{make test}, it is characterized by the date and hour of the injection.
 \end{itemize}

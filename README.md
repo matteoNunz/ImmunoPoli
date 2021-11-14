@@ -32,6 +32,12 @@ To run the application, all the libraries contained in the following file must b
  libraries.txt
 ```
 
+If any of them is missing it can be installed by typing this command in the terminal:
+
+```sh
+ pip install -r libraries.txt
+```
+
 ## Database Generator
 
 The dataset is drawn from a random generator. It allows enforcing parameters such as the number of visits, tests, COVID-19 vaccinations, families and the probability of being positive.
@@ -94,12 +100,12 @@ To access the application the IDs are needed. Here there is the list of the IDs 
 
 | App Manager/User | Location Manager
 | ---------------- | --------------- |
-|       2878       |      3148
-|       2822       | 3168
-|       3126       | 3203
-|       2506       | 3220
-|       2575       | 3228
-|       2783       | 3169
+|    4027          |      4590            
+|    4058          |      4560
+|    4084          |      4551
+|    4307          |      4623
+|    3951          |      4592
+|    4045          |      4588
 
 </div>
 
@@ -109,11 +115,9 @@ To add a new covid test result the test IDs are needed. Here there is the list o
 
 | Test Name        | Test ID 
 | ---------------- | --------------- |
-|                  |                 | 
-|                  |                 |  
-|                  |                 |  
-|                  |                 | 
-|                  |                 |  
-|                  |                 | 
+|   Rapid          |    4653         |
+|   Molecular      |    4654         |   
+|   PCR            |    4655         |
+|   Antibody       |    4656         |
 
 </div>

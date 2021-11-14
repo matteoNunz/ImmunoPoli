@@ -2,6 +2,6 @@
 The dataset is drawn from a random generator. It allows enforcing parameters such as the number of visits, tests, covid vaccinations, families and the probability of being positive. \\
 The generator sequentially builds the graph starting from people, places, families and groups of flatmates. \\
 Families are sets of people with at most two different surnames, whereas flatmates are combined randomly. \\
-Afterwards, it adds all the vaccinations ensuring that the first dose of vaccine grants a one-month validity certification. The second vaccination provide one-year validity certification employing the same vaccine as the first one. \\
+Afterwards, it adds all the vaccinations ensuring that the first dose of vaccine grants a one-month validity certification. The second vaccination provides one-year validity certification employing the same vaccine as the first one. \\
 Then, it builds instances of \textit{make test} relationships. 
 Every time a positivity status is confirmed, we check the previous contacts and the visited places to look for any \textit{covid exposure} relationships. Moreover,  to ensure the assumption in section 2.\ref{assumption_2}, those who have been tested positive are prevented from going out from then on.
