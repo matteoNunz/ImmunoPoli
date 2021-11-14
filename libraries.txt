@@ -1,12 +1,11 @@
-pathlib
+pyvis
 neo4j
 numpy
-tkinter
 matplotlib
 pandas
 numpy
 datetime
-webbrowser
-platform
 os
-
+platform
+pathlib
+webbrowser

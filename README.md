@@ -26,10 +26,10 @@
 
 ## Environment Setup
 
-Download the setup file, navigate to the folder with the setup file and execute the following command:  
+To run the application, all the libraries contained in the following file must be installed:  
 
 ```sh
-pip install -r config_environment.txt
+ libraries.txt
 ```
 
 ## Database Generator
