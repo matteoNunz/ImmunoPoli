@@ -101,7 +101,8 @@ QUERY_OPTIONS = [
     "10 - All people with just one dose of vaccine",
     "11 - All people with two doses of vaccine",
     "12 - All positive people",
-    "13 - Show the entire database"
+    "13 - All visit relationships",
+    "14 - Show the entire database"
 ]
 
 QUERY_OPTIONS_TRENDS = [
@@ -413,6 +414,22 @@ def find_positive(tx):
         """
     )
 
+    result = tx.run(query).data()
+    return result
+
+
+def find_all_visit(tx):
+    """
+      Method that queries the database to find all VISIT relationships
+      :param tx: session
+      :return: nodes of Person , Location
+    """
+    query = (
+        """
+        MATCH (p:Person)-[r:VISIT]->(l:Location)
+        RETURN p , ID(p) , r , r.start_hour , r.end_hour , r.date , l , ID(l)
+        """
+    )
     result = tx.run(query).data()
     return result
 
@@ -1686,6 +1703,24 @@ def perform_query(choice):
             ps.PlotDBStructure.addStructure(result)
 
     elif choice_number[0] == "13":
+        with driver.session() as s:
+            result = s.read_transaction(find_all_visit)
+
+            nodesToPrint = []
+            relationshipsToPrint = []
+            for element in result:
+                elementDict = {'p': element['p'] , 'ID(p)': element['ID(p)']}
+                nodesToPrint.append(elementDict)
+                elementDict = {'l': element['l'] , 'ID(l)': element['ID(l)']}
+                nodesToPrint.append(elementDict)
+                elementDict = {'r': element['r'] , 'ID(n1)': element['ID(p)'] , 'ID(n2)': element['ID(l)'],
+                               'r.date': element['r.date'] , 'r.start_hour': element['r.start_hour'] ,
+                               'r.end_hour': element['r.end_hour']}
+                relationshipsToPrint.append(elementDict)
+            ps.PlotDBStructure.addStructure(nodesToPrint)
+            ps.PlotDBStructure.addStructure(relationshipsToPrint)
+
+    elif choice_number[0] == "14":
         with driver.session() as s:
             personNodes = s.read_transaction(findAllPerson)
             houseNodes = s.read_transaction(findAllHome)

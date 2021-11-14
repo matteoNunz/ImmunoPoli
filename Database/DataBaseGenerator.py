@@ -12,7 +12,7 @@ import datetime
 
 MAX_NUMBER_OF_FAMILY_MEMBER = 5
 NUMBER_OF_FAMILY = 150
-MAX_NUMBER_OF_CONTACT_PER_DAY = 3000  # For new contact relationships
+MAX_NUMBER_OF_CONTACT_PER_DAY = 2000  # For new contact relationships
 
 MAX_NUMBER_OF_VISIT_PER_DAY = 5000  # For new visit relationships
 
@@ -27,6 +27,8 @@ PROBABILITY_TO_BE_TESTED_AFTER_INFECTED = 0.8
 MAX_NUMBER_OF_VACCINE_PER_DAY = 2000  # For new get vaccinated relationships
 
 MAX_NUMBER_OF_TEST_PER_DAY = 4000  # For new make test relationships
+
+MAX_NUMBER_OF_ATTEMPTS_FOR_VALID_DATE = 25
 
 
 # BOLT = "bolt://localhost:7687"
@@ -614,7 +616,7 @@ def createRelationshipsAppContact(d , pIds):
         # Choose the hour/date
         # Verify if it's the same node
         if pId1 == pId2:
-            return
+            continue
         date = datetime.date.today() - datetime.timedelta(days=randint(0, 10))
         date = date.strftime("%Y-%m-%d")
         h = randint(0, 23)
@@ -623,8 +625,8 @@ def createRelationshipsAppContact(d , pIds):
             minutes = "0" + str(minutes)
         hour = str(h) + ":" + str(minutes) + ":00"
         n = 0
-        while (validateDate(d, date, pId1, hour) == False or validateDate(d, date, pId2, hour)==False) and n < 5:
-
+        while not (validateDate(d, date, pId1, hour) or not validateDate(d, date, pId2, hour)) \
+                and n < MAX_NUMBER_OF_ATTEMPTS_FOR_VALID_DATE:
             date = datetime.date.today() - datetime.timedelta(days=randint(0, 20))
             date = date.strftime("%Y-%m-%d")
             h = randint(0, 23)
@@ -633,8 +635,8 @@ def createRelationshipsAppContact(d , pIds):
                 minutes = "0" + str(minutes)
             hour = str(h) + ":" + str(minutes) + ":00"
             n = n + 1
-        if n == 5:
-            return
+        if n == MAX_NUMBER_OF_ATTEMPTS_FOR_VALID_DATE:
+            continue
 
         query = (
             "MATCH (p1:Person) , (p2:Person) "
@@ -678,7 +680,7 @@ def createRelationshipsVisit(d , pIds , lIds):
             minutes = "0" + str(minutes)
         endHour = str(h) + ":" + str(minutes)
         n = 0
-        while validateDate(d, date, personId, endHour) == False and n < 20:
+        while not validateDate(d, date, personId, endHour) and n < MAX_NUMBER_OF_ATTEMPTS_FOR_VALID_DATE:
             date = datetime.date.today() - datetime.timedelta(days=randint(0, 150))
             date = date.strftime("%Y-%m-%d")
             h = randint(0, 22)
@@ -692,10 +694,8 @@ def createRelationshipsVisit(d , pIds , lIds):
                 minutes = "0" + str(minutes)
             endHour = str(h) + ":" + str(minutes)
             n = n + 1
-        if n == 5:
-            return
-        # For the future: here check if in case of more than 1 relationship already present it has a different hour/date
-        # Maybe this can be avoided with MERGE instead of CREATE
+        if n == MAX_NUMBER_OF_ATTEMPTS_FOR_VALID_DATE:
+            continue
         query = (
             "MATCH (p:Person) , (l:Location) "
             "WHERE ID(p) = $personId AND ID(l) = $locationId "
@@ -1392,7 +1392,7 @@ if __name__ == '__main__':
         generalQuery.append(subQuery)
     for subQuery in tQuery:
         generalQuery.append(subQuery)
-    # Adds the relation queries to the generalQuery
+    # Adds the relationships queries to the generalQuery
     for subQuery in rQuery:
         generalQuery.append(subQuery)
 
@@ -1424,7 +1424,7 @@ if __name__ == '__main__':
     locationIds = getLocationsIds()
     personId = getPersonIds()
     # Generate the relationship
-    createRelationshipsVisit(driver, personIds, locationIds)
+    createRelationshipsVisit(driver, personId, locationIds)
 
     # Generate random vaccines
     # Take vaccines ids
@@ -1451,7 +1451,6 @@ if __name__ == '__main__':
         createRelationshipsInfect(positive_id, contagion_datetime, contagion_hour, 7)
     # Search all the infected Person tracked
     delete_negative_after_exposure()
-    trackedPersonIds = []
 
     # Print the whole structure
     printDatabase()
